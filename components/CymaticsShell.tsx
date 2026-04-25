@@ -89,11 +89,8 @@ const CymaticsFrame = memo(
 );
 CymaticsFrame.displayName = 'CymaticsFrame';
 
-function newIframeMountKey() {
-  return typeof crypto !== 'undefined' && crypto.randomUUID
-    ? crypto.randomUUID()
-    : `if-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
+/** Stable across SSR and client (random keys cause React #418 hydration errors on the iframe). */
+const CYMATICS_IFRAME_KEY = 'cymatics-frame';
 
 function readPortalReachedFromStorage(): boolean {
   if (typeof window === 'undefined') return false;
@@ -108,9 +105,8 @@ export function CymaticsShell() {
   const router = useRouter();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const lastPostedJsonRef = useRef<string | null>(null);
-  const [iframeMountKey] = useState(newIframeMountKey);
   const [iframeLoaded, setIframeLoaded] = useState(false);
-  const [reachedPortal, setReachedPortal] = useState(readPortalReachedFromStorage);
+  const [reachedPortal, setReachedPortal] = useState(false);
   const {
     effectiveTier,
     isDevMode: ctxDev,
@@ -227,6 +223,10 @@ export function CymaticsShell() {
     return () => window.removeEventListener('message', onMessage);
   }, [router, subscriptionPaused, isAuthenticated, ctxDev]);
 
+  useEffect(() => {
+    if (readPortalReachedFromStorage()) setReachedPortal(true);
+  }, []);
+
   return (
     <div className="relative min-h-screen w-full bg-[#030508]">
       <SessionTimer />
@@ -236,7 +236,7 @@ export function CymaticsShell() {
         onClose={() => setSignUpModalOpen(false)}
       />
       <CymaticsFrame
-        key={iframeMountKey}
+        key={CYMATICS_IFRAME_KEY}
         ref={iframeRef}
         onLoad={onIframeLoad}
       />
