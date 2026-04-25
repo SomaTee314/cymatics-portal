@@ -54,7 +54,9 @@ function buildSubscriptionMessage(
     sessionMinutes: features.sessionMinutes,
     isDevMode: dev,
     allowFractalVisuals:
-      dev || isVisualModeAvailable(effectiveTier, 'fractalMB'),
+      dev ||
+      isVisualModeAvailable(effectiveTier, 'fractalMB') ||
+      isVisualModeAvailable(effectiveTier, 'fractalJulia'),
     allowMic: dev || hasFeature(effectiveTier, 'micInput'),
     allowCustomHz: dev || hasFeature(effectiveTier, 'customFrequencyInput'),
     exportWatermark: dev ? false : features.exportWatermark,

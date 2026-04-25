@@ -29,8 +29,15 @@ export function getAllowedPresetIndices(tier: UserTier): number[] | null {
 }
 
 export const FREE_SOLFEGGIO: string[] = ['432', '528'];
-/** `balanced` matches aggressionSel / portal visual preset for classic Chladni points */
-export const FREE_VISUAL_MODES: string[] = ['balanced'];
+/**
+ * Iframe `aggressionSel` values. Include Julia (and other fractal presets) for anonymous/free
+ * so the default can be fractalJulia; upgrade prompts remain for other features.
+ */
+export const FREE_VISUAL_MODES: string[] = [
+  'balanced',
+  'fractalMB',
+  'fractalJulia',
+];
 
 export const TIER_FEATURES: Record<UserTier, TierFeatures> = {
   free: {

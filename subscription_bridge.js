@@ -48,7 +48,7 @@
             return {
                 tier: 'free',
                 isDevMode: false,
-                allowFractalVisuals: false,
+                allowFractalVisuals: true,
                 allowMic: false,
                 allowCustomHz: false,
                 allowedPresetIndices: [0, 5, 6],
@@ -465,7 +465,7 @@
             features: {},
             allowedPresetIndices: [0, 5, 6],
             sessionMinutes: 15,
-            allowFractalVisuals: false,
+            allowFractalVisuals: true,
             allowMic: false,
             allowCustomHz: false,
             exportWatermark: true
