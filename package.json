@@ -17,6 +17,7 @@
     "generate:og": "node scripts/generate-og.mjs",
     "migrate": "node scripts/run-migrations.mjs",
     "test:supabase": "node scripts/test-supabase.mjs",
+    "vercel:env:supabase": "node scripts/sync-vercel-supabase-env.mjs",
     "test:polar": "node scripts/test-polar-checkout.mjs",
     "github:push": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/complete-github-push.ps1"
   },
@@ -30,13 +31,15 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "supabase": "^2.84.10",
     "@types/node": "^22.10.0",
+    "@types/pg": "^8.20.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.20",
+    "pg": "^8.20.0",
     "postcss": "^8.4.49",
     "puppeteer": "^24.2.0",
+    "supabase": "^2.84.10",
     "tailwindcss": "^3.4.16",
     "typescript": "^5.7.0"
   }
