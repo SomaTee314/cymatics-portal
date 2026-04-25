@@ -1,5 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import { Space_Grotesk, DM_Sans } from 'next/font/google';
+
+/** Avoid long-lived prerender + edge HIT on HTML for the live domain (stale “old” UI). */
+export const dynamic = 'force-dynamic';
 import { UserProvider } from '@/context/UserContext';
 import { SITE_URL } from '@/lib/site';
 import './globals.css';
