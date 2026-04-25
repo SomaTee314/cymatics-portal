@@ -1,5 +1,6 @@
 'use client';
 
+import { EmailAuthFollowup } from '@/components/EmailAuthFollowup';
 import { authCallbackAbsoluteUrl, authNextFromSearchParam } from '@/lib/auth/auth-redirect';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
@@ -26,9 +27,23 @@ function LoginForm() {
   );
 
   useEffect(() => {
-    if (searchParams.get('error') === 'auth_failed') {
-      setErr('Sign-in link expired or invalid. Please request a new one.');
+    if (searchParams.get('error') !== 'auth_failed') return;
+    const reason = searchParams.get('reason');
+    if (reason === 'pkce') {
+      setErr(
+        'Open the sign-in link in the same browser you used to request it, or enter the 6-digit code from the email below. (Email apps and “link safe” scans often break the link.)',
+      );
+      return;
     }
+    if (reason === 'expired' || reason === 'exchange') {
+      setErr('This sign-in link is invalid, expired, or was already used. Request a new one, or use the 6-digit code if your email includes it.');
+      return;
+    }
+    if (reason === 'missing_code') {
+      setErr('The sign-in link was missing required data. Request a new link and open it in your browser in one step.');
+      return;
+    }
+    setErr('Sign-in could not be completed. Request a new link, or use the 6-digit code if your email includes it.');
   }, [searchParams]);
 
   const onSubmit = async (e: FormEvent) => {
@@ -47,6 +62,7 @@ function LoginForm() {
           emailRedirectTo: authCallbackAbsoluteUrl(
             window.location.origin,
             nextPath,
+            'login',
           ),
         },
       });
@@ -88,9 +104,15 @@ function LoginForm() {
                 </h1>
                 <p className="mt-4 text-sm leading-relaxed text-white/60">
                   We&apos;ve sent a magic link to{' '}
-                  <span className="text-white/90">{successEmail}</span>. Open it
-                  on this device to sign in.
+                  <span className="text-white/90">{successEmail}</span>. For best
+                  results, open the link in this same browser, or use the
+                  6-digit code in that email.
                 </p>
+                <EmailAuthFollowup
+                  email={successEmail}
+                  nextPath={nextPath}
+                  variant="login"
+                />
               </div>
             ) : (
               <>

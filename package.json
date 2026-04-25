@@ -24,6 +24,7 @@
     "test:supabase": "node scripts/test-supabase.mjs",
     "verify:supabase": "node scripts/verify-supabase-schema.mjs",
     "vercel:env:supabase": "node scripts/sync-vercel-supabase-env.mjs",
+    "vercel:push:env": "node scripts/vercel-push-env-from-local.mjs",
     "test:polar": "node scripts/test-polar-checkout.mjs",
     "github:push": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/complete-github-push.ps1"
   },

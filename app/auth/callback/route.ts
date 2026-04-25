@@ -1,22 +1,84 @@
 import { sanitizeAuthNextPath } from '@/lib/auth/auth-redirect';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
+import { requestPublicOrigin } from '@/lib/auth/request-url';
+import { getPublicSupabaseAnonKey, getPublicSupabaseUrl } from '@/lib/supabase/public-env';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { type NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
-  const code = searchParams.get('code');
-  const next = sanitizeAuthNextPath(searchParams.get('next'));
+function authFailedReason(
+  err: { message?: string; code?: string } | null
+): 'pkce' | 'expired' | 'exchange' {
+  if (!err) return 'exchange';
+  const m = (err.message || '').toLowerCase();
+  if (
+    m.includes('verifier') ||
+    m.includes('flow state') ||
+    m.includes('code verifier') ||
+    m.includes('both auth code')
+  ) {
+    return 'pkce';
+  }
+  if (m.includes('expired') || m.includes('invalid')) {
+    return 'expired';
+  }
+  return 'exchange';
+}
+
+function authFailedRedirect(
+  origin: string,
+  reason: string,
+  from: string | null,
+  nextPath: string
+) {
+  const base = from === 'signup' ? '/signup' : '/login';
+  const u = new URL(base, origin);
+  u.searchParams.set('error', 'auth_failed');
+  u.searchParams.set('reason', reason);
+  if (nextPath && nextPath !== '/') {
+    u.searchParams.set('redirect', nextPath);
+  }
+  return NextResponse.redirect(u);
+}
+
+export async function GET(request: NextRequest) {
+  const origin = requestPublicOrigin(request);
+  const code = request.nextUrl.searchParams.get('code');
+  const next = sanitizeAuthNextPath(request.nextUrl.searchParams.get('next'));
+  const from = request.nextUrl.searchParams.get('from');
 
   if (!code) {
-    return NextResponse.redirect(`${origin}/login?error=auth_failed`);
+    return authFailedRedirect(origin, 'missing_code', from, next);
   }
 
-  const supabase = await createServerSupabaseClient();
+  const destination = new URL(
+    next.startsWith('/') ? next : `/${next}`,
+    origin
+  );
+  const response = NextResponse.redirect(destination);
+
+  const supabase = createServerClient(
+    getPublicSupabaseUrl(),
+    getPublicSupabaseAnonKey(),
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(
+          cookiesToSet: { name: string; value: string; options: CookieOptions }[]
+        ) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+
   const { error } = await supabase.auth.exchangeCodeForSession(code);
-
   if (error) {
-    return NextResponse.redirect(`${origin}/login?error=auth_failed`);
+    const reason = authFailedReason(error);
+    return authFailedRedirect(origin, reason, from, next);
   }
 
-  return NextResponse.redirect(`${origin}${next}`);
+  return response;
 }

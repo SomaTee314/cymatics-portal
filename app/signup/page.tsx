@@ -1,9 +1,10 @@
 'use client';
 
+import { EmailAuthFollowup } from '@/components/EmailAuthFollowup';
 import { authCallbackAbsoluteUrl, authNextFromSearchParam } from '@/lib/auth/auth-redirect';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
-import { FormEvent, useState, Suspense, useMemo } from 'react';
+import { FormEvent, useState, Suspense, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -24,6 +25,26 @@ function SignupForm() {
   const [busy, setBusy] = useState(false);
   const [successEmail, setSuccessEmail] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (searchParams.get('error') !== 'auth_failed') return;
+    const reason = searchParams.get('reason');
+    if (reason === 'pkce') {
+      setErr(
+        'Open the sign-up link in the same browser you used to request it, or enter the 6-digit code from the email below. (Email apps and “link safe” scans often break the link.)',
+      );
+      return;
+    }
+    if (reason === 'expired' || reason === 'exchange') {
+      setErr('This sign-up link is invalid, expired, or was already used. Request a new one, or use the 6-digit code if your email includes it.');
+      return;
+    }
+    if (reason === 'missing_code') {
+      setErr('The sign-up link was missing required data. Request a new link and open it in your browser in one step.');
+      return;
+    }
+    setErr('We could not complete sign-up from that link. Request a new one, or use the 6-digit code if your email includes it.');
+  }, [searchParams]);
+
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setErr(null);
@@ -37,9 +58,11 @@ function SignupForm() {
       const { error } = await supabase.auth.signInWithOtp({
         email: trimmed,
         options: {
+          shouldCreateUser: true,
           emailRedirectTo: authCallbackAbsoluteUrl(
             window.location.origin,
             nextPath,
+            'signup',
           ),
         },
       });
@@ -75,11 +98,22 @@ function SignupForm() {
         <main className="flex flex-1 flex-col justify-center pb-12">
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 shadow-[0_0_80px_-20px_rgba(255,255,255,0.08)]">
             {successEmail ? (
-              <p className="text-center text-sm leading-relaxed text-white/60 sm:text-left">
-                Check your inbox — we&apos;ve sent you a magic link to{' '}
-                <span className="text-white/90">{successEmail}</span>. Click it
-                to begin your trial.
-              </p>
+              <div className="text-center sm:text-left">
+                <h1 className="font-heading text-2xl font-bold tracking-tight text-white sm:text-[1.65rem]">
+                  Check your inbox
+                </h1>
+                <p className="mt-4 text-sm leading-relaxed text-white/60">
+                  We&apos;ve sent a magic link to{' '}
+                  <span className="text-white/90">{successEmail}</span>. Open
+                  the link in this same browser, or use the 6-digit code in that
+                  email to begin your trial.
+                </p>
+                <EmailAuthFollowup
+                  email={successEmail}
+                  nextPath={nextPath}
+                  variant="signup"
+                />
+              </div>
             ) : (
               <>
                 <h1 className="font-heading text-2xl font-bold tracking-tight text-white sm:text-[1.65rem]">

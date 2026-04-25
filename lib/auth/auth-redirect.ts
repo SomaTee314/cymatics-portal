@@ -18,8 +18,14 @@ export function authNextFromSearchParam(
   return sanitizeAuthNextPath(redirect ?? next);
 }
 
-export function authCallbackAbsoluteUrl(origin: string, nextPath: string): string {
+/** `from` controls where auth callback errors are redirected (login vs sign-up). */
+export function authCallbackAbsoluteUrl(
+  origin: string,
+  nextPath: string,
+  from?: 'login' | 'signup',
+): string {
   const u = new URL('/auth/callback', origin);
   u.searchParams.set('next', sanitizeAuthNextPath(nextPath));
+  if (from) u.searchParams.set('from', from);
   return u.toString();
 }
