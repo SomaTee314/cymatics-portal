@@ -140,11 +140,14 @@ if (dbUrl) {
   });
 } else {
   console.log(
-    'No database connection — add SUPABASE_DB_URL, or SUPABASE_DB_PASSWORD (+ NEXT_PUBLIC_SUPABASE_URL), ' +
-      'to .env.local, or run: npx supabase login && npx supabase link --project-ref',
+    'No Postgres connection for migrations. API keys (NEXT_PUBLIC_SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY) ' +
+      'cannot run SQL; you need the database password or URI.\n' +
+      'Add to .env.local: SUPABASE_DB_URL (Dashboard → Connect → Session pooler), ' +
+      'or SUPABASE_DB_PASSWORD (Database Settings → database password) + NEXT_PUBLIC_SUPABASE_URL. ' +
+      'Alternatively: npx supabase login && npx supabase link --project-ref',
     ref || '<your-ref>',
     '-p <db_password>\n' +
-      'Then: npm run migrate (or npx supabase db push --db-url <encoded-uri>).\n',
+      'Then: npm run migrate (or npx supabase db push).\n',
   );
 
   let failed = false;
