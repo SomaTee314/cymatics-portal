@@ -1941,6 +1941,15 @@ landing_bridge_js = r"""
                         portalMain.classList.remove('portal-main--behind-landing');
                     }
 
+                    try {
+                        if (window.parent && window.parent !== window) {
+                            window.parent.postMessage(
+                                { type: 'cp-action', action: 'portal-reached' },
+                                window.location.origin || '*'
+                            );
+                        }
+                    } catch (ePr) {}
+
                     window.dispatchEvent(new Event('resize'));
 
                     var landingCanvas = landingRoot.querySelector('canvas');
@@ -1955,6 +1964,26 @@ landing_bridge_js = r"""
                 }
             });
         });
+    }
+})();
+  </script>
+  <script>
+(function () {
+    function __cpPostPortalReached() {
+        try {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage(
+                    { type: 'cp-action', action: 'portal-reached' },
+                    window.location.origin || '*'
+                );
+            }
+        } catch (e) {}
+    }
+    if (!document.documentElement.classList.contains('skip-landing')) return;
+    if (document.readyState === 'complete') {
+        __cpPostPortalReached();
+    } else {
+        window.addEventListener('load', __cpPostPortalReached);
     }
 })();
   </script>

@@ -9,6 +9,7 @@ export const DEV_MODE_LOG_MESSAGE =
  * - `NEXT_PUBLIC_DEV_MODE=false` — off; real tier + gates from auth/profile.
  * - Unset while running `next dev` — on by default so the iframe does not pin free-tier presets.
  * - `NEXT_PUBLIC_FORCE_SUBSCRIPTION_GATES=true` — off in development (test gating without a prod build).
+ * - `NEXT_PUBLIC_SUBSCRIPTION_PAUSED=true` — see `lib/subscription-pause.ts` (full iframe access; re-enable paywalls later).
  */
 export function isDevMode(): boolean {
   const explicit = process.env.NEXT_PUBLIC_DEV_MODE;

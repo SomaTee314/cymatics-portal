@@ -1,16 +1,22 @@
 'use client';
 
 import { useUser } from '@/context/UserContext';
+import { isSubscriptionPaused } from '@/lib/subscription-pause';
 import { useEffect, useState } from 'react';
 
 export function SessionTimer() {
-  const { effectiveTier, features, isDevMode, isAuthenticated } = useUser();
+  const { features, isDevMode, isAuthenticated } = useUser();
   const [secondsRemaining, setSecondsRemaining] = useState<number | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
   const sessionLimit = features.sessionMinutes;
+  const subscriptionPaused = isSubscriptionPaused();
 
   useEffect(() => {
+    if (subscriptionPaused) {
+      setSecondsRemaining(null);
+      return;
+    }
     if (isDevMode || sessionLimit === Infinity) {
       setSecondsRemaining(null);
       return;
@@ -26,9 +32,9 @@ export function SessionTimer() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [sessionLimit, isDevMode]);
+  }, [sessionLimit, isDevMode, subscriptionPaused]);
 
-  if (secondsRemaining === null || isDevMode) return null;
+  if (subscriptionPaused || secondsRemaining === null || isDevMode) return null;
 
   const minutes = Math.floor(secondsRemaining / 60);
   const seconds = secondsRemaining % 60;

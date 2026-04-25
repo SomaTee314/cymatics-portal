@@ -32,7 +32,7 @@
 
     function __cpSubEffective() {
         var d = window.__CP_SUB_STATE;
-        if (d && d.isDevMode) {
+        if (d && (d.isDevMode || d.launchNoSubscription)) {
             return {
                 tier: d.tier || 'creator',
                 isDevMode: true,
@@ -79,6 +79,7 @@
                 allowedPresetIndices: data.allowedPresetIndices,
                 sessionMinutes: data.sessionMinutes,
                 isDevMode: !!data.isDevMode,
+                launchNoSubscription: !!data.launchNoSubscription,
                 allowFractalVisuals: !!data.allowFractalVisuals,
                 allowMic: !!data.allowMic,
                 allowCustomHz: !!data.allowCustomHz,
@@ -345,12 +346,16 @@
                         ? data.sessionMinutes
                         : null,
                 isDevMode: !!data.isDevMode,
+                launchNoSubscription: !!data.launchNoSubscription,
                 allowFractalVisuals: !!data.allowFractalVisuals,
                 allowMic: !!data.allowMic,
                 allowCustomHz: !!data.allowCustomHz,
                 exportWatermark: !!data.exportWatermark
             };
-            if (window.__CP_SUB_STATE.isDevMode) {
+            if (
+                window.__CP_SUB_STATE.isDevMode &&
+                !window.__CP_SUB_STATE.launchNoSubscription
+            ) {
                 console.info(
                     '[CymaticsPortal] Full feature unlock (dev) — tier: creator. To test free-tier / subscriptions locally: set NEXT_PUBLIC_DEV_MODE=false and NEXT_PUBLIC_FORCE_SUBSCRIPTION_GATES=true, then restart next dev.'
                 );
@@ -376,15 +381,6 @@
     }, 3000);
 
     window.__cpApplySubscriptionGates();
-
-    try {
-        if (!sessionStorage.getItem('cp_session_bumped')) {
-            sessionStorage.setItem('cp_session_bumped', '1');
-            var sc =
-                parseInt(localStorage.getItem('cp_session_count') || '0', 10) + 1;
-            localStorage.setItem('cp_session_count', String(sc));
-        }
-    } catch (e7) {}
 
     if (freqDial) {
         freqDial.addEventListener('input', function () {

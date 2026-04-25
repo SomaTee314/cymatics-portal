@@ -21,6 +21,7 @@ import {
   type UserTier,
 } from '@/lib/tiers';
 import { isDevMode } from '@/lib/dev-mode';
+import { isSubscriptionPaused } from '@/lib/subscription-pause';
 
 const SUB_MSG = 'cp-subscription';
 
@@ -31,6 +32,8 @@ type SubscriptionMessage = {
   allowedPresetIndices: number[] | null;
   sessionMinutes: number | null;
   isDevMode: boolean;
+  /** Iframe full unlock without dev-mode logging (see subscription bridge). */
+  launchNoSubscription: boolean;
   allowFractalVisuals: boolean;
   allowMic: boolean;
   allowCustomHz: boolean;
@@ -42,20 +45,26 @@ function buildSubscriptionMessage(
   ctxDev: boolean
 ): SubscriptionMessage {
   const dev = isDevMode() || ctxDev;
-  const features = tierFeaturesToMessage(effectiveTier);
-  const allowedPresetIndices = dev ? null : getAllowedPresetIndices(effectiveTier);
+  const launchNoSubscription = isSubscriptionPaused();
+  const unlock = dev || launchNoSubscription;
+  const tierForMessage: UserTier = launchNoSubscription ? 'creator' : effectiveTier;
+  const features = tierFeaturesToMessage(tierForMessage);
+  const allowedPresetIndices = unlock
+    ? null
+    : getAllowedPresetIndices(effectiveTier);
   return {
     type: SUB_MSG,
-    tier: effectiveTier,
+    tier: tierForMessage,
     features,
     allowedPresetIndices,
     sessionMinutes: features.sessionMinutes,
     isDevMode: dev,
+    launchNoSubscription,
     allowFractalVisuals:
-      dev || isVisualModeAvailable(effectiveTier, 'fractalMB'),
-    allowMic: dev || hasFeature(effectiveTier, 'micInput'),
-    allowCustomHz: dev || hasFeature(effectiveTier, 'customFrequencyInput'),
-    exportWatermark: dev ? false : features.exportWatermark,
+      unlock || isVisualModeAvailable(effectiveTier, 'fractalMB'),
+    allowMic: unlock || hasFeature(effectiveTier, 'micInput'),
+    allowCustomHz: unlock || hasFeature(effectiveTier, 'customFrequencyInput'),
+    exportWatermark: unlock ? false : features.exportWatermark,
   };
 }
 
@@ -92,13 +101,24 @@ function newIframeMountKey() {
     : `if-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+function readPortalReachedFromStorage(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem('cp_reached_portal') === '1';
+  } catch {
+    return false;
+  }
+}
+
 export function CymaticsShell() {
   const router = useRouter();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const lastPostedJsonRef = useRef<string | null>(null);
   const [iframeMountKey] = useState(newIframeMountKey);
   const [iframeLoaded, setIframeLoaded] = useState(false);
+  const [reachedPortal, setReachedPortal] = useState(readPortalReachedFromStorage);
   const { effectiveTier, isDevMode: ctxDev, isLoading } = useUser();
+  const subscriptionPaused = isSubscriptionPaused();
 
   const postSubscriptionToIframe = useCallback(
     (force?: boolean) => {
@@ -114,7 +134,7 @@ export function CymaticsShell() {
       lastPostedJsonRef.current = json;
       try {
         win.postMessage(msg, origin);
-        if (!isDevMode() && !ctxDev) {
+        if (!isDevMode() && !ctxDev && !subscriptionPaused) {
           console.info('[CymaticsShell] postMessage cp-subscription', {
             tier: msg.tier,
             sessionMinutes: msg.sessionMinutes,
@@ -124,7 +144,7 @@ export function CymaticsShell() {
         console.error('[CymaticsShell] postMessage failed', e);
       }
     },
-    [effectiveTier, ctxDev]
+    [effectiveTier, ctxDev, subscriptionPaused]
   );
 
   const onIframeLoad = useCallback(() => {
@@ -172,19 +192,29 @@ export function CymaticsShell() {
       if (ev.origin !== window.location.origin) return;
       const d = ev.data as { type?: string; action?: string } | null;
       if (!d || d.type !== 'cp-action') return;
+      if (d.action === 'portal-reached') {
+        try {
+          window.localStorage.setItem('cp_reached_portal', '1');
+        } catch {
+          /* ignore */
+        }
+        setReachedPortal(true);
+        return;
+      }
+      if (subscriptionPaused) return;
       if (d.action === 'upgrade-clicked' || d.action === 'session-expired') {
         router.push('/pricing');
       }
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [router]);
+  }, [router, subscriptionPaused]);
 
   return (
     <div className="relative min-h-screen w-full bg-[#030508]">
-      <TrialBanner />
+      <TrialBanner reachedPortal={reachedPortal} />
       <SessionTimer />
-      <AccountMenu />
+      <AccountMenu showAnonymousSignup={reachedPortal} />
       <CymaticsFrame
         key={iframeMountKey}
         ref={iframeRef}

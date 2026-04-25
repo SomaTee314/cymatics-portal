@@ -2,11 +2,6 @@
 
 import { useUser } from '@/context/UserContext';
 
-function getAnonymousSessionCount(): number {
-  if (typeof window === 'undefined') return 0;
-  return parseInt(localStorage.getItem('cp_session_count') || '0', 10);
-}
-
 function SignOutButton() {
   const { signOut } = useUser();
   return (
@@ -21,7 +16,12 @@ function SignOutButton() {
   );
 }
 
-export function TrialBanner() {
+type TrialBannerProps = {
+  /** Nudge to sign up only after the user reaches the main cymatics view (3rd page of the flow). */
+  reachedPortal: boolean;
+};
+
+export function TrialBanner({ reachedPortal }: TrialBannerProps) {
   const {
     isTrialActive,
     isTrialExpired,
@@ -67,18 +67,15 @@ export function TrialBanner() {
   }
 
   if (!isAuthenticated) {
-    const sessionCount = getAnonymousSessionCount();
-    if (sessionCount >= 3) {
+    if (reachedPortal) {
       return (
         <div className="relative z-[95] border-b border-white/5 bg-white/5 px-4 py-2 text-center">
-          <span className="text-sm text-white/50">
-            You&apos;ve opened several sessions here.
-          </span>
+          <span className="text-sm text-white/50">You&apos;re in the portal.</span>
           <a
             href="/signup"
             className="ml-2 text-sm font-medium text-white/90 hover:text-white"
           >
-            Unlock all Solfeggio presets free for 7 days →
+            Create a free account to save your work →
           </a>
         </div>
       );

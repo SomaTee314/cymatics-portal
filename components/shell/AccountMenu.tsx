@@ -52,7 +52,12 @@ function truncateEmail(email: string, max = 28) {
   return `${email.slice(0, max - 3)}…`;
 }
 
-export function AccountMenu() {
+type AccountMenuProps = {
+  /** Anonymous “Sign up” is hidden until the iframe reaches the main portal (3rd step). */
+  showAnonymousSignup?: boolean;
+};
+
+export function AccountMenu({ showAnonymousSignup = true }: AccountMenuProps) {
   const {
     isDevMode,
     isAuthenticated,
@@ -117,6 +122,9 @@ export function AccountMenu() {
   }
 
   if (!isAuthenticated || !user) {
+    if (!showAnonymousSignup) {
+      return null;
+    }
     return (
       <div className={`fixed top-4 right-4 ${SHELL_Z}`}>
         <Link
