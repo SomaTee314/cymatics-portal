@@ -1,8 +1,16 @@
--- Portal: public.profiles, auth trigger, saved_configs, grants
--- (Same as sql/000_run_first_all_schema.sql — use supabase db push or npm run migrate)
+-- =============================================================================
+-- Cymatics Portal — full public schema (run once in Supabase)
+-- Supabase Dashboard → SQL Editor → New query → paste this file → Run
+-- You should see: public.profiles, public.saved_configs
+-- Also run from CLI:  npm run migrate  (if SUPABASE_DB_URL or link is set)
+-- =============================================================================
 
+-- UUID generation (Supabase usually has this; safe if already on)
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+-- ---------------------------------------------------------------------------
+-- public.profiles
+-- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   email TEXT,
@@ -38,6 +46,10 @@ CREATE POLICY "Service role full access"
   ON public.profiles FOR ALL
   USING (auth.role() = 'service_role');
 
+-- ---------------------------------------------------------------------------
+-- New auth user → profile row (7-day trial)
+-- If a row already exists, do nothing (idempotent re-runs, rare races)
+-- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -64,6 +76,9 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_new_user();
 
+-- ---------------------------------------------------------------------------
+-- public.saved_configs (optional UX; RLS: own rows only)
+-- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.saved_configs (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -83,6 +98,9 @@ CREATE POLICY "Users can manage own configs"
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
+-- ---------------------------------------------------------------------------
+-- Table API access (RLS still applies to anon / authenticated)
+-- ---------------------------------------------------------------------------
 GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres, service_role, anon, authenticated;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres, service_role, anon, authenticated;

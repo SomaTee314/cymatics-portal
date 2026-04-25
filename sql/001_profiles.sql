@@ -1,4 +1,4 @@
--- Supabase SQL: profiles + RLS (see cymatics-portal-subscription-build.md)
+-- public.profiles + RLS (split file). For one step, use sql/000_run_first_all_schema.sql
 
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,

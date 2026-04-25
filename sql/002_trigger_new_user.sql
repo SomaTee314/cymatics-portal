@@ -14,7 +14,8 @@ BEGIN
     'trial',
     NOW(),
     NOW() + INTERVAL '7 days'
-  );
+  )
+  ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
 END;
 $$;

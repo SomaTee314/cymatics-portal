@@ -42,11 +42,8 @@ function loadEnvLocal() {
 
 loadEnvLocal();
 
-const FILES = [
-  'sql/001_profiles.sql',
-  'sql/002_trigger_new_user.sql',
-  'sql/003_saved_configs.sql',
-];
+/** Single file = idempotent; supersedes 001+002+003 (kept as readable splits). */
+const FILES = ['sql/000_run_first_all_schema.sql'];
 
 function projectRefFromUrl(url) {
   if (!url || typeof url !== 'string') return null;
