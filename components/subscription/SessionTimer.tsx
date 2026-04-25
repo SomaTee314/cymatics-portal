@@ -1,22 +1,21 @@
 'use client';
 
 import { useUser } from '@/context/UserContext';
-import { isSubscriptionPaused } from '@/lib/subscription-pause';
 import { useEffect, useState } from 'react';
 
-export function SessionTimer() {
+type SessionTimerProps = {
+  /** Full-screen sign-up gate is shown; hide the corner timer (session is moot). */
+  preAuthGateActive?: boolean;
+};
+
+export function SessionTimer({ preAuthGateActive = false }: SessionTimerProps) {
   const { features, isDevMode, isAuthenticated } = useUser();
   const [secondsRemaining, setSecondsRemaining] = useState<number | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
   const sessionLimit = features.sessionMinutes;
-  const subscriptionPaused = isSubscriptionPaused();
 
   useEffect(() => {
-    if (subscriptionPaused) {
-      setSecondsRemaining(null);
-      return;
-    }
     if (isDevMode || sessionLimit === Infinity) {
       setSecondsRemaining(null);
       return;
@@ -32,9 +31,9 @@ export function SessionTimer() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [sessionLimit, isDevMode, subscriptionPaused]);
+  }, [sessionLimit, isDevMode]);
 
-  if (subscriptionPaused || secondsRemaining === null || isDevMode) return null;
+  if (preAuthGateActive || secondsRemaining === null || isDevMode) return null;
 
   const minutes = Math.floor(secondsRemaining / 60);
   const seconds = secondsRemaining % 60;

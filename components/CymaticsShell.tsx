@@ -22,6 +22,7 @@ import {
 } from '@/lib/tiers';
 import { isDevMode } from '@/lib/dev-mode';
 import { isSubscriptionPaused } from '@/lib/subscription-pause';
+import { PortalSignUpGate } from '@/components/shell/PortalSignUpGate';
 
 const SUB_MSG = 'cp-subscription';
 
@@ -32,8 +33,6 @@ type SubscriptionMessage = {
   allowedPresetIndices: number[] | null;
   sessionMinutes: number | null;
   isDevMode: boolean;
-  /** Iframe full unlock without dev-mode logging (see subscription bridge). */
-  launchNoSubscription: boolean;
   allowFractalVisuals: boolean;
   allowMic: boolean;
   allowCustomHz: boolean;
@@ -45,26 +44,20 @@ function buildSubscriptionMessage(
   ctxDev: boolean
 ): SubscriptionMessage {
   const dev = isDevMode() || ctxDev;
-  const launchNoSubscription = isSubscriptionPaused();
-  const unlock = dev || launchNoSubscription;
-  const tierForMessage: UserTier = launchNoSubscription ? 'creator' : effectiveTier;
-  const features = tierFeaturesToMessage(tierForMessage);
-  const allowedPresetIndices = unlock
-    ? null
-    : getAllowedPresetIndices(effectiveTier);
+  const features = tierFeaturesToMessage(effectiveTier);
+  const allowedPresetIndices = dev ? null : getAllowedPresetIndices(effectiveTier);
   return {
     type: SUB_MSG,
-    tier: tierForMessage,
+    tier: effectiveTier,
     features,
     allowedPresetIndices,
     sessionMinutes: features.sessionMinutes,
     isDevMode: dev,
-    launchNoSubscription,
     allowFractalVisuals:
-      unlock || isVisualModeAvailable(effectiveTier, 'fractalMB'),
-    allowMic: unlock || hasFeature(effectiveTier, 'micInput'),
-    allowCustomHz: unlock || hasFeature(effectiveTier, 'customFrequencyInput'),
-    exportWatermark: unlock ? false : features.exportWatermark,
+      dev || isVisualModeAvailable(effectiveTier, 'fractalMB'),
+    allowMic: dev || hasFeature(effectiveTier, 'micInput'),
+    allowCustomHz: dev || hasFeature(effectiveTier, 'customFrequencyInput'),
+    exportWatermark: dev ? false : features.exportWatermark,
   };
 }
 
@@ -117,8 +110,15 @@ export function CymaticsShell() {
   const [iframeMountKey] = useState(newIframeMountKey);
   const [iframeLoaded, setIframeLoaded] = useState(false);
   const [reachedPortal, setReachedPortal] = useState(readPortalReachedFromStorage);
-  const { effectiveTier, isDevMode: ctxDev, isLoading } = useUser();
+  const {
+    effectiveTier,
+    isDevMode: ctxDev,
+    isLoading,
+    isAuthenticated,
+  } = useUser();
   const subscriptionPaused = isSubscriptionPaused();
+  const showPortalGate =
+    reachedPortal && !isAuthenticated && !ctxDev;
 
   const postSubscriptionToIframe = useCallback(
     (force?: boolean) => {
@@ -134,7 +134,7 @@ export function CymaticsShell() {
       lastPostedJsonRef.current = json;
       try {
         win.postMessage(msg, origin);
-        if (!isDevMode() && !ctxDev && !subscriptionPaused) {
+        if (!isDevMode() && !ctxDev) {
           console.info('[CymaticsShell] postMessage cp-subscription', {
             tier: msg.tier,
             sessionMinutes: msg.sessionMinutes,
@@ -144,7 +144,7 @@ export function CymaticsShell() {
         console.error('[CymaticsShell] postMessage failed', e);
       }
     },
-    [effectiveTier, ctxDev, subscriptionPaused]
+    [effectiveTier, ctxDev]
   );
 
   const onIframeLoad = useCallback(() => {
@@ -212,9 +212,13 @@ export function CymaticsShell() {
 
   return (
     <div className="relative min-h-screen w-full bg-[#030508]">
-      <TrialBanner reachedPortal={reachedPortal} />
-      <SessionTimer />
+      <TrialBanner
+        reachedPortal={reachedPortal}
+        hideAnonymousBar={showPortalGate}
+      />
+      <SessionTimer preAuthGateActive={showPortalGate} />
       <AccountMenu showAnonymousSignup={reachedPortal} />
+      {showPortalGate ? <PortalSignUpGate /> : null}
       <CymaticsFrame
         key={iframeMountKey}
         ref={iframeRef}

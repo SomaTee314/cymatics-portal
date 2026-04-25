@@ -77,7 +77,8 @@ const sensitiveKeys = new Set([
 /**
  * @typedef {{ key: string, value?: string }} EnvSpec
  * If `value` is set, it overrides .env.local (e.g. force DEV_MODE off in Vercel).
- * After subscriptions go live, set `NEXT_PUBLIC_SUBSCRIPTION_PAUSED` to `false` (or remove the override).
+ * `NEXT_PUBLIC_SUBSCRIPTION_PAUSED=true` only affects shell pricing redirects, not iframe capabilities.
+ * Set to `false` when you want upgrade clicks to open `/pricing`.
  */
 const spec = /** @type {EnvSpec[]} */ ([
   { key: 'NEXT_PUBLIC_SUPABASE_URL' },

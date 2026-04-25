@@ -19,9 +19,14 @@ function SignOutButton() {
 type TrialBannerProps = {
   /** Nudge to sign up only after the user reaches the main cymatics view (3rd page of the flow). */
   reachedPortal: boolean;
+  /** When the full-screen PortalSignUpGate is open, hide the slim duplicate strip. */
+  hideAnonymousBar?: boolean;
 };
 
-export function TrialBanner({ reachedPortal }: TrialBannerProps) {
+export function TrialBanner({
+  reachedPortal,
+  hideAnonymousBar = false,
+}: TrialBannerProps) {
   const {
     isTrialActive,
     isTrialExpired,
@@ -67,15 +72,17 @@ export function TrialBanner({ reachedPortal }: TrialBannerProps) {
   }
 
   if (!isAuthenticated) {
-    if (reachedPortal) {
+    if (reachedPortal && !hideAnonymousBar) {
       return (
         <div className="relative z-[95] border-b border-white/5 bg-white/5 px-4 py-2 text-center">
-          <span className="text-sm text-white/50">You&apos;re in the portal.</span>
+          <span className="text-sm text-white/50">
+            Full portal is for members — 7-day Pro trial, all features.
+          </span>
           <a
-            href="/signup"
+            href="/signup?redirect=%2F"
             className="ml-2 text-sm font-medium text-white/90 hover:text-white"
           >
-            Create a free account to save your work →
+            Sign up free →
           </a>
         </div>
       );

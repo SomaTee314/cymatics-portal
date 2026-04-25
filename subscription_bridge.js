@@ -32,7 +32,7 @@
 
     function __cpSubEffective() {
         var d = window.__CP_SUB_STATE;
-        if (d && (d.isDevMode || d.launchNoSubscription)) {
+        if (d && d.isDevMode) {
             return {
                 tier: d.tier || 'creator',
                 isDevMode: true,
@@ -79,7 +79,6 @@
                 allowedPresetIndices: data.allowedPresetIndices,
                 sessionMinutes: data.sessionMinutes,
                 isDevMode: !!data.isDevMode,
-                launchNoSubscription: !!data.launchNoSubscription,
                 allowFractalVisuals: !!data.allowFractalVisuals,
                 allowMic: !!data.allowMic,
                 allowCustomHz: !!data.allowCustomHz,
@@ -346,16 +345,12 @@
                         ? data.sessionMinutes
                         : null,
                 isDevMode: !!data.isDevMode,
-                launchNoSubscription: !!data.launchNoSubscription,
                 allowFractalVisuals: !!data.allowFractalVisuals,
                 allowMic: !!data.allowMic,
                 allowCustomHz: !!data.allowCustomHz,
                 exportWatermark: !!data.exportWatermark
             };
-            if (
-                window.__CP_SUB_STATE.isDevMode &&
-                !window.__CP_SUB_STATE.launchNoSubscription
-            ) {
+            if (window.__CP_SUB_STATE.isDevMode) {
                 console.info(
                     '[CymaticsPortal] Full feature unlock (dev) — tier: creator. To test free-tier / subscriptions locally: set NEXT_PUBLIC_DEV_MODE=false and NEXT_PUBLIC_FORCE_SUBSCRIPTION_GATES=true, then restart next dev.'
                 );
