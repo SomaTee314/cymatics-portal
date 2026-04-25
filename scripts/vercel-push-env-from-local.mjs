@@ -77,6 +77,7 @@ const sensitiveKeys = new Set([
 /**
  * @typedef {{ key: string, value?: string }} EnvSpec
  * If `value` is set, it overrides .env.local (e.g. force DEV_MODE off in Vercel).
+ * After subscriptions go live, set `NEXT_PUBLIC_SUBSCRIPTION_PAUSED` to `false` (or remove the override).
  */
 const spec = /** @type {EnvSpec[]} */ ([
   { key: 'NEXT_PUBLIC_SUPABASE_URL' },
@@ -91,6 +92,7 @@ const spec = /** @type {EnvSpec[]} */ ([
   { key: 'NEXT_PUBLIC_POLAR_CREATOR_YEARLY_PRODUCT_ID' },
   { key: 'NEXT_PUBLIC_POLAR_LIFETIME_PRODUCT_ID' },
   { key: 'NEXT_PUBLIC_DEV_MODE', value: 'false' },
+  { key: 'NEXT_PUBLIC_SUBSCRIPTION_PAUSED', value: 'true' },
 ]);
 
 for (const { key, value: override } of spec) {
