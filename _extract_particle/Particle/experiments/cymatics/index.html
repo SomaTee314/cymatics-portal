@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <link rel="icon" href="../../favicon.ico" type="image/x-icon">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cymatics — Particle Madness</title>
+    <style>
+        html, body { margin: 0; height: 100%; overflow: hidden; background: #030508; color: #c8e8ff; font-family: system-ui, Segoe UI, sans-serif; font-size: 13px; }
+        canvas { display: block; position: fixed; left: 0; top: 0; width: 100% !important; height: 100% !important; }
+        #cym-shell {
+            position: fixed; left: 12px; top: 12px; max-width: min(360px, 92vw);
+            max-height: calc(100vh - 24px); z-index: 90;
+            display: flex; flex-direction: column;
+            background: rgba(8, 14, 28, 0.92); border: 1px solid rgba(80, 160, 255, 0.25);
+            border-radius: 10px; overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.45); backdrop-filter: blur(8px);
+        }
+        #cym-shell.cym-dragging #cym-header { cursor: grabbing; }
+        #cym-header {
+            flex-shrink: 0; display: flex; align-items: center; gap: 8px;
+            padding: 8px 10px; cursor: grab; user-select: none;
+            background: linear-gradient(180deg, rgba(18, 32, 58, 0.98), rgba(10, 20, 40, 0.95));
+            border-bottom: 1px solid rgba(80, 160, 255, 0.22); color: #7ecbff;
+        }
+        #cym-drag-hint { opacity: 0.45; font-size: 12px; line-height: 1; }
+        #cym-title { flex: 1; font-size: 14px; font-weight: 600; letter-spacing: 0.04em; color: #7ecbff; }
+        #cym-min {
+            flex: 0 0 auto; width: 28px; height: 26px; padding: 0; margin: 0;
+            border-radius: 6px; border: 1px solid rgba(100, 180, 255, 0.4);
+            background: linear-gradient(180deg, #1a3a62, #122842); color: #dff2ff;
+            cursor: pointer; font-size: 16px; line-height: 1;
+        }
+        #cym-min:hover { background: linear-gradient(180deg, #224878, #183454); }
+        #cym-shell.cym-minimized #panel { display: none; }
+        #cym-shell.cym-minimized { max-height: none; }
+        #panel {
+            display: flex; flex-direction: column;
+            flex: 1 1 auto; min-height: 0;
+            background: transparent;
+        }
+        #panel-scroll {
+            padding: 12px 14px 8px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            flex: 1 1 auto;
+            min-height: 0;
+            -webkit-overflow-scrolling: touch;
+        }
+        #panel-footer {
+            flex-shrink: 0;
+            padding: 8px 14px 12px;
+            border-top: 1px solid rgba(80, 160, 255, 0.2);
+        }
+        #panel-footer button {
+            width: 100%; box-sizing: border-box; margin: 0;
+        }
+        .row { margin-bottom: 10px; }
+        .row label { display: block; margin-bottom: 4px; opacity: 0.85; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+        select, input[type="number"], input[type="file"] { width: 100%; box-sizing: border-box; padding: 7px; border-radius: 6px; border: 1px solid rgba(100, 180, 255, 0.35); background: #0a1224; color: #e8f4ff; }
+        input[type="range"] { width: 100%; accent-color: #3db8ff; }
+        .freq-row { display: flex; gap: 8px; align-items: center; }
+        .freq-row input[type="number"] { width: 88px; flex-shrink: 0; }
+        .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+        button {
+            padding: 8px 14px; border-radius: 6px; border: 1px solid rgba(100, 180, 255, 0.4);
+            background: linear-gradient(180deg, #153050, #0d1e38); color: #dff2ff; cursor: pointer; font-size: 12px;
+        }
+        button:disabled { opacity: 0.45; cursor: not-allowed; }
+        #readout { font-variant-numeric: tabular-nums; font-size: 12px; color: #ffd77a; margin-top: 8px; line-height: 1.45; }
+        .hint { margin-top: 10px; font-size: 10px; opacity: 0.55; line-height: 1.4; }
+        #panel-restore {
+            display: none; position: fixed; left: 12px; bottom: 12px; z-index: 250;
+            padding: 8px 14px; font-size: 11px;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
+    <script src="../../js/dat-gui-panel.js"></script>
+</head>
+<body>
+    <div id="cym-shell">
+        <div id="cym-header" title="Drag to move">
+            <span id="cym-drag-hint">⋮⋮</span>
+            <span id="cym-title">Cymatics engine</span>
+            <button type="button" id="cym-min" aria-label="Minimise panel" title="Minimise / expand">−</button>
+        </div>
+        <div id="panel">
+        <div id="panel-scroll">
+            <div class="row">
+                <label>Audio Mode</label>
+                <select id="modeSel">
+                    <option value="track" selected>Upload Track</option>
+                    <option value="preset">Healing Presets</option>
+                    <option value="manual">Manual tone</option>
+                </select>
+            </div>
+            <div class="row" id="presetRow">
+                <label>Presets</label>
+                <select id="presetSel"></select>
+            </div>
+            <div class="row">
+                <label>Frequency 1 — 25&nbsp;000 Hz</label>
+                <div class="freq-row">
+                    <input type="range" id="freqDial" min="1" max="25000" value="528" step="1">
+                    <input type="number" id="freqNum" min="1" max="25000" value="528" step="1">
+                </div>
+            </div>
+            <div class="row" id="trackRow" style="display:none;">
+                <label>Audio file</label>
+                <input type="file" id="fileIn" accept="audio/*">
+            </div>
+            <div class="btn-row">
+                <button type="button" id="btnAudio">Start / resume audio</button>
+                <button type="button" id="btnStop">Stop tone</button>
+            </div>
+            <div class="row">
+                <label>Output volume</label>
+                <input type="range" id="volSlider" min="0" max="100" value="35" step="1">
+            </div>
+            <div class="row">
+                <label>Particle count (max practical ~<span id="particleCapLabel">—</span>)</label>
+                <div class="freq-row">
+                    <input type="range" id="particleSlider" min="2500" max="320000" value="111111" step="500">
+                    <input type="number" id="particleNum" min="2500" max="320000" value="111111" step="500">
+                </div>
+            </div>
+            <div id="readout">Drive Hz: — · Dominant (track): — · Mode lobes: —</div>
+            <div class="hint">Simulation only—not a physical fluid model. Browsers usually cap audible sine output near ~20&nbsp;kHz; the dial still drives the visual up to 25&nbsp;kHz. Drag this panel by the top bar; &minus; collapses it. <strong>H</strong> hides the advanced (dat.GUI) panel. With <strong>Start audio</strong> and <em>audio-reactive colours</em> on, trough / rim / crest become three different hues that sweep the spectrum; off uses your manual shadow / mid / crest picks only.</div>
+        </div>
+        <div id="panel-footer">
+            <button type="button" id="panel-hide">Hide controls</button>
+        </div>
+        </div>
+    </div>
+    <button type="button" id="panel-restore">Show controls</button>
+
+    <script src="../../js/particle-love.com/js/three.r76.min.js"></script>
+    <script>
+(function () {
+    var BG = 0x030508;
+
+    var palette = {
+        colorLow: '#0a2858',
+        colorMid: '#ffb84d',
+        colorHigh: '#55f8ff'
+    };
+
+    var PRESETS = [
+        { name: '— Choose preset —', hz: 0 },
+        { name: 'Solfeggio 174 Hz', hz: 174 },
+        { name: 'Solfeggio 285 Hz', hz: 285 },
+        { name: 'Solfeggio 396 Hz', hz: 396 },
+        { name: 'Solfeggio 417 Hz', hz: 417 },
+        { name: '432 Hz (Verdi / cosmic tuning)', hz: 432 },
+        { name: 'Solfeggio 528 Hz', hz: 528 },
+        { name: 'Solfeggio 639 Hz', hz: 639 },
+        { name: 'Solfeggio 741 Hz', hz: 741 },
+        { name: 'Solfeggio 852 Hz', hz: 852 },
+        { name: 'Solfeggio 963 Hz', hz: 963 },
+        { name: 'Schumann fundamental ~7.83 Hz', hz: 7.83 },
+        { name: 'Alpha bridge 12 Hz', hz: 12 },
+        { name: '40 Hz (gamma-band focus)', hz: 40 },
+        { name: '136.1 Hz (Om / reference)', hz: 136.1 },
+        { name: 'A4 concert 440 Hz', hz: 440 },
+        { name: '1000 Hz (calibration)', hz: 1000 },
+        { name: '10000 Hz (air band)', hz: 10000 }
+    ];
+
+    /** Tone oscillator trim (linear); master headroom node avoids clipping on peaks. */
+    var TONE_BRANCH_TRIM = 0.21;
+    var MASTER_HEADROOM_GAIN = 0.9;
+
+    /** Upper cap: push until the GPU stutters; hash e.g. #particles=200000 still honoured within cap */
+    var PARTICLE_MIN = 2500;
+    var PARTICLE_CAP = 320000;
+
+    function particleClamp(n) {
+        n = Math.round(parseFloat(n)) || 0;
+        return Math.min(PARTICLE_CAP, Math.max(PARTICLE_MIN, n));
+    }
+
+    function particleGoal() {
+        var m = window.location.hash.match(/particles=(\d+)/i);
+        var n = m ? parseInt(m[1], 10) : 111111;
+        return particleClamp(n);
+    }
+
+    var selPreset = document.getElementById('presetSel');
+    PRESETS.forEach(function (p, i) {
+        var o = document.createElement('option');
+        o.value = String(i);
+        o.textContent = p.name;
+        selPreset.appendChild(o);
+    });
+
+    var modeSel = document.getElementById('modeSel');
+    var freqDial = document.getElementById('freqDial');
+    var freqNum = document.getElementById('freqNum');
+    var trackRow = document.getElementById('trackRow');
+    var presetRow = document.getElementById('presetRow');
+    var fileIn = document.getElementById('fileIn');
+    var btnAudio = document.getElementById('btnAudio');
+    var btnStop = document.getElementById('btnStop');
+    var volSlider = document.getElementById('volSlider');
+    var particleSlider = document.getElementById('particleSlider');
+    var particleNum = document.getElementById('particleNum');
+    var particleCapLabel = document.getElementById('particleCapLabel');
+    var readout = document.getElementById('readout');
+    var cymShell = document.getElementById('cym-shell');
+    var cymHeader = document.getElementById('cym-header');
+    var cymMinBtn = document.getElementById('cym-min');
+    var panelRestore = document.getElementById('panel-restore');
+    var cymMinimized = false;
+
+    document.getElementById('panel-hide').addEventListener('click', function () {
+        cymShell.style.display = 'none';
+        panelRestore.style.display = 'block';
+    });
+    panelRestore.addEventListener('click', function () {
+        cymShell.style.display = 'flex';
+        panelRestore.style.display = 'none';
+    });
+
+    cymMinBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        e.preventDefault();
+        cymMinimized = !cymMinimized;
+        cymShell.classList.toggle('cym-minimized', cymMinimized);
+        cymMinBtn.textContent = cymMinimized ? '+' : '\u2212';
+        cymMinBtn.setAttribute('aria-label', cymMinimized ? 'Expand panel' : 'Minimise panel');
+    });
+
+    (function setupCymDrag() {
+        var dragging = false;
+        var startX;
+        var startY;
+        var origLeft;
+        var origTop;
+        function toLeftTop() {
+            var r = cymShell.getBoundingClientRect();
+            cymShell.style.left = Math.round(r.left) + 'px';
+            cymShell.style.top = Math.round(r.top) + 'px';
+            cymShell.style.right = 'auto';
+        }
+        function onMove(e) {
+            if (!dragging) return;
+            var dx = e.clientX - startX;
+            var dy = e.clientY - startY;
+            cymShell.style.left = Math.round(origLeft + dx) + 'px';
+            cymShell.style.top = Math.round(origTop + dy) + 'px';
+        }
+        function onUp() {
+            if (!dragging) return;
+            dragging = false;
+            cymShell.classList.remove('cym-dragging');
+            window.removeEventListener('mousemove', onMove);
+            window.removeEventListener('mouseup', onUp);
+        }
+        cymHeader.addEventListener('mousedown', function (e) {
+            if (e.target === cymMinBtn || cymMinBtn.contains(e.target)) return;
+            dragging = true;
+            cymShell.classList.add('cym-dragging');
+            toLeftTop();
+            var r = cymShell.getBoundingClientRect();
+            startX = e.clientX;
+            startY = e.clientY;
+            origLeft = r.left;
+            origTop = r.top;
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onUp);
+            e.preventDefault();
+        });
+    })();
+
+    function syncFreqFromDial() {
+        var v = Math.max(1, Math.min(25000, parseInt(freqDial.value, 10) || 1));
+        freqDial.value = v;
+        freqNum.value = v;
+        return v;
+    }
+    function syncDialFromNum() {
+        var v = Math.max(1, Math.min(25000, parseInt(freqNum.value, 10) || 1));
+        freqNum.value = v;
+        freqDial.value = v;
+        return v;
+    }
+
+    /**
+     * Map inaudible / barely audible fundamentals to a clear speaker-friendly band.
+     * Visualization still uses the true preset Hz from PRESETS (driveFrequencyAndLevel).
+     */
+    function presetToAudibleCarrierHz(phz) {
+        var lo = 112;
+        var hi = 224;
+        var u = (Math.log(phz) - Math.log(3.5)) / (Math.log(50) - Math.log(3.5));
+        u = Math.max(0, Math.min(1, u));
+        return lo + u * (hi - lo);
+    }
+
+    /** Raw healing frequency from preset (Hz), or 0 if not applicable. */
+    function getPresetHealingHz() {
+        if (modeSel.value !== 'preset') return 0;
+        var pi = parseInt(selPreset.value, 10) || 0;
+        var phz = PRESETS[pi] && PRESETS[pi].hz;
+        return phz > 0 ? phz : 0;
+    }
+
+    /** Oscillator pitch: exact preset/manual Hz unless sub-bass — then audible carrier. */
+    function getToneHzForAudio() {
+        if (modeSel.value === 'preset') {
+            var pi = parseInt(selPreset.value, 10) || 0;
+            var phz = PRESETS[pi] && PRESETS[pi].hz;
+            if (phz > 0) {
+                var raw = Math.max(1, Math.min(20000, phz));
+                if (raw < 52) return presetToAudibleCarrierHz(raw);
+                return raw;
+            }
+        }
+        if (modeSel.value === 'manual') {
+            var d = Math.max(1, Math.min(25000, parseInt(freqDial.value, 10) || 1));
+            if (d < 52) return presetToAudibleCarrierHz(d);
+        }
+        return syncFreqFromDial();
+    }
+
+    /** Mild lift only when carrier is still low (manual edge cases). */
+    function lowFreqGainMul(hz) {
+        hz = Math.max(1, hz);
+        return hz < 88 ? Math.min(1.5, Math.sqrt(88 / hz)) : 1;
+    }
+
+    freqDial.addEventListener('input', function () { syncFreqFromDial(); onFreqUiChange(); });
+    freqNum.addEventListener('change', function () { syncDialFromNum(); onFreqUiChange(); });
+
+    modeSel.addEventListener('change', function () {
+        var m = modeSel.value;
+        trackRow.style.display = m === 'track' ? '' : 'none';
+        presetRow.style.display = m === 'preset' ? '' : 'none';
+        if (m !== 'preset') selPreset.selectedIndex = 0;
+        restartAudioForMode();
+    });
+    (function initModeRowsFromSel() {
+        var m = modeSel.value;
+        trackRow.style.display = m === 'track' ? '' : 'none';
+        presetRow.style.display = m === 'preset' ? '' : 'none';
+        if (m !== 'preset') selPreset.selectedIndex = 0;
+    })();
+    selPreset.addEventListener('change', function () {
+        var p = PRESETS[parseInt(selPreset.value, 10) || 0];
+        if (p && p.hz > 0) {
+            freqDial.value = Math.round(Math.min(25000, Math.max(1, p.hz)));
+            syncFreqFromDial();
+        }
+        onFreqUiChange();
+        if (window.__audioStarted && (modeSel.value === 'preset' || modeSel.value === 'manual')) {
+            restartAudioForMode();
+        }
+    });
+
+    var audioCtx = null;
+    var masterOut = null;
+    var osc = null;
+    var oscGain = null;
+    var toneFilter = null;
+    var toneEnvGain = null;
+    var toneModOsc = null;
+    var toneModDepth = null;
+    var mediaEl = null;
+    var mediaSourceNode = null;
+    var analyser = null;
+    var fftArray = null;
+    var timeDomainData = null;
+    var toneAnalyser = null;
+    var toneTimeData = null;
+    var smoothDomFreq = 220;
+    var smoothCentroid = 220;
+    var prevFftSum = 0;
+    var transientSm = 0;
+    var bandSmooth = { sub: 0, bass: 0, lowMid: 0, mid: 0, high: 0, treble: 0 };
+    var trackObjectUrl = null;
+
+    function getVolume() {
+        return (parseInt(volSlider.value, 10) || 0) / 100;
+    }
+
+    function ensureCtx() {
+        if (!audioCtx) {
+            var AC = window.AudioContext || window.webkitAudioContext;
+            try {
+                audioCtx = new AC({ latencyHint: 'interactive' });
+            } catch (eCtx) {
+                audioCtx = new AC();
+            }
+            masterOut = audioCtx.createGain();
+            masterOut.gain.value = MASTER_HEADROOM_GAIN;
+            masterOut.connect(audioCtx.destination);
+        }
+        return audioCtx;
+    }
+
+    function stopOsc() {
+        if (toneModOsc) {
+            try { toneModOsc.stop(); } catch (eM) {}
+            toneModOsc.disconnect();
+            toneModOsc = null;
+        }
+        if (toneModDepth) {
+            toneModDepth.disconnect();
+            toneModDepth = null;
+        }
+        if (osc) {
+            try { osc.stop(); } catch (e) {}
+            osc.disconnect();
+            osc = null;
+        }
+        if (oscGain) {
+            oscGain.disconnect();
+            oscGain = null;
+        }
+        if (toneFilter) {
+            try { toneFilter.disconnect(); } catch (eF) {}
+            toneFilter = null;
+        }
+        if (toneEnvGain) {
+            try { toneEnvGain.disconnect(); } catch (eEv) {}
+            toneEnvGain = null;
+        }
+        if (toneAnalyser) {
+            try { toneAnalyser.disconnect(); } catch (e2) {}
+            toneAnalyser = null;
+        }
+        toneTimeData = null;
+    }
+
+    function pauseTrackAudioGraph() {
+        if (mediaEl) mediaEl.pause();
+        if (mediaSourceNode) {
+            try { mediaSourceNode.disconnect(); } catch (e) {}
+        }
+        if (analyser) {
+            try { analyser.disconnect(); } catch (e2) {}
+        }
+    }
+
+    function stopTrack() {
+        pauseTrackAudioGraph();
+        if (mediaEl) {
+            mediaEl.src = '';
+            if (trackObjectUrl) {
+                URL.revokeObjectURL(trackObjectUrl);
+                trackObjectUrl = null;
+            }
+            mediaEl = null;
+        }
+        mediaSourceNode = null;
+        analyser = null;
+        fftArray = null;
+        timeDomainData = null;
+        prevFftSum = 0;
+        transientSm = 0;
+    }
+
+    function killAllAudio() {
+        stopOsc();
+        stopTrack();
+    }
+
+    function ensureTrackAudioGraph() {
+        if (!mediaEl || !mediaEl.src) return;
+        ensureCtx();
+        if (!mediaSourceNode) {
+            mediaSourceNode = audioCtx.createMediaElementSource(mediaEl);
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 8192;
+            analyser.smoothingTimeConstant = 0.38;
+            fftArray = new Uint8Array(analyser.frequencyBinCount);
+            timeDomainData = new Uint8Array(analyser.fftSize);
+        }
+        try { mediaSourceNode.disconnect(); } catch (eD) {}
+        try { analyser.disconnect(); } catch (eA) {}
+        mediaSourceNode.connect(analyser);
+        ensureCtx();
+        analyser.connect(masterOut);
+        mediaEl.volume = Math.min(1, getVolume());
+    }
+
+    /** Low-pass only for gentle anti-alias; cutoff always above the sine fundamental. */
+    function toneAntiAliasLowpassHz(carrierHz, sampleRate) {
+        carrierHz = Math.max(1, Math.min(20000, carrierHz));
+        var nyq = sampleRate > 0 ? sampleRate * 0.48 : 22050;
+        var wide = carrierHz * 2.2 + 3200;
+        return Math.min(nyq, Math.max(9000, wide));
+    }
+
+    function startOscillatorAtHz(hz) {
+        ensureCtx();
+        stopOsc();
+        pauseTrackAudioGraph();
+        var heal = getPresetHealingHz();
+        var useHealPulse = heal >= 3 && heal < 52;
+
+        osc = audioCtx.createOscillator();
+        osc.type = 'sine';
+        var c = Math.max(1, Math.min(20000, hz));
+        osc.frequency.setValueAtTime(c, audioCtx.currentTime);
+
+        oscGain = audioCtx.createGain();
+        toneFilter = audioCtx.createBiquadFilter();
+        toneFilter.type = 'lowpass';
+        toneFilter.frequency.value = toneAntiAliasLowpassHz(c, audioCtx.sampleRate);
+        toneFilter.Q.value = 0.55;
+
+        var base = getVolume() * TONE_BRANCH_TRIM * lowFreqGainMul(c);
+
+        toneAnalyser = audioCtx.createAnalyser();
+        toneAnalyser.fftSize = 2048;
+        toneAnalyser.smoothingTimeConstant = 0.45;
+        toneTimeData = new Uint8Array(toneAnalyser.fftSize);
+
+        toneEnvGain = audioCtx.createGain();
+        toneEnvGain.gain.setValueAtTime(0, audioCtx.currentTime);
+
+        if (useHealPulse) {
+            oscGain.gain.value = base * 0.78;
+            toneModOsc = audioCtx.createOscillator();
+            toneModOsc.type = 'sine';
+            toneModOsc.frequency.value = heal;
+            toneModDepth = audioCtx.createGain();
+            toneModDepth.gain.value = base * 0.24;
+            toneModOsc.connect(toneModDepth);
+            toneModDepth.connect(oscGain.gain);
+            toneModOsc.start(0);
+        } else {
+            oscGain.gain.value = base;
+        }
+
+        osc.connect(oscGain).connect(toneFilter).connect(toneEnvGain).connect(toneAnalyser).connect(masterOut);
+        var t0 = audioCtx.currentTime;
+        toneEnvGain.gain.linearRampToValueAtTime(1, t0 + 0.022);
+        osc.start(0);
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    function readToneAnalyserRms() {
+        if (!toneAnalyser || !toneTimeData) return 0;
+        toneAnalyser.getByteTimeDomainData(toneTimeData);
+        var s = 0;
+        for (var i = 0; i < toneTimeData.length; i++) {
+            var x = (toneTimeData[i] - 128) / 128;
+            s += x * x;
+        }
+        return Math.sqrt(s / toneTimeData.length);
+    }
+
+    function restartAudioForMode() {
+        var v = getToneHzForAudio();
+        var m = modeSel.value;
+        if (m === 'manual' || m === 'preset') {
+            pauseTrackAudioGraph();
+            stopOsc();
+            if (window.__audioStarted) {
+                startOscillatorAtHz(v);
+            }
+        } else if (m === 'track') {
+            stopOsc();
+            runAfterContextReady(ensureCtx(), function () {
+                ensureTrackAudioGraph();
+                if (window.__audioStarted && mediaEl) {
+                    var playTry = mediaEl.play();
+                    if (playTry && typeof playTry.catch === 'function') {
+                        playTry.catch(function () {
+                            readout.textContent = 'Playback blocked—click Start or Play again.';
+                            window.__audioStarted = false;
+                        });
+                    }
+                }
+            });
+        }
+    }
+
+    function onFreqUiChange() {
+        var hzAudio = getToneHzForAudio();
+        var heal = getPresetHealingHz();
+        if (audioCtx && osc && (modeSel.value === 'manual' || modeSel.value === 'preset')) {
+            var c = Math.max(1, Math.min(20000, hzAudio));
+            osc.frequency.value = c;
+            if (toneModOsc && heal >= 3 && heal < 52) {
+                toneModOsc.frequency.value = heal;
+            }
+            if (toneFilter && audioCtx) {
+                toneFilter.frequency.setTargetAtTime(
+                    toneAntiAliasLowpassHz(c, audioCtx.sampleRate),
+                    audioCtx.currentTime,
+                    0.02
+                );
+            }
+            if (oscGain) {
+                var base = getVolume() * TONE_BRANCH_TRIM * lowFreqGainMul(c);
+                if (toneModDepth && toneModOsc && heal >= 3 && heal < 52) {
+                    oscGain.gain.value = base * 0.78;
+                    toneModDepth.gain.value = base * 0.24;
+                } else {
+                    oscGain.gain.value = base;
+                }
+            }
+        }
+    }
+
+    volSlider.addEventListener('input', function () {
+        var g = getVolume();
+        if (oscGain) {
+            var th = getToneHzForAudio();
+            var c = Math.max(1, Math.min(20000, th));
+            var heal = getPresetHealingHz();
+            var base = g * TONE_BRANCH_TRIM * lowFreqGainMul(c);
+            if (toneModDepth && toneModOsc && heal >= 3 && heal < 52) {
+                oscGain.gain.value = base * 0.78;
+                toneModDepth.gain.value = base * 0.24;
+            } else {
+                oscGain.gain.value = base;
+            }
+        }
+        if (mediaEl) mediaEl.volume = Math.min(1, g);
+    });
+
+    function runAfterContextReady(ctx, fn) {
+        if (!ctx) return;
+        if (ctx.state === 'suspended' && typeof ctx.resume === 'function') {
+            try {
+                var p = ctx.resume();
+                if (p && typeof p.then === 'function') {
+                    p.then(fn).catch(fn);
+                    return;
+                }
+            } catch (eR) {}
+        }
+        fn();
+    }
+
+    function cymaticsResumeWebAudio() {
+        ensureCtx();
+        if (modeSel && modeSel.value === 'track' && mediaEl && mediaEl.src) {
+            ensureTrackAudioGraph();
+        }
+        if (audioCtx && typeof audioCtx.resume === 'function') {
+            return audioCtx.resume();
+        }
+        return typeof Promise !== 'undefined' ? Promise.resolve() : undefined;
+    }
+    if (typeof window !== 'undefined') {
+        window.__cymaticsResumeWebAudio = cymaticsResumeWebAudio;
+    }
+    document.addEventListener('visibilitychange', function () {
+        if (document.hidden) return;
+        cymaticsResumeWebAudio();
+    });
+
+    btnAudio.addEventListener('click', function () {
+        var ctx = ensureCtx();
+        runAfterContextReady(ctx, function () {
+            window.__audioStarted = true;
+            var hz = getToneHzForAudio();
+            if (modeSel.value === 'manual' || modeSel.value === 'preset') {
+                startOscillatorAtHz(hz);
+            } else if (modeSel.value === 'track') {
+                if (!mediaEl || !mediaEl.src) {
+                    readout.textContent = 'Choose an audio file first.';
+                    window.__audioStarted = false;
+                    return;
+                }
+                ensureTrackAudioGraph();
+                var playTry = mediaEl.play();
+                if (playTry && typeof playTry.catch === 'function') {
+                    playTry.catch(function () {
+                        readout.textContent = 'Playback blocked—click Start again after file selected.';
+                        window.__audioStarted = false;
+                    });
+                }
+            }
+        });
+    });
+
+    btnStop.addEventListener('click', function () {
+        if (modeSel.value === 'track' && mediaEl && mediaEl.src) {
+            mediaEl.pause();
+            stopOsc();
+            window.__audioStarted = false;
+            return;
+        }
+        killAllAudio();
+        window.__audioStarted = false;
+    });
+
+    fileIn.addEventListener('change', function () {
+        var f = fileIn.files && fileIn.files[0];
+        killAllAudio();
+        window.__audioStarted = false;
+        if (!f) return;
+        ensureCtx();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        trackObjectUrl = URL.createObjectURL(f);
+        mediaEl = new Audio();
+        try {
+            mediaEl.setAttribute('playsinline', '');
+        } catch (ePl) { /* no-op */ }
+        if (mediaEl.playsInline !== undefined) {
+            mediaEl.playsInline = true;
+        }
+        mediaEl.preload = 'auto';
+        mediaEl.src = trackObjectUrl;
+        mediaEl.volume = getVolume();
+        ensureTrackAudioGraph();
+        smoothDomFreq = hzFromDial();
+    });
+
+    function hzFromDial() {
+        return Math.max(1, Math.min(25000, parseInt(freqDial.value, 10) || 528));
+    }
+
+    function hzFromBin(peakI, peak) {
+        var nyquist = audioCtx.sampleRate * 0.5;
+        var raw = peakI * nyquist / fftArray.length;
+        if (peakI > 0 && peakI < fftArray.length - 1 && peak > 8) {
+            var y0 = fftArray[peakI - 1], y1 = fftArray[peakI], y2 = fftArray[peakI + 1];
+            var denom = y0 - 2 * y1 + y2;
+            if (Math.abs(denom) > 0.001) {
+                var delta = 0.5 * (y0 - y2) / denom;
+                raw = (peakI + delta) * nyquist / fftArray.length;
+            }
+        }
+        return Math.max(1, Math.min(25000, raw));
+    }
+
+    /** Rich FFT snapshot: centroid, peaks, per-band drive, transients, RMS */
+    function analyzeTrackAudio() {
+        if (!analyser || !fftArray) return null;
+        analyser.getByteFrequencyData(fftArray);
+        var n = fftArray.length;
+        var nyq = audioCtx.sampleRate * 0.5;
+        var peak = 0;
+        var peakI = 2;
+        var centroidNum = 0;
+        var centroidDen = 0;
+        var sum = 0;
+        var sub = 0, bass = 0, lowMid = 0, mid = 0, high = 0, treble = 0;
+        var cSub = 0, cBass = 0, cLm = 0, cMid = 0, cHi = 0, cTr = 0;
+        var i = 0;
+        var hz;
+        for (i = 2; i < n; i++) {
+            var v = fftArray[i];
+            sum += v;
+            hz = (i * nyq) / n;
+            centroidNum += hz * v;
+            centroidDen += v;
+            if (v > peak) {
+                peak = v;
+                peakI = i;
+            }
+            if (hz < 90) {
+                sub += v;
+                cSub++;
+            } else if (hz < 280) {
+                bass += v;
+                cBass++;
+            } else if (hz < 900) {
+                lowMid += v;
+                cLm++;
+            } else if (hz < 2800) {
+                mid += v;
+                cMid++;
+            } else if (hz < 9000) {
+                high += v;
+                cHi++;
+            } else {
+                treble += v;
+                cTr++;
+            }
+        }
+        var avg = function (s, c) {
+            return c > 0 ? (s / c) / 255 : 0;
+        };
+        var bSub = avg(sub, cSub);
+        var bBass = avg(bass, cBass);
+        var bLm = avg(lowMid, cLm);
+        var bMid = avg(mid, cMid);
+        var bHi = avg(high, cHi);
+        var bTr = avg(treble, cTr);
+
+        var peakHz = hzFromBin(peakI, peak);
+        var centroid = centroidDen > 0.5 ? centroidNum / centroidDen : peakHz;
+        centroid = Math.max(1, Math.min(25000, centroid));
+
+        var alpha = Math.max(0.06, Math.min(0.62, (0.58 - simControls.fftSmoothing * 0.95) * simControls.trackHzSpeed));
+        smoothDomFreq += (peakHz - smoothDomFreq) * alpha;
+        smoothCentroid += (centroid - smoothCentroid) * alpha;
+
+        var blendC = Math.max(0, Math.min(1, simControls.centroidBlend));
+        var combinedHz = smoothCentroid * blendC + smoothDomFreq * (1 - blendC);
+
+        var flux = Math.max(0, sum - prevFftSum);
+        prevFftSum = prevFftSum * simControls.fluxDecay + sum * (1 - simControls.fluxDecay);
+        transientSm = transientSm * 0.76 + Math.min(1, flux / Math.max(18, simControls.transientGain * n * 0.035)) * 0.24;
+
+        var rms = 0;
+        if (timeDomainData) {
+            analyser.getByteTimeDomainData(timeDomainData);
+            for (i = 0; i < timeDomainData.length; i++) {
+                var x = (timeDomainData[i] - 128) / 128;
+                rms += x * x;
+            }
+            rms = Math.sqrt(rms / timeDomainData.length);
+        }
+
+        var bAlpha = Math.min(0.52, 0.12 + simControls.bandSnap * 0.34);
+        bandSmooth.sub   += (bSub   - bandSmooth.sub)   * bAlpha;
+        bandSmooth.bass   += (bBass  - bandSmooth.bass)  * bAlpha;
+        bandSmooth.lowMid += (bLm    - bandSmooth.lowMid) * bAlpha;
+        bandSmooth.mid    += (bMid   - bandSmooth.mid)   * bAlpha;
+        bandSmooth.high   += (bHi    - bandSmooth.high)  * bAlpha;
+        bandSmooth.treble += (bTr    - bandSmooth.treble)* bAlpha;
+
+        var level = Math.min(1.85,
+            rms * 4.2 * simControls.rmsWeight +
+            (sum / (n * 38)) * simControls.spectralLevelWeight +
+            transientSm * simControls.beatPunch * 0.45
+        );
+
+        var fluxNormDen = Math.max(22, simControls.transientGain * n * 0.035);
+        var fluxNorm = Math.min(1, flux / fluxNormDen);
+
+        return {
+            hz: combinedHz,
+            peakHz: smoothDomFreq,
+            centroid: smoothCentroid,
+            level: level,
+            transient: transientSm,
+            rms: rms,
+            bands: bandSmooth,
+            fluxNorm: fluxNorm
+        };
+    }
+
+    function driveFrequencyAndLevel(time) {
+        var mode = modeSel.value;
+        var emptyBands = { sub: 0, bass: 0, lowMid: 0, mid: 0, high: 0, treble: 0 };
+        var hz;
+        var level = 0.35 + 0.25 * Math.sin(time * 0.7);
+        var snap = {
+            hz: hzFromDial(),
+            peakHz: hzFromDial(),
+            centroid: hzFromDial(),
+            level: level,
+            transient: 0,
+            rms: 0,
+            bands: emptyBands,
+            fluxNorm: 0
+        };
+
+        if (mode === 'track' && analyser && mediaEl && fftArray && !mediaEl.paused) {
+            var a = analyzeTrackAudio();
+            if (a) snap = a;
+            hz = snap.hz;
+            level = snap.level;
+        } else if (mode === 'track') {
+            hz = hzFromDial();
+            level = 0.22 + 0.12 * Math.sin(time * 0.6);
+            snap.hz = hz;
+            snap.level = level;
+        } else if (mode === 'preset') {
+            var pi = parseInt(selPreset.value, 10) || 0;
+            hz = PRESETS[pi].hz > 0 ? PRESETS[pi].hz : hzFromDial();
+            level = Math.min(1, getVolume() * 1.4);
+            snap.hz = hz;
+            snap.level = level;
+            snap.rms = readToneAnalyserRms();
+        } else {
+            hz = hzFromDial();
+            level = Math.min(1, getVolume() * 1.4);
+            snap.hz = hz;
+            snap.level = level;
+            snap.rms = readToneAnalyserRms();
+        }
+        var bias = Math.max(0, Math.min(1, simControls.trackBlend));
+        if (mode === 'track') {
+            hz = hz * (1 - bias) + hzFromDial() * bias;
+            snap.hz = hz;
+        }
+        hz = Math.max(1, Math.min(25000, hz));
+        level = Math.max(0.08, Math.min(2.2, level * simControls.motionGain));
+        snap.level = level;
+        if (audioCtx && window.__audioStarted) {
+            var tNow = audioCtx.currentTime;
+            var rmsSpin = snap.rms != null ? snap.rms : 0;
+            var trSpin = snap.transient != null ? snap.transient : 0;
+            var rate = 0.12 + rmsSpin * 3.5 + trSpin * 1.2 + (mode === 'track' ? 0.05 : 0);
+            snap.colorSpin = tNow * rate + hzToPalette01(hz) * 0.517;
+            snap.colorSpin -= Math.floor(snap.colorSpin);
+        } else {
+            snap.colorSpin = 0;
+        }
+        return { hz: hz, level: level, snap: snap };
+    }
+
+    function hexToRgb01(hex) {
+        if (!hex || typeof hex !== 'string') return { r: 0.1, g: 0.2, b: 0.5 };
+        var s = hex.replace('#', '');
+        if (s.length === 3) s = s[0] + s[0] + s[1] + s[1] + s[2] + s[2];
+        return {
+            r: parseInt(s.slice(0, 2), 16) / 255,
+            g: parseInt(s.slice(2, 4), 16) / 255,
+            b: parseInt(s.slice(4, 6), 16) / 255
+        };
+    }
+
+    function lerp3(a, b, t) {
+        return a + (b - a) * t;
+    }
+
+    /** 0..1 from ~20 Hz .. ~20 kHz (log): drives position along the low→mid→high palette */
+    function hzToPalette01(hz) {
+        hz = Math.max(20, Math.min(22000, hz));
+        var lo = Math.log(20);
+        var hi = Math.log(22000);
+        return (Math.log(hz) - lo) / (hi - lo);
+    }
+
+    function fract(x) {
+        return x - Math.floor(x);
+    }
+
+    function hsvToRgb(h, s, v) {
+        h = fract(h);
+        s = Math.max(0, Math.min(1, s));
+        v = Math.max(0, Math.min(1, v));
+        var i = Math.floor(h * 6);
+        var f = h * 6 - i;
+        var p = v * (1 - s);
+        var q = v * (1 - f * s);
+        var t = v * (1 - (1 - f) * s);
+        switch (i % 6) {
+            case 0: return { r: v, g: t, b: p };
+            case 1: return { r: q, g: v, b: p };
+            case 2: return { r: p, g: v, b: t };
+            case 3: return { r: p, g: q, b: v };
+            case 4: return { r: t, g: p, b: v };
+            default: return { r: v, g: p, b: q };
+        }
+    }
+
+    /** Three distinct hues (trough / mid / crest) that sweep the spectrum with audio + time spin. */
+    function buildAudioPaletteStops(snap, transient) {
+        var hz = snap.hz != null ? snap.hz : hzFromDial();
+        var B = snap.bands || {};
+        var rms = snap.rms != null ? snap.rms : 0;
+        var lvl = snap.level != null ? snap.level : 0.5;
+        var pitchHue = hzToPalette01(hz);
+        var bandWalk = (B.bass || 0) * 0.2 - (B.treble || 0) * 0.17 + (B.mid || 0) * 0.11;
+        var dyn = transient * 0.24 + Math.min(1, rms * 3) * 0.2 + Math.min(1, lvl * 0.25) * 0.1;
+        var spin = snap.colorSpin != null ? snap.colorSpin : 0;
+        var spread = Math.max(0.24, Math.min(0.52, 0.26 + simControls.audioHueSpread * 0.17));
+        var hueCenter = fract(pitchHue * 0.85 + bandWalk + dyn + spin * 0.72);
+        var hTrough = fract(hueCenter - spread * 0.85);
+        var hMid = fract(hueCenter);
+        var hCrest = fract(hueCenter + spread * 1.05);
+        var en = Math.min(1, 0.15 + rms * 2.9 + transient * 0.5 + Math.min(1, lvl * 0.3));
+        var sb = Math.max(0, Math.min(1.5, simControls.audioSatBoost));
+        var bb = Math.max(0, Math.min(1.5, simControls.audioBrightBoost));
+        var sT = Math.min(1, 0.82 + 0.18 * en * sb);
+        var sM = Math.min(1, 0.86 + 0.14 * en * sb);
+        var sC = Math.min(1, 0.88 + 0.12 * en * sb);
+        var vT = Math.min(1, 0.26 + 0.28 * en + 0.14 * bb);
+        var vM = Math.min(1, 0.42 + 0.3 * en + 0.16 * bb);
+        var vC = Math.min(1, 0.58 + 0.34 * en + 0.2 * bb);
+        return {
+            c0: hsvToRgb(hTrough, sT, vT),
+            c1: hsvToRgb(hMid, sM, vM),
+            c2: hsvToRgb(hCrest, sC, vC)
+        };
+    }
+
+    function sampleGradient(n, split1, c0, c1, c2) {
+        n = Math.max(0, Math.min(1, n));
+        if (n < split1) {
+            var tt = n / split1;
+            return {
+                r: lerp3(c0.r, c1.r, tt),
+                g: lerp3(c0.g, c1.g, tt),
+                b: lerp3(c0.b, c1.b, tt)
+            };
+        }
+        tt = (n - split1) / (1 - split1);
+        return {
+            r: lerp3(c1.r, c2.r, tt),
+            g: lerp3(c1.g, c2.g, tt),
+            b: lerp3(c1.b, c2.b, tt)
+        };
+    }
+
+    /**
+     * heightToColor: manual = shadow/mid/crest from pickers. Audio-reactive ON + Start audio =
+     * same three *roles* (trough / rim / crest) as three separated hues that move with sound;
+     * blend to manual via audio ↔ height blend.
+     */
+    function heightToColor(h, transient, arr, ix, snap) {
+        snap = snap || {};
+        var nBase = (h + 1) * 0.5;
+        nBase = Math.max(0, Math.min(1, nBase + transient * simControls.colorBeatBoost * 0.22));
+        var c0m = hexToRgb01(palette.colorLow);
+        var c1m = hexToRgb01(palette.colorMid);
+        var c2m = hexToRgb01(palette.colorHigh);
+        var split1 = Math.max(0.12, Math.min(0.55, simControls.colorMidpoint));
+        var colManual = sampleGradient(nBase, split1, c0m, c1m, c2m);
+        var r = colManual.r;
+        var g = colManual.g;
+        var b = colManual.b;
+
+        var amt = simControls.audioColorAmount;
+        var audioOn = !!window.__audioStarted;
+        if (simControls.audioReactiveColors && audioOn && amt > 0.004) {
+            var stops = buildAudioPaletteStops(snap, transient);
+            var colAudio = sampleGradient(nBase, split1, stops.c0, stops.c1, stops.c2);
+            var k = Math.max(0, Math.min(1, amt));
+            r = colManual.r * (1 - k) + colAudio.r * k;
+            g = colManual.g * (1 - k) + colAudio.g * k;
+            b = colManual.b * (1 - k) + colAudio.b * k;
+        }
+
+        var vib = simControls.colorVibrance;
+        var lum = 0.299 * r + 0.587 * g + 0.114 * b;
+        r = r * vib + lum * (1 - vib);
+        g = g * vib + lum * (1 - vib);
+        b = b * vib + lum * (1 - vib);
+        arr[ix] = Math.min(1, Math.max(0, r));
+        arr[ix + 1] = Math.min(1, Math.max(0, g));
+        arr[ix + 2] = Math.min(1, Math.max(0, b));
+    }
+
+    /** Standing-wave on disk; audio drives extra modes, transients, band ripples */
+    function waveHeight(r, theta, timeSec, freqHz, ampNorm, audio) {
+        audio = audio || {};
+        var B = audio.bands || {};
+        var tr = audio.transient || 0;
+        var bm = simControls.bandMotion * (1 + tr);
+
+        var m = Math.max(2, Math.min(42, Math.round(Math.sqrt(freqHz / 20) + B.bass * 5 * bm + B.mid * 3 * bm)));
+        var k = 3 + Math.floor(freqHz / 360) + Math.floor(B.lowMid * 4 * bm + B.high * 5 * bm);
+
+        var warp = (1 + tr * simControls.beatPunch * 0.55 + B.sub * simControls.subWeight) * simControls.timeWarp;
+        var w = freqHz * 0.0000195 * warp;
+
+        /* Particles use r up to ~1.12; old vignette hit 0 by r≥1.05 so the rim was frozen. */
+        var edgeT = Math.min(1, Math.max(0, (1.2 - r) / 0.62));
+        edgeT = edgeT * edgeT * (3 - 2 * edgeT);
+        var edge = 0.3 + 0.7 * edgeT;
+
+        var amp = ampNorm * 0.58 * (1 + tr * simControls.beatPunch * 0.65 + B.bass * 0.35);
+        var h = 0;
+
+        h += Math.cos(m * theta + timeSec * w) * Math.cos(k * r * Math.PI * 2.2 + timeSec * w * 0.85);
+
+        var iF = simControls.interference * (1 + B.mid * 0.9 + tr * 0.4);
+        h += iF * Math.cos((m + 2) * theta - timeSec * w * 1.08) * Math.cos((k + 2) * r * Math.PI * 2 + timeSec * w * 0.58);
+
+        var fr = simControls.fineRipple * (1 + B.treble * 1.2 + B.high * 0.6);
+        h += fr * Math.cos(m * 2 * theta + r * (14 + B.high * 10)) * Math.sin((9 + B.treble * 6) * r * Math.PI * 2 + timeSec * w * 1.25);
+
+        var sideM = Math.max(2, m - 1 + Math.floor(B.lowMid * 4));
+        h += B.mid * bm * 0.62 * Math.sin(sideM * theta * 2 + timeSec * w * 1.4) * Math.cos(4 * r * Math.PI + timeSec * w);
+
+        h += tr * simControls.transientRipple * Math.cos(12 * theta + timeSec * 18) * Math.sin(7 * r * Math.PI - timeSec * 12);
+
+        return h * amp * edge;
+    }
+
+    var scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(BG, 0.045);
+
+    var camera = new THREE.PerspectiveCamera(48, 1, 0.02, 80);
+    camera.position.set(0, 0.08, 2.5);
+
+    var renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true,
+        powerPreference: 'high-performance',
+        preserveDrawingBuffer: false,
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setClearColor(BG, 1);
+    document.body.insertBefore(renderer.domElement, document.body.firstChild);
+
+    (function () {
+        var canvas = renderer.domElement;
+        canvas.addEventListener('webglcontextlost', function (e) {
+            e.preventDefault();
+        }, false);
+        canvas.addEventListener('webglcontextrestored', function () {
+            try {
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+                resize();
+            } catch (err) {}
+        }, false);
+    })();
+
+    var zoom = 0;
+    window.addEventListener('wheel', function (e) {
+        zoom += e.deltaY * 0.00045;
+        zoom = Math.max(-0.7, Math.min(1.1, zoom));
+    }, { passive: true });
+
+    function resize() {
+        var w = window.innerWidth, h = window.innerHeight;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h, true);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    var geom = null;
+    var baseXY = null;
+    var polarR = null;
+    var polarTh = null;
+    var colAttr = null;
+    var pointsMat = null;
+    var pointsObj = null;
+    var N = 0;
+
+    particleCapLabel.textContent = String(PARTICLE_CAP);
+    particleSlider.min = String(PARTICLE_MIN);
+    particleSlider.max = String(PARTICLE_CAP);
+    particleSlider.step = '500';
+    particleNum.min = String(PARTICLE_MIN);
+    particleNum.max = String(PARTICLE_CAP);
+    particleNum.step = '500';
+
+    function seedDiskParticles(n, bx, pr, pth, pos, colors) {
+        for (var i = 0; i < n; i++) {
+            var u = Math.random();
+            var v = Math.random();
+            var r = Math.sqrt(u) * 1.12;
+            var th = (v * 2 * Math.PI) + (Math.random() - 0.5) * 0.02;
+            var x = r * Math.cos(th);
+            var y = r * Math.sin(th);
+            bx[i * 2] = x;
+            bx[i * 2 + 1] = y;
+            pr[i] = r;
+            pth[i] = th;
+            pos[i * 3] = x;
+            pos[i * 3 + 1] = y;
+            pos[i * 3 + 2] = 0;
+            colors[i * 3] = 0.1;
+            colors[i * 3 + 1] = 0.2;
+            colors[i * 3 + 2] = 0.5;
+        }
+    }
+
+    function rebuildParticles(newN) {
+        newN = particleClamp(newN);
+        if (pointsObj && newN === N) {
+            particleSlider.value = String(N);
+            particleNum.value = String(N);
+            return;
+        }
+        if (pointsObj) {
+            scene.remove(pointsObj);
+            pointsObj = null;
+        }
+        if (geom) {
+            try { geom.dispose(); } catch (e0) {}
+            geom = null;
+        }
+        N = newN;
+        baseXY = new Float32Array(N * 2);
+        polarR = new Float32Array(N);
+        polarTh = new Float32Array(N);
+        var pos = new Float32Array(N * 3);
+        var colors = new Float32Array(N * 3);
+        seedDiskParticles(N, baseXY, polarR, polarTh, pos, colors);
+        geom = new THREE.BufferGeometry();
+        geom.addAttribute('position', new THREE.BufferAttribute(pos, 3));
+        geom.addAttribute('color', new THREE.BufferAttribute(colors, 3));
+        colAttr = geom.attributes.color.array;
+        if (!pointsMat) {
+            pointsMat = new THREE.PointsMaterial({
+                size: 0.0095,
+                vertexColors: THREE.VertexColors,
+                transparent: true,
+                opacity: 0.95,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                sizeAttenuation: true
+            });
+        }
+        pointsObj = new THREE.Points(geom, pointsMat);
+        scene.add(pointsObj);
+        particleSlider.value = String(N);
+        particleNum.value = String(N);
+    }
+
+    rebuildParticles(particleGoal());
+    scene.add(new THREE.AmbientLight(0x406090, 0.45));
+
+    var particleDeb = null;
+    function scheduleParticlesFromSlider() {
+        var v = particleClamp(particleSlider.value);
+        particleNum.value = String(v);
+        particleSlider.value = String(v);
+        if (particleDeb) clearTimeout(particleDeb);
+        particleDeb = setTimeout(function () {
+            particleDeb = null;
+            rebuildParticles(particleClamp(particleSlider.value));
+        }, 130);
+    }
+    particleSlider.addEventListener('input', scheduleParticlesFromSlider);
+    particleSlider.addEventListener('change', function () {
+        if (particleDeb) {
+            clearTimeout(particleDeb);
+            particleDeb = null;
+        }
+        var v = particleClamp(particleSlider.value);
+        particleNum.value = String(v);
+        rebuildParticles(v);
+    });
+    particleNum.addEventListener('change', function () {
+        var v = particleClamp(particleNum.value);
+        particleSlider.value = String(v);
+        particleNum.value = String(v);
+        if (particleDeb) {
+            clearTimeout(particleDeb);
+            particleDeb = null;
+        }
+        rebuildParticles(v);
+    });
+
+    var clock = new THREE.Clock();
+
+    var gui = null;
+    var simControls = {
+        timeWarp: 1,
+        motionGain: 1.12,
+        interference: 0.78,
+        fineRipple: 0.45,
+        fftSmoothing: 0.22,
+        trackBlend: 0.12,
+        zExtrude: 0.48,
+        pointSizeMul: 1,
+        fogDensity: 0.045,
+        centroidBlend: 0.58,
+        trackHzSpeed: 1.25,
+        fluxDecay: 0.88,
+        bandSnap: 0.95,
+        rmsWeight: 1.05,
+        spectralLevelWeight: 1,
+        transientGain: 1.1,
+        subWeight: 0.55,
+        beatPunch: 1.15,
+        bandMotion: 0.95,
+        transientRipple: 0.62,
+        colorVibrance: 1.05,
+        colorBeatBoost: 1,
+        colorMidpoint: 0.38,
+        audioReactiveColors: true,
+        audioColorAmount: 1,
+        audioHueSpread: 1,
+        audioSatBoost: 0.85,
+        audioBrightBoost: 0.65
+    };
+
+    function setupGui() {
+        gui = new dat.GUI({ width: 300 });
+        var f = gui.addFolder('Cymatics field');
+        f.add(simControls, 'timeWarp', 0, 2.5).name('animation speed');
+        f.add(simControls, 'motionGain', 0.2, 2.4).name('motion gain');
+        f.add(simControls, 'interference', 0, 1.5).name('mode interference');
+        f.add(simControls, 'fineRipple', 0, 1.2).name('fine ripples');
+        f.add(simControls, 'zExtrude', 0.1, 1.35).name('depth extrude');
+        f.add(simControls, 'beatPunch', 0, 2.5).name('beat / transient');
+        f.add(simControls, 'bandMotion', 0, 2).name('band-driven motion');
+        f.add(simControls, 'transientRipple', 0, 1.5).name('hit ripple');
+        f.add(simControls, 'subWeight', 0, 1.2).name('sub drives warp');
+        f.open();
+        var fa = gui.addFolder('Track / FFT');
+        fa.add(simControls, 'fftSmoothing', 0.05, 0.5).name('hz smooth');
+        fa.add(simControls, 'trackHzSpeed', 0.5, 2).name('hz follow speed');
+        fa.add(simControls, 'centroidBlend', 0, 1).name('centroid vs peak');
+        fa.add(simControls, 'trackBlend', 0, 1).name('blend w. dial');
+        fa.add(simControls, 'bandSnap', 0.2, 1.5).name('band reactivity');
+        fa.add(simControls, 'rmsWeight', 0, 2.5).name('RMS punch');
+        fa.add(simControls, 'spectralLevelWeight', 0, 2).name('FFT level');
+        fa.add(simControls, 'fluxDecay', 0.75, 0.98).name('onset baseline');
+        fa.add(simControls, 'transientGain', 0.5, 2.5).name('onset sensitivity');
+        fa.open();
+        var fc = gui.addFolder('Colors (gradient by height)');
+        try {
+            fc.addColor(palette, 'colorLow').name('shadow / trough');
+            fc.addColor(palette, 'colorMid').name('mid / rim');
+            fc.addColor(palette, 'colorHigh').name('crests');
+        } catch (e) {
+            fc.add(palette, 'colorLow').name('shadow hex');
+            fc.add(palette, 'colorMid').name('mid hex');
+            fc.add(palette, 'colorHigh').name('crest hex');
+        }
+        fc.add(simControls, 'colorVibrance', 0, 1.8).name('saturation');
+        fc.add(simControls, 'colorMidpoint', 0.15, 0.55).name('mid split');
+        fc.add(simControls, 'colorBeatBoost', 0, 2).name('flash on hits');
+        fc.add(simControls, 'audioReactiveColors').name('audio-reactive colours');
+        fc.add(simControls, 'audioColorAmount', 0, 1).name('blend vs manual palette');
+        fc.add(simControls, 'audioHueSpread', 0.35, 1.75).name('pitch shifts palette');
+        fc.add(simControls, 'audioSatBoost', 0, 1.4).name('audio saturation');
+        fc.add(simControls, 'audioBrightBoost', 0, 1.4).name('audio brightness');
+        fc.open();
+        var fv = gui.addFolder('Visual');
+        fv.add(simControls, 'pointSizeMul', 0.4, 2.2).name('point size ×');
+        fv.add(simControls, 'fogDensity', 0, 0.15).name('fog');
+        fv.open();
+        if (typeof attachMovableDatGui === 'function') {
+            attachMovableDatGui(gui, { title: 'Cymatics (advanced)', initialRight: 12, initialTop: 12, zIndex: 100 });
+        }
+        window.addEventListener('keydown', function (e) {
+            if (e.key === 'h' || e.key === 'H') {
+                if (gui.__pmDatGuiToggleVisibility) gui.__pmDatGuiToggleVisibility();
+                else gui.domElement.style.display = gui.domElement.style.display === 'none' ? '' : 'none';
+            }
+        });
+    }
+    setupGui();
+
+    function animate() {
+        requestAnimationFrame(animate);
+        var dt = clock.getDelta();
+        var time = clock.getElapsedTime();
+        var dv = driveFrequencyAndLevel(time);
+        var hz = dv.hz;
+        var lvl = dv.level;
+        var snap = dv.snap;
+
+        scene.fog.density = simControls.fogDensity;
+
+        var arr = geom.attributes.position.array;
+        var zScale = simControls.zExtrude;
+        var tr = snap.transient || 0;
+        for (var i = 0; i < N; i++) {
+            var x0 = baseXY[i * 2];
+            var y0 = baseXY[i * 2 + 1];
+            var r = polarR[i];
+            var th = polarTh[i];
+            var h = waveHeight(r, th, time, hz, lvl, snap);
+            arr[i * 3] = x0;
+            arr[i * 3 + 1] = y0;
+            arr[i * 3 + 2] = h * zScale;
+            heightToColor(h * 0.95, tr, colAttr, i * 3, snap);
+        }
+        geom.attributes.position.needsUpdate = true;
+        geom.attributes.color.needsUpdate = true;
+
+        pointsMat.size = (N > 25000 ? 0.0068 : N > 14000 ? 0.008 : 0.0095) * simControls.pointSizeMul;
+
+        var zCam = 2.5 - zoom * 0.75;
+        camera.position.z += (zCam - camera.position.z) * 0.08;
+        camera.position.x = 0;
+        camera.position.y = 0.08;
+        camera.lookAt(new THREE.Vector3(0, 0, 0));
+
+        var lobes = Math.max(2, Math.min(42, Math.round(Math.sqrt(hz / 20))));
+        readout.textContent =
+            'Particles: ' + N +
+            ' · Drive Hz: ' + hz.toFixed(1) +
+            ' · Peak: ' + (modeSel.value === 'track' && analyser ? smoothDomFreq.toFixed(0) : '—') +
+            ' · Centroid: ' + (modeSel.value === 'track' && analyser ? smoothCentroid.toFixed(0) : '—') +
+            ' · Hit: ' + (modeSel.value === 'track' && analyser ? (tr * 100).toFixed(0) + '%' : '—') +
+            ' · Lobes ~' + lobes;
+
+        renderer.render(scene, camera);
+    }
+    animate();
+})();
+    </script>
+</body>
+</html>

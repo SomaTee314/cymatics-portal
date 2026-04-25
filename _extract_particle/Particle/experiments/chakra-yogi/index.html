@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+        <base href="../../">
+        <meta charset="utf-8">
+        <title>Chakra Yogi — Particles</title>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+        <link rel="icon" href="./favicon.ico" type="image/x-icon">
+        <link rel="stylesheet" href="./css/particle-love.com/css/normalize.css">
+        <link rel="stylesheet" href="./css/particle-love.com/css/index.css">
+        <style>
+            /* Particles only: nodes stay in DOM for index.js querySelectors; !important beats later inline display/opacity from the bundle. */
+            html, body {
+                margin: 0;
+                height: 100%;
+                overflow: hidden;
+                background: #060a14;
+            }
+            .iframe-container {
+                display: none !important;
+            }
+            .ui {
+                position: fixed;
+                inset: 0;
+                width: 100%;
+                height: 100%;
+            }
+            /* Stack: background particles (index.js), then yogi particles (golden-mask-style layer) */
+            .ui canvas:not(.chakra-yogi-particles-canvas) {
+                position: absolute;
+                left: 0;
+                top: 0;
+                z-index: 1;
+                display: block;
+                width: 100% !important;
+                height: 100% !important;
+            }
+            .ui canvas.chakra-yogi-particles-canvas {
+                position: absolute;
+                left: 0;
+                top: 0;
+                z-index: 2;
+                display: block;
+                width: 100% !important;
+                height: 100% !important;
+                pointer-events: none;
+            }
+            .ui .logo,
+            .ui .menu,
+            .quality-selector,
+            .close-btn,
+            .titles-container {
+                display: none !important;
+                visibility: hidden !important;
+                pointer-events: none !important;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="iframe-container"></div>
+        <div class="ui">
+            <canvas></canvas>
+            <div class="logo" style="opacity: 1; transform: translate3d(0px, 0px, 0px); cursor: pointer; pointer-events: auto;">
+                <span class="logo-title">Particle Madness</span>
+                <span class="logo-byline">By SomaTea</span>
+            </div>
+            <div class="menu">
+                <div class="arrow is-left">
+                    <div class="arrow-inner">
+                        <div class="arrow-part"></div>
+                        <div class="arrow-part"></div>
+                    </div>
+                </div>
+                <div class="go-btn">
+                    <div class="go-btn-bg"><div class="go-btn-bg-spinner"><div class="go-btn-bg-inner"></div></div></div>
+                    <div class="go-btn-text cache">Go</div>
+                </div>
+                <div class="arrow is-right">
+                    <div class="arrow-inner">
+                        <div class="arrow-part"></div>
+                        <div class="arrow-part"></div>
+                    </div>
+                </div>
+                <div class="titles-container">
+                    <div class="titles-move-container" style="width: 320px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="quality-selector" style="display: block; pointer-events: auto;">
+            <div class="quality-btn" style="opacity: 1; transform: translate3d(0px, 0px, 0px);">
+                <div class="quality-btn-bg"><div class="quality-btn-bg-spinner"><div class="quality-btn-bg-inner"></div></div></div>
+                <div class="quality-btn-text cache">Low</div>
+            </div>
+            <div class="quality-btn" style="opacity: 1; transform: translate3d(0px, 0px, 0px);">
+                <div class="quality-btn-bg"><div class="quality-btn-bg-spinner"><div class="quality-btn-bg-inner"></div></div></div>
+                <div class="quality-btn-text cache">Medium</div>
+            </div>
+            <div class="quality-btn" style="opacity: 1; transform: translate3d(0px, 0px, 0px);">
+                <div class="quality-btn-bg"><div class="quality-btn-bg-spinner"><div class="quality-btn-bg-inner"></div></div></div>
+                <div class="quality-btn-text cache">High</div>
+            </div>
+            <div class="quality-title" style="opacity: 1;">Please choose the quality of<br>the experience:</div>
+        </div>
+        <div class="close-btn">
+            <div class="close-btn-part"></div>
+            <div class="close-btn-part"></div>
+        </div>
+        <script src="./js/particle-love.com/js/three.r76.min.js"></script>
+        <script src="./js/particle-love.com/js/TweenMax.min.js"></script>
+        <script>
+            window.demoList = [
+                {
+                    id: 'chakra-yogi',
+                    title: 'Chakra Yogi',
+                    bgColor: '#060a14',
+                    urls: {
+                        low: './experiments/chakra-yogi/index.html#particles=10000',
+                        medium: './experiments/chakra-yogi/index.html#particles=18000',
+                        high: './experiments/chakra-yogi/index.html#particles=28000'
+                    },
+                    colors: [0xc77dff, 0x448aff, 0x00e5ff, 0x00e676, 0xffea00, 0xff6e40, 0xff4081],
+                    speeds: [1.05, 0.003, 0.74, 0.46, 3.05, 3.35]
+                }
+            ];
+        </script>
+        <script src="./js/particle-love.com/js/index.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
+        <script src="./js/dat-gui-panel.js"></script>
+        <script src="js/pm-reactive-audio-panel.js"></script>
+        <script src="./experiments/chakra-yogi/overlay.js"></script>
+        <script>
+            (function () {
+                var map = { low: 0, medium: 1, high: 2 };
+                function hashQuality() {
+                    var m = (location.hash || '').match(/quality=(low|medium|high)/i);
+                    return m ? m[1].toLowerCase() : 'high';
+                }
+                var q = hashQuality();
+                var idx = map[q] != null ? map[q] : 2;
+                var n = 0;
+                var t = setInterval(function () {
+                    n++;
+                    var shell = document.querySelector('.quality-selector');
+                    if (!shell) return;
+                    var pe = shell.style.pointerEvents || window.getComputedStyle(shell).pointerEvents;
+                    if (pe === 'auto') {
+                        clearInterval(t);
+                        var btns = document.querySelectorAll('.quality-btn');
+                        if (btns[idx]) btns[idx].click();
+                    } else if (n > 200) clearInterval(t);
+                }, 50);
+            })();
+        </script>
+</body>
+</html>

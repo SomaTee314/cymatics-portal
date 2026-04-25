@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <link rel="icon" href="../../favicon.ico" type="image/x-icon">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neural Brain — Particle Madness</title>
+    <style>
+        html, body { margin: 0; height: 100%; overflow: hidden; background: #0c1018; font-family: Georgia, 'Times New Roman', serif; }
+        canvas { display: block; position: fixed; left: 0; top: 0; width: 100% !important; height: 100% !important; }
+        #hint {
+            position: fixed; left: 0; right: 0; bottom: 18px; text-align: center;
+            color: rgba(180,220,255,0.35); font-size: 12px; letter-spacing: 0.05em; pointer-events: none;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.6); z-index: 1;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
+    <script src="../../js/dat-gui-panel.js"></script>
+    <script src="../../js/pm-reactive-audio-panel.js"></script>
+</head>
+<body>
+    <div id="hint">3D volume — tilt & rotate · H hides panel · drag header · &minus; minimises · scroll zoom</div>
+    <script src="../../js/particle-love.com/js/three.r76.min.js"></script>
+    <script>
+(function () {
+    var BG = 0x0c1018;
+
+    function particleGoal() {
+        var m = window.location.hash.match(/particles=(\d+)/i);
+        var n = m ? parseInt(m[1], 10) : 14000;
+        return Math.min(48000, Math.max(4000, n));
+    }
+
+    var scene = new THREE.Scene();
+
+    var camera = new THREE.PerspectiveCamera(50, 1, 0.01, 100);
+    camera.position.z = 2.35;
+
+    var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setClearColor(BG, 1);
+    document.body.insertBefore(renderer.domElement, document.body.firstChild);
+
+    var mouse = new THREE.Vector2(0, 0);
+    var mouseSm = new THREE.Vector2(0, 0);
+    var scrollZoom = 0;
+
+    var _unproj = new THREE.Vector3();
+    var _dir = new THREE.Vector3();
+    var mouseWorld = new THREE.Vector3(0, 0, 0);
+
+    var pointsMaterial = null;
+    var pointsRoot = null;
+    var gui = null;
+    /** Max horizontal radius of the brain cloud — used for radial 3D bulge */
+    var brainMaxR = 1;
+
+    var controls = {
+        masterIntensity: 1.35,
+        pointerSharpness: 28,
+        repel: 4.2,
+        swirl: 2.4,
+        radius: 0.5,
+        spring: 5.8,
+        velocityDamping: 0.965,
+        curlStrength: 0.038,
+        flowSpeed: 1.15,
+        depthWobble: 0.014,
+        depthExtrusion: 1,
+        radialBoost: 0.22,
+        volumeCurl: 0.06,
+        modelTilt: 0.11,
+        cameraParallax: 0.055,
+        zoomSensitivity: 0.00055,
+        pointSize: 0.009,
+        particleOpacity: 0.94,
+        fogDensity: 0.038,
+        autoRotate: 0.12,
+        pulseAmplitude: 0.14,
+        pulseHz: 0.85,
+        resetPhysics: function () {
+            if (vel) for (var i = 0; i < vel.length; i++) vel[i] = 0;
+            if (geom && geom.attributes.position && basePos) {
+                var arr = geom.attributes.position.array;
+                for (var j = 0; j < arr.length; j++) arr[j] = basePos[j];
+                geom.attributes.position.needsUpdate = true;
+            }
+        },
+        defaults: function () {
+            controls.masterIntensity = 1.35;
+            controls.pointerSharpness = 28;
+            controls.repel = 4.2;
+            controls.swirl = 2.4;
+            controls.radius = 0.5;
+            controls.spring = 5.8;
+            controls.velocityDamping = 0.965;
+            controls.curlStrength = 0.038;
+            controls.flowSpeed = 1.15;
+            controls.depthWobble = 0.014;
+            controls.depthExtrusion = 1;
+            controls.radialBoost = 0.22;
+            controls.volumeCurl = 0.06;
+            controls.modelTilt = 0.11;
+            controls.cameraParallax = 0.055;
+            controls.zoomSensitivity = 0.00055;
+            var g0 = particleGoal();
+            controls.pointSize = g0 > 22000 ? 0.0078 : g0 > 12000 ? 0.0088 : 0.01;
+            controls.particleOpacity = 0.94;
+            controls.fogDensity = 0.038;
+            controls.autoRotate = 0.12;
+            controls.pulseAmplitude = 0.14;
+            controls.pulseHz = 0.85;
+            syncMaterialFromControls();
+            syncFogFromControls();
+            refreshAllGuiDisplays(gui);
+        }
+    };
+
+    function refreshAllGuiDisplays(g) {
+        if (!g) return;
+        var i;
+        for (i = 0; i < g.__controllers.length; i++) g.__controllers[i].updateDisplay();
+        for (var name in g.__folders) refreshAllGuiDisplays(g.__folders[name]);
+    }
+
+    function syncMaterialFromControls() {
+        if (pointsMaterial) {
+            pointsMaterial.needsUpdate = true;
+        }
+    }
+
+    function syncFogFromControls() {
+        if (!scene.fog) scene.fog = new THREE.FogExp2(BG, controls.fogDensity);
+        else {
+            scene.fog.color = new THREE.Color(BG);
+            scene.fog.density = controls.fogDensity;
+        }
+    }
+
+    function setupGui() {
+        gui = new dat.GUI({ width: 300 });
+
+        var fMaster = gui.addFolder('Master');
+        fMaster.add(controls, 'masterIntensity', 0.2, 3).name('intensity');
+        fMaster.add(controls, 'pointerSharpness', 4, 48).name('pointer snap');
+        fMaster.add(controls, 'resetPhysics').name('clear velocities');
+        fMaster.add(controls, 'defaults').name('reset all sliders');
+        fMaster.open();
+
+        var fVol = gui.addFolder('3D volume');
+        fVol.add(controls, 'depthExtrusion', 0.35, 2.2).name('depth scale');
+        fVol.add(controls, 'radialBoost', 0, 0.55).name('dome bulge');
+        fVol.add(controls, 'volumeCurl', 0, 0.2).name('volume swirl');
+        fVol.add(controls, 'modelTilt', 0, 0.35).name('base tilt X');
+        fVol.open();
+
+        var fMotion = gui.addFolder('Neural motion');
+        fMotion.add(controls, 'autoRotate', 0, 0.6).name('auto rotate Y');
+        fMotion.add(controls, 'pulseAmplitude', 0, 0.45).name('pulse size');
+        fMotion.add(controls, 'pulseHz', 0, 2.5).name('pulse speed');
+        fMotion.open();
+
+        var fPush = gui.addFolder('Push & swirl');
+        fPush.add(controls, 'repel', 0.2, 12);
+        fPush.add(controls, 'swirl', 0, 8);
+        fPush.add(controls, 'radius', 0.15, 1.2).name('influence radius');
+        fPush.open();
+
+        var fReturn = gui.addFolder('Spring & damping');
+        fReturn.add(controls, 'spring', 0.5, 14);
+        fReturn.add(controls, 'velocityDamping', 0.85, 0.995).name('velocity keep');
+        fReturn.open();
+
+        var fFlow = gui.addFolder('Ambient flow');
+        fFlow.add(controls, 'curlStrength', 0, 0.12).name('curl strength');
+        fFlow.add(controls, 'flowSpeed', 0, 3);
+        fFlow.add(controls, 'depthWobble', 0, 0.045).name('depth ripple');
+        fFlow.open();
+
+        var fCam = gui.addFolder('Camera');
+        fCam.add(controls, 'cameraParallax', 0, 0.2).name('parallax');
+        fCam.add(controls, 'zoomSensitivity', 0.0001, 0.002).name('scroll zoom');
+        fCam.open();
+
+        var fVis = gui.addFolder('Particles');
+        fVis.add(controls, 'pointSize', 0.003, 0.024).name('point size').onChange(syncMaterialFromControls);
+        fVis.add(controls, 'particleOpacity', 0.3, 1).name('opacity').onChange(syncMaterialFromControls);
+        fVis.add(controls, 'fogDensity', 0, 0.12).name('fog').onChange(syncFogFromControls);
+        fVis.open();
+
+        if (typeof attachMovableDatGui === 'function') {
+            attachMovableDatGui(gui, { title: 'Neural Brain', initialRight: 12, initialTop: 12, zIndex: 100 });
+        }
+
+        window.addEventListener('keydown', function (e) {
+            if (e.key === 'h' || e.key === 'H') {
+                if (gui.__pmDatGuiToggleVisibility) gui.__pmDatGuiToggleVisibility();
+                else gui.domElement.style.display = gui.domElement.style.display === 'none' ? '' : 'none';
+            }
+        });
+    }
+
+    function onPointer(e) {
+        var x = e.clientX, y = e.clientY;
+        mouse.x = (x / window.innerWidth) * 2 - 1;
+        mouse.y = -(y / window.innerHeight) * 2 + 1;
+    }
+    window.addEventListener('pointermove', onPointer, { passive: true });
+    window.addEventListener('pointerdown', onPointer, { passive: true });
+
+    window.addEventListener('wheel', function (e) {
+        scrollZoom += e.deltaY * controls.zoomSensitivity;
+        scrollZoom = Math.max(-0.9, Math.min(1.2, scrollZoom));
+    }, { passive: true });
+
+    function resize() {
+        var w = window.innerWidth, h = window.innerHeight;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h, true);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function updateMouseWorld(ndcX, ndcY) {
+        _unproj.set(ndcX, ndcY, 0.5);
+        _unproj.unproject(camera);
+        _dir.copy(_unproj).sub(camera.position).normalize();
+        var t = -camera.position.z / _dir.z;
+        if (t > 0 && isFinite(t)) {
+            mouseWorld.copy(camera.position).add(_dir.multiplyScalar(t));
+        } else {
+            mouseWorld.set(ndcX * 1.85, ndcY * 1.85, 0);
+        }
+    }
+
+    var loader = new THREE.TextureLoader();
+    loader.crossOrigin = 'anonymous';
+    loader.load(
+        '../../images/neural-brain.png',
+        function (tex) {
+            buildParticles(tex.image);
+            setupGui();
+            syncMaterialFromControls();
+            syncFogFromControls();
+        },
+        undefined,
+        function () {
+            buildParticles(null);
+            setupGui();
+            syncMaterialFromControls();
+            syncFogFromControls();
+        }
+    );
+
+    var geom = null;
+    var basePos = null;
+    var vel = null;
+    var clock = new THREE.Clock();
+
+    function buildParticles(img) {
+        var goal = particleGoal();
+        controls.pointSize = goal > 22000 ? 0.0078 : goal > 12000 ? 0.0088 : 0.01;
+
+        var w = 320;
+        var h = img ? Math.max(32, Math.round(img.height * (w / img.width))) : 400;
+        var canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        var ctx = canvas.getContext('2d');
+        if (img) {
+            ctx.drawImage(img, 0, 0, w, h);
+        } else {
+            ctx.fillStyle = '#151b2e';
+            ctx.fillRect(0, 0, w, h);
+            ctx.fillStyle = '#44ddff';
+            ctx.font = 'bold 64px serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Neural', w / 2, h / 2);
+        }
+        var im = ctx.getImageData(0, 0, w, h);
+        var data = im.data;
+
+        function lumAt(ix, iy) {
+            var i = (iy * w + ix) * 4;
+            return (0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]) / 255;
+        }
+
+        var aspectImg = w / h;
+        var spanX = aspectImg * 1.18;
+        var spanY = 1.18;
+        brainMaxR = Math.max(spanX, spanY) * 0.52;
+
+        var pos = [];
+        var col = [];
+
+        var tries = 0;
+        var maxTries = goal * 100;
+
+        while (pos.length / 3 < goal && tries < maxTries) {
+            tries++;
+            var ix = Math.floor(Math.random() * w);
+            var iy = Math.floor(Math.random() * h);
+            var L = lumAt(ix, iy);
+            if (L < 0.05 + Math.random() * 0.32) continue;
+
+            var nx = (ix / w - 0.5) * spanX;
+            var ny = -(iy / h - 0.5) * spanY;
+            var j = 0.0045 * (1 - L);
+            var rx = nx + (Math.random() - 0.5) * j;
+            var ry = ny + (Math.random() - 0.5) * j;
+            var rxy = Math.sqrt(rx * rx + ry * ry);
+            var radial = Math.max(0, 1 - Math.min(1, rxy / Math.max(brainMaxR, 0.001)));
+            var zLum = (L - 0.1) * 0.55;
+            var zDome = radial * radial * 0.32;
+            var rz = zLum + zDome + (Math.random() - 0.5) * 0.02;
+            pos.push(rx, ry, rz);
+
+            var i = (iy * w + ix) * 4;
+            var r = data[i] / 255, g = data[i + 1] / 255, b = data[i + 2] / 255;
+            var boost = 0.18 + L * 0.92;
+            col.push(
+                Math.min(1, r * boost + 0.02),
+                Math.min(1, g * boost + 0.04),
+                Math.min(1, b * boost + 0.08)
+            );
+        }
+
+        basePos = new Float32Array(pos);
+        vel = new Float32Array(pos.length);
+
+        geom = new THREE.BufferGeometry();
+        geom.addAttribute('position', new THREE.BufferAttribute(new Float32Array(pos), 3));
+        geom.addAttribute('color', new THREE.BufferAttribute(new Float32Array(col), 3));
+
+        pointsMaterial = new THREE.PointsMaterial({
+            size: controls.pointSize,
+            vertexColors: THREE.VertexColors,
+            transparent: true,
+            opacity: controls.particleOpacity,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            sizeAttenuation: true
+        });
+
+        if (pointsRoot) scene.remove(pointsRoot);
+        pointsRoot = new THREE.Object3D();
+        pointsRoot.add(new THREE.Points(geom, pointsMaterial));
+        scene.add(pointsRoot);
+        scene.add(new THREE.AmbientLight(0x5080c0, 0.4));
+        scene.fog = new THREE.FogExp2(BG, controls.fogDensity);
+    }
+
+    function curl2(px, py, time) {
+        var s = 2.1;
+        return {
+            x: Math.sin(py * s + time * 0.9) * Math.cos(px * s * 0.7 - time * 0.45),
+            y: Math.sin(px * s - time * 0.7) * Math.cos(py * 0.8 * s + time * 0.35)
+        };
+    }
+
+    function curlZ(px, py, pz, time) {
+        return Math.sin(px * 2.4 + pz * 3.1 + time * 0.85) * Math.cos(py * 2.1 - time * 0.5);
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        var dt = Math.min(clock.getDelta(), 0.08);
+        var tReal = clock.getElapsedTime();
+        var aud = (window.__pmReactiveAudio && window.__pmReactiveAudio.getDrive)
+            ? window.__pmReactiveAudio.getDrive(tReal)
+            : { intensity: 1, curl: 1, flow: 1 };
+        var t = tReal * controls.flowSpeed * aud.flow;
+
+        var sharp = controls.pointerSharpness;
+        var ease = 1 - Math.exp(-sharp * dt);
+        mouseSm.x += (mouse.x - mouseSm.x) * ease;
+        mouseSm.y += (mouse.y - mouseSm.y) * ease;
+        updateMouseWorld(mouseSm.x, mouseSm.y);
+
+        if (pointsRoot) {
+            pointsRoot.rotation.y += controls.autoRotate * dt;
+            pointsRoot.rotation.x = controls.modelTilt + mouseSm.y * 0.08;
+        }
+
+        var zTarget = 2.35 - scrollZoom * 0.85;
+        camera.position.z += (zTarget - camera.position.z) * (0.08 + dt * 4);
+        var par = controls.cameraParallax;
+        camera.position.x = mouseSm.x * par;
+        camera.position.y = mouseSm.y * par * 0.92;
+        camera.lookAt(scene.position);
+
+        if (pointsMaterial) {
+            var ph = Math.sin(tReal * Math.PI * 2 * controls.pulseHz);
+            var pul = 1 + controls.pulseAmplitude * ph;
+            var audPulse = 1 + 0.04 * (aud.level || 0);
+            pointsMaterial.size = controls.pointSize * Math.max(0.55, pul) * audPulse;
+            pointsMaterial.opacity = controls.particleOpacity * (1 + 0.06 * ph) * (1 + 0.03 * (aud.transient || 0));
+        }
+
+        if (geom && geom.attributes.position && basePos && vel) {
+            var arr = geom.attributes.position.array;
+            var mx = mouseWorld.x;
+            var my = mouseWorld.y;
+            var mi = controls.masterIntensity * aud.intensity;
+            var pushRadius = controls.radius;
+            var pushRadiusSq = pushRadius * pushRadius;
+            var repel = controls.repel * mi;
+            var swirl = controls.swirl * mi;
+            var spring = controls.spring;
+            var damp = Math.pow(controls.velocityDamping, dt * 60);
+
+            for (var i = 0; i < arr.length; i += 3) {
+                var bx = basePos[i];
+                var by = basePos[i + 1];
+                var bz = basePos[i + 2];
+
+                var px = arr[i];
+                var py = arr[i + 1];
+                var pz = arr[i + 2];
+
+                var dxm = px - mx;
+                var dym = py - my;
+                var distSq = dxm * dxm + dym * dym + 0.00008;
+
+                var fx = 0;
+                var fy = 0;
+                var fz = 0;
+
+                if (distSq < pushRadiusSq) {
+                    var inv = 1 / distSq;
+                    var falloff = (pushRadiusSq - distSq) / pushRadiusSq;
+                    var push = repel * falloff * falloff * inv * 0.085;
+                    fx += dxm * push;
+                    fy += dym * push;
+                    var invLen = 1 / Math.sqrt(distSq);
+                    fx += (-dym * invLen) * swirl * falloff * 0.14;
+                    fy += (dxm * invLen) * swirl * falloff * 0.14;
+                }
+
+                var c = curl2(bx * 3.2, by * 3.2, t);
+                var curl = controls.curlStrength * mi * aud.curl;
+                fx += c.x * curl;
+                fy += c.y * curl;
+
+                var vc = controls.volumeCurl * mi * (0.85 + 0.25 * aud.curl);
+                fz += curlZ(bx * 2.5, by * 2.5, bz * 4, t) * vc;
+
+                fx += (bx - px) * spring;
+                fy += (by - py) * spring;
+
+                var rxy = Math.sqrt(bx * bx + by * by);
+                var radial = Math.max(0, 1 - Math.min(1, rxy / Math.max(brainMaxR, 0.001)));
+                var restZ =
+                    controls.depthExtrusion * bz +
+                    controls.radialBoost * radial * radial +
+                    controls.depthWobble * Math.sin(t * 1.8 + bx * 5 + by * 3);
+                fz += (restZ - pz) * (spring * 0.68);
+
+                vel[i]     = (vel[i] + fx * dt) * damp;
+                vel[i + 1] = (vel[i + 1] + fy * dt) * damp;
+                vel[i + 2] = (vel[i + 2] + fz * dt) * damp;
+
+                arr[i]     += vel[i];
+                arr[i + 1] += vel[i + 1];
+                arr[i + 2] += vel[i + 2];
+            }
+            geom.attributes.position.needsUpdate = true;
+        }
+
+        renderer.render(scene, camera);
+    }
+
+    animate();
+})();
+    </script>
+</body>
+</html>

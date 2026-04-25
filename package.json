@@ -1,0 +1,42 @@
+{
+  "name": "cymatics-portal",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "clean": "node scripts/clean-next.mjs",
+    "predev": "python _build_portal.py && node scripts/sync-cymatics-public.mjs",
+    "dev": "next dev",
+    "dev:turbo": "next dev --turbo",
+    "dev:3005": "python _build_portal.py && node scripts/sync-cymatics-public.mjs && next dev -p 3005",
+    "dev:3005:clean": "node scripts/clean-next.mjs && python _build_portal.py && node scripts/sync-cymatics-public.mjs && next dev -p 3005",
+    "dev:3005:fresh": "node scripts/kill-port.mjs 3005 && node scripts/clean-next.mjs && python _build_portal.py && node scripts/sync-cymatics-public.mjs && next dev -p 3005",
+    "dev:clean": "node scripts/clean-next.mjs && next dev",
+    "prebuild": "node scripts/prebuild.mjs",
+    "build": "next build",
+    "start": "next start",
+    "generate:og": "node scripts/generate-og.mjs",
+    "migrate": "node scripts/run-migrations.mjs",
+    "test:supabase": "node scripts/test-supabase.mjs",
+    "test:polar": "node scripts/test-polar-checkout.mjs"
+  },
+  "dependencies": {
+    "@polar-sh/sdk": "^0.46.0",
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.47.0",
+    "date-fns": "^4.1.0",
+    "next": "^15.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "supabase": "^2.84.10",
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "puppeteer": "^24.2.0",
+    "tailwindcss": "^3.4.16",
+    "typescript": "^5.7.0"
+  }
+}

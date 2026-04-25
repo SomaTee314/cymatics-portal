@@ -1,0 +1,23 @@
+# Cymatics Portal
+
+> Interactive 3D cymatics and Chladni-style particle visualisation in the browser — Web Audio, healing frequencies, Nocturnal Labs x SomaTea.
+
+## About
+
+Cymatics Portal merges a retro-futuristic portal interface with a real-time particle cymatics engine. Visitors can explore standing-wave physics, frequency controls, and optional audio-reactive visuals without installing software.
+
+## Key pages
+
+- [Home / app](https://cymatics-portal.vercel.app/): Single-page experience — landing, guide, and main cymatics visualiser.
+
+## Capabilities
+
+- Real-time 3D particle field driven by cymatics / Chladni-style physics
+- Web Audio integration (playback and analysis; browser permission prompts apply)
+- Frequency and advanced visual controls
+- Fullscreen visual mode for focused sessions
+
+## Contact & brand
+
+- Project framing: Nocturnal Labs x SomaTea — *Nāda Brahma* (sound as primal vibration)
+- Deployed example: https://cymatics-portal.vercel.app/

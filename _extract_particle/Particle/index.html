@@ -1,0 +1,234 @@
+<!DOCTYPE html><html><head>
+        <meta charset="utf-8">
+        <title>Particle Madness — SomaTea</title>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <meta name="description" content="Particle Madness — interactive WebGL particles by SomaTea.">
+        <meta name="keywords" content="WebGL,Particles,HTML5,Motion,Graphics">
+        <meta name="author" content="SomaTea">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+        <meta property="og:title" content="Particle Madness">
+        <meta property="og:description" content="Particle Madness — interactive WebGL particles by SomaTea.">
+
+        <meta name="twitter:card" content="summary">
+        <meta name="twitter:site" content="@SomaTea">
+        <meta name="twitter:title" content="Particle Madness">
+        <meta name="twitter:description" content="Particle Madness — interactive WebGL particles by SomaTea.">
+
+        <link rel="icon" href="./favicon.ico" type="image/x-icon">
+        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;1,400&amp;display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="./css/particle-love.com/css/normalize.css">
+        <link rel="stylesheet" href="./css/particle-love.com/css/index.css">
+    </head>
+    <body>
+        <div class="iframe-container"></div>
+        <div class="ui">
+            <canvas></canvas>
+            <div class="logo" style="opacity: 1; transform: translate3d(0px, 0px, 0px); cursor: pointer; pointer-events: auto;">
+                <span class="logo-title">Particle Madness</span>
+                <span class="logo-byline">By SomaTea</span>
+            </div>
+            <div class="menu">
+                <div class="arrow is-left">
+                    <div class="arrow-inner">
+                        <div class="arrow-part"></div>
+                        <div class="arrow-part"></div>
+                    </div>
+                </div>
+                <div class="go-btn">
+                    <div class="go-btn-bg"><div class="go-btn-bg-spinner"><div class="go-btn-bg-inner"></div></div></div>
+                    <div class="go-btn-text cache">Go</div>
+                </div>
+                <div class="arrow is-right">
+                    <div class="arrow-inner">
+                        <div class="arrow-part"></div>
+                        <div class="arrow-part"></div>
+                    </div>
+                </div>
+                <div class="titles-container">
+                    <label class="pm-demo-label" for="pm-demo-select">Choose visual</label>
+                    <select id="pm-demo-select" class="pm-demo-select" aria-label="Choose visual"></select>
+                    <div class="titles-move-container" style="width: 1600px;" aria-hidden="true"></div>
+                </div>
+            </div>
+        </div>
+        <div class="quality-selector" style="display: block; pointer-events: auto;">
+            <div class="quality-btn" style="opacity: 1; transform: translate3d(0px, 0px, 0px);">
+                <div class="quality-btn-bg"><div class="quality-btn-bg-spinner"><div class="quality-btn-bg-inner"></div></div></div>
+                <div class="quality-btn-text cache">Low</div>
+            </div>
+            <div class="quality-btn" style="opacity: 1; transform: translate3d(0px, 0px, 0px);">
+                <div class="quality-btn-bg"><div class="quality-btn-bg-spinner"><div class="quality-btn-bg-inner"></div></div></div>
+                <div class="quality-btn-text cache">Medium</div>
+            </div>
+            <div class="quality-btn" style="opacity: 1; transform: translate3d(0px, 0px, 0px);">
+                <div class="quality-btn-bg"><div class="quality-btn-bg-spinner"><div class="quality-btn-bg-inner"></div></div></div>
+                <div class="quality-btn-text cache">High</div>
+            </div>
+            <div class="quality-title" style="opacity: 1;">Please choose the quality of<br>the experience:</div>
+        </div>
+        <div class="close-btn">
+            <div class="close-btn-part"></div>
+            <div class="close-btn-part"></div>
+        </div>
+        <script src="./js/particle-love.com/js/three.r76.min.js"></script>
+        <script src="./js/particle-love.com/js/TweenMax.min.js"></script>
+        <script>
+            window.demoList = [
+                {
+                    id: 'golden-mask',
+                    title: 'Golden Mask',
+                    bgColor: '#0a1628',
+                    urls: {
+                        low: './experiments/golden-mask/index.html#particles=9000',
+                        medium: './experiments/golden-mask/index.html#particles=18000',
+                        high: './experiments/golden-mask/index.html#particles=28000'
+                    },
+                    colors: [0xc9a227, 0x2dd4bf, 0x7c3aed, 0xe11d48],
+                    speeds: [1.05, 0.0028, 0.75, 0.45, 3.1, 3.4]
+                },
+                {
+                    id: 'visionary-spirit',
+                    title: 'Visionary Spirit',
+                    bgColor: '#05030a',
+                    urls: {
+                        low: './experiments/visionary-spirit/index.html#particles=9000',
+                        medium: './experiments/visionary-spirit/index.html#particles=18000',
+                        high: './experiments/visionary-spirit/index.html#particles=28000'
+                    },
+                    colors: [0x39ff14, 0xff2de6, 0x00e8ff, 0xffaa22],
+                    speeds: [1.08, 0.0028, 0.76, 0.46, 3.15, 3.45]
+                },
+                {
+                    id: 'psychedelic-dragon',
+                    title: 'Psychedelic Dragon',
+                    bgColor: '#05030a',
+                    urls: {
+                        low: './experiments/psychedelic-dragon/index.html#particles=9000',
+                        medium: './experiments/psychedelic-dragon/index.html#particles=18000',
+                        high: './experiments/psychedelic-dragon/index.html#particles=28000'
+                    },
+                    colors: [0xccff00, 0xff00cc, 0x00fff2, 0xaa44ff],
+                    speeds: [1.08, 0.0028, 0.76, 0.46, 3.16, 3.45]
+                },
+                {
+                    id: 'chakra-yogi',
+                    title: 'Chakra Yogi',
+                    bgColor: '#060a14',
+                    urls: {
+                        low: './experiments/chakra-yogi/index.html#particles=10000',
+                        medium: './experiments/chakra-yogi/index.html#particles=18000',
+                        high: './experiments/chakra-yogi/index.html#particles=28000'
+                    },
+                    colors: [0xc77dff, 0x448aff, 0x00e5ff, 0x00e676, 0xffea00, 0xff6e40, 0xff4081],
+                    speeds: [1.05, 0.003, 0.74, 0.46, 3.05, 3.35]
+                },
+                {
+                    id: 'neural-brain',
+                    title: 'Neural Brain',
+                    bgColor: '#0c1018',
+                    urls: {
+                        low: './experiments/neural-brain/index.html#particles=9000',
+                        medium: './experiments/neural-brain/index.html#particles=18000',
+                        high: './experiments/neural-brain/index.html#particles=28000'
+                    },
+                    colors: [0x00d4ff, 0xff2d92, 0x6b5cff, 0xff6b9d],
+                    speeds: [1.1, 0.003, 0.78, 0.48, 3.2, 3.5]
+                },
+                {
+                    id: 'cymatics',
+                    title: 'Cymatics',
+                    bgColor: '#030508',
+                    urls: {
+                        low: './experiments/cymatics/index.html#particles=10000',
+                        medium: './experiments/cymatics/index.html#particles=18000',
+                        high: './experiments/cymatics/index.html#particles=30000'
+                    },
+                    colors: [0x00a8ff, 0xffb84d, 0x3d5cff, 0xff6ec7],
+                    speeds: [1.0, 0.0032, 0.7, 0.5, 3.0, 3.4]
+                },
+                {
+                    id: 'the-spirit',
+                    title: 'The Spirit',
+                    bgColor: '#343434',
+                    urls: {
+                        low: 'https://particle-love.com/experiments/the-spirit/#amount=64k&motionBlurQuality=medium',
+                        medium: 'https://particle-love.com/experiments/the-spirit/#amount=252k&motionBlurQuality=medium',
+                        high: 'https://particle-love.com/experiments/the-spirit/#amount=252k&motionBlurQuality=high'
+                    },
+                    colors: [0x559498, 0x28394d, 0x727546, 0x643f15],
+                    speeds: [1.3, 0.0029, 0.83, 0.5, 3.3, 3.7]
+                },
+                {
+                    id: 'icicle-bubbles',
+                    title: 'Icicle Bubbles',
+                    bgColor: '#3c4a4a',
+                    urls: {
+                        low: 'https://particle-love.com/experiments/icicle-bubbles/#amount=8k&motionBlurQuality=medium',
+                        medium: 'https://particle-love.com/experiments/icicle-bubbles/#amount=16k&motionBlurQuality=medium',
+                        high: 'https://particle-love.com/experiments/icicle-bubbles/#amount=16k&motionBlurQuality=high'
+                    },
+                    colors: [0x555344, 0x274d35, 0x756f45, 0x144c64],
+                    speeds: [0.22, 0.0018, 1.89, 0.4, 3.3, 5.8]
+                },
+                {
+                    id: 'hyper-mix',
+                    title: 'Hyper Mix',
+                    bgColor: '#1c2020',
+                    urls: {
+                        low: 'https://particle-love.com/experiments/hyper-mix/#amount=64k&motionBlurQuality=medium',
+                        medium: 'https://particle-love.com/experiments/hyper-mix/#amount=524k&motionBlurQuality=medium',
+                        high: 'https://particle-love.com/experiments/hyper-mix/#amount=524k&motionBlurQuality=high'
+                    },
+                    colors: [0x9513b1, 0x062d23, 0x6eb6c5, 0xff0000],
+                    speeds: [1.23, 0.0029, 1.89, 0.4, 3.7, 6.7]
+                },
+                {
+                    id: 'constraint',
+                    title: 'Constraint',
+                    bgColor: '#222222',
+                    urls: {
+                        low: 'https://particle-love.com/experiments/constraint/#motionBlurQuality=medium',
+                        medium: 'https://particle-love.com/experiments/constraint/#motionBlurQuality=medium',
+                        high: 'https://particle-love.com/experiments/constraint/#motionBlurQuality=high'
+                    },
+                    colors: [0x282828, 0xc3c3c3, 0x000000, 0x9d9d9d],
+                    speeds: [2, 0.0024, 0, 0.6, 1, 10]
+                },
+                {
+                    id: 'touch',
+                    title: 'Touch with Leap Motion',
+                    bgColor: '#0f1010',
+                    urls: {
+                        low: 'https://particle-love.com/experiments/touch/#amount=64k&motionBlurQuality=medium',
+                        medium: 'https://particle-love.com/experiments/touch/#amount=252k&motionBlurQuality=medium',
+                        high: 'https://particle-love.com/experiments/touch/#amount=252k&motionBlurQuality=high'
+                    },
+                    colors: [0x14203e, 0x28274d, 0x234139, 0xed7666],
+                    speeds: [0.84, 0.0029, 0.03, 0.3, 0.94, 7.8]
+                }
+            ];
+        </script>
+        <script src="./js/particle-love.com/js/index.js"></script>
+        <script>
+(function () {
+    var sel = document.getElementById('pm-demo-select');
+    if (!sel || !window.demoList) return;
+    sel.innerHTML = '';
+    window.demoList.forEach(function (d, i) {
+        var o = document.createElement('option');
+        o.value = String(i);
+        o.textContent = d.title;
+        sel.appendChild(o);
+    });
+    sel.value = '0';
+    sel.addEventListener('change', function () {
+        var v = parseInt(sel.value, 10) || 0;
+        if (typeof window.__particleMadnessPickDemo === 'function') {
+            window.__particleMadnessPickDemo(v);
+        }
+    });
+})();
+        </script>
+
+</body></html>

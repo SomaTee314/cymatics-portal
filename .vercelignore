@@ -1,0 +1,10 @@
+# Source archives and dev-only. Root index.html is rebuilt on Vercel then removed (see scripts/prebuild.mjs).
+/index.html
+*.zip
+__pycache__
+*.pyc
+_extract_nifty
+tmp_snip.txt
+*.md
+agent.md
+context.md

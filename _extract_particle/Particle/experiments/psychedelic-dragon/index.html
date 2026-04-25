@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <link rel="icon" href="../../favicon.ico" type="image/x-icon">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Psychedelic Dragon — Particle Madness</title>
+    <style>
+        html, body { margin: 0; height: 100%; overflow: hidden; background: #05030a; font-family: Georgia, 'Times New Roman', serif; }
+        canvas { display: block; position: fixed; left: 0; top: 0; width: 100% !important; height: 100% !important; }
+        #hint {
+            position: fixed; left: 0; right: 0; bottom: 18px; text-align: center;
+            color: rgba(255,255,255,0.36); font-size: 12px; letter-spacing: 0.05em; pointer-events: none;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.55); z-index: 1;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
+    <script src="../../js/dat-gui-panel.js"></script>
+    <script src="../../js/pm-reactive-audio-panel.js"></script>
+</head>
+<body>
+    <div id="hint">Push &amp; swirl the dragon · H hides · drag header · &minus; minimises · scroll zoom</div>
+    <script src="../../js/particle-love.com/js/three.r76.min.js"></script>
+    <script>
+(function () {
+    var BG = 0x05030a;
+
+    function particleGoal() {
+        var m = window.location.hash.match(/particles=(\d+)/i);
+        var n = m ? parseInt(m[1], 10) : 14000;
+        return Math.min(48000, Math.max(4000, n));
+    }
+
+    function fract(x) {
+        return x - Math.floor(x);
+    }
+
+    function hslToRgb(h, s, l) {
+        h = fract(h);
+        if (s <= 0) return { r: l, g: l, b: l };
+        var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        var p = 2 * l - q;
+        function hue2rgb(t) {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1 / 6) return p + (q - p) * 6 * t;
+            if (t < 1 / 2) return q;
+            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+            return p;
+        }
+        return {
+            r: hue2rgb(h + 1 / 3),
+            g: hue2rgb(h),
+            b: hue2rgb(h - 1 / 3)
+        };
+    }
+
+    var scene = new THREE.Scene();
+
+    var camera = new THREE.PerspectiveCamera(50, 1, 0.01, 100);
+    camera.position.z = 2.35;
+
+    var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setClearColor(BG, 1);
+    document.body.insertBefore(renderer.domElement, document.body.firstChild);
+
+    var mouse = new THREE.Vector2(0, 0);
+    var mouseSm = new THREE.Vector2(0, 0);
+    var scrollZoom = 0;
+
+    var _unproj = new THREE.Vector3();
+    var _dir = new THREE.Vector3();
+    var mouseWorld = new THREE.Vector3(0, 0, 0);
+
+    var pointsMaterial = null;
+    var gui = null;
+
+    var controls = {
+        masterIntensity: 1.45,
+        pointerSharpness: 30,
+        repel: 5.1,
+        swirl: 2.85,
+        radius: 0.62,
+        spring: 5.8,
+        velocityDamping: 0.965,
+        curlStrength: 0.038,
+        flowSpeed: 1.15,
+        depthWobble: 0.014,
+        cameraParallax: 0.055,
+        zoomSensitivity: 0.00055,
+        pointSize: 0.009,
+        particleOpacity: 0.97,
+        fogDensity: 0.028,
+        sampleDetail: 440,
+        /** Near-white background (dragon on white): reject high-lum low-chroma pixels */
+        bgLumMin: 238,
+        bgChromaMax: 22,
+        bodyAlongY: 0.78,
+        bodyAlongX: 0.22,
+        sCurveWiggle: 0.18,
+        rainbowCycles: 1.35,
+        hueOffset: 0.08,
+        colorSaturation: 0.92,
+        colorLightness: 0.56,
+        neonGain: 1.45,
+        silhouetteJitter: 0.0036,
+        hueDrift: 0.35,
+        resetPhysics: function () {
+            if (vel) for (var i = 0; i < vel.length; i++) vel[i] = 0;
+            if (geom && geom.attributes.position && basePos) {
+                var arr = geom.attributes.position.array;
+                for (var j = 0; j < arr.length; j++) arr[j] = basePos[j];
+                geom.attributes.position.needsUpdate = true;
+            }
+        },
+        defaults: function () {
+            controls.masterIntensity = 1.45;
+            controls.pointerSharpness = 30;
+            controls.repel = 5.1;
+            controls.swirl = 2.85;
+            controls.radius = 0.62;
+            controls.spring = 5.8;
+            controls.velocityDamping = 0.965;
+            controls.curlStrength = 0.038;
+            controls.flowSpeed = 1.15;
+            controls.depthWobble = 0.014;
+            controls.cameraParallax = 0.055;
+            controls.zoomSensitivity = 0.00055;
+            var g0 = particleGoal();
+            controls.pointSize = g0 > 22000 ? 0.0076 : g0 > 12000 ? 0.0086 : 0.0098;
+            controls.particleOpacity = 0.97;
+            controls.fogDensity = 0.028;
+            controls.sampleDetail = 440;
+            controls.bgLumMin = 238;
+            controls.bgChromaMax = 22;
+            controls.bodyAlongY = 0.78;
+            controls.bodyAlongX = 0.22;
+            controls.sCurveWiggle = 0.18;
+            controls.rainbowCycles = 1.35;
+            controls.hueOffset = 0.08;
+            controls.colorSaturation = 0.92;
+            controls.colorLightness = 0.56;
+            controls.neonGain = 1.45;
+            controls.silhouetteJitter = 0.0036;
+            controls.hueDrift = 0.35;
+            syncMaterialFromControls();
+            syncFogFromControls();
+            refreshAllGuiDisplays(gui);
+            rebuildFromImage();
+        }
+    };
+
+    function refreshAllGuiDisplays(g) {
+        if (!g) return;
+        var i;
+        for (i = 0; i < g.__controllers.length; i++) g.__controllers[i].updateDisplay();
+        for (var name in g.__folders) refreshAllGuiDisplays(g.__folders[name]);
+    }
+
+    function syncMaterialFromControls() {
+        if (pointsMaterial) {
+            pointsMaterial.size = controls.pointSize;
+            pointsMaterial.opacity = controls.particleOpacity;
+            pointsMaterial.needsUpdate = true;
+        }
+    }
+
+    function syncFogFromControls() {
+        if (!scene.fog) scene.fog = new THREE.FogExp2(BG, controls.fogDensity);
+        else scene.fog.density = controls.fogDensity;
+    }
+
+    function setupGui() {
+        gui = new dat.GUI({ width: 300 });
+
+        var fMaster = gui.addFolder('Master');
+        fMaster.add(controls, 'masterIntensity', 0.2, 3).name('intensity');
+        fMaster.add(controls, 'pointerSharpness', 4, 48).name('pointer snap');
+        fMaster.add(controls, 'resetPhysics').name('clear velocities');
+        fMaster.add(controls, 'defaults').name('reset all sliders');
+        fMaster.open();
+
+        var fPush = gui.addFolder('Push & swirl');
+        fPush.add(controls, 'repel', 0.2, 12);
+        fPush.add(controls, 'swirl', 0, 8);
+        fPush.add(controls, 'radius', 0.15, 1.2).name('influence radius');
+        fPush.open();
+
+        var fReturn = gui.addFolder('Spring & damping');
+        fReturn.add(controls, 'spring', 0.5, 14);
+        fReturn.add(controls, 'velocityDamping', 0.85, 0.995).name('velocity keep');
+        fReturn.open();
+
+        var fFlow = gui.addFolder('Ambient flow');
+        fFlow.add(controls, 'curlStrength', 0, 0.12).name('curl strength');
+        fFlow.add(controls, 'flowSpeed', 0, 3);
+        fFlow.add(controls, 'depthWobble', 0, 0.045).name('depth ripple');
+        fFlow.open();
+
+        var fDrag = gui.addFolder('Dragon & rainbow');
+        fDrag.add(controls, 'sampleDetail', 260, 720, 10).name('scan resolution').onFinishChange(rebuildFromImage);
+        fDrag.add(controls, 'bgLumMin', 210, 252, 1).name('bg luminance floor').onFinishChange(rebuildFromImage);
+        fDrag.add(controls, 'bgChromaMax', 4, 48, 1).name('bg max chroma').onFinishChange(rebuildFromImage);
+        fDrag.add(controls, 'silhouetteJitter', 0, 0.014).name('outline fuzz').onFinishChange(rebuildFromImage);
+        fDrag.add(controls, 'bodyAlongY', 0, 1).name('length → hue (↓)').onFinishChange(rebuildFromImage);
+        fDrag.add(controls, 'bodyAlongX', 0, 1).name('width → hue').onFinishChange(rebuildFromImage);
+        fDrag.add(controls, 'sCurveWiggle', 0, 0.55).name('S-curve along body').onFinishChange(rebuildFromImage);
+        fDrag.add(controls, 'rainbowCycles', 0.2, 3.5).name('rainbow repeats').onFinishChange(rebuildFromImage);
+        fDrag.add(controls, 'hueOffset', 0, 1).name('hue offset').onFinishChange(rebuildFromImage);
+        fDrag.add(controls, 'colorSaturation', 0.35, 1).name('HSL saturation').onFinishChange(rebuildFromImage);
+        fDrag.add(controls, 'colorLightness', 0.35, 0.72).name('HSL lightness').onFinishChange(rebuildFromImage);
+        fDrag.add(controls, 'neonGain', 0.8, 2.4).name('neon gain');
+        fDrag.add(controls, 'hueDrift', 0, 1.5).name('shifting hue');
+        fDrag.open();
+
+        var fCam = gui.addFolder('Camera');
+        fCam.add(controls, 'cameraParallax', 0, 0.2).name('parallax');
+        fCam.add(controls, 'zoomSensitivity', 0.0001, 0.002).name('scroll zoom');
+        fCam.open();
+
+        var fVis = gui.addFolder('Particles');
+        fVis.add(controls, 'pointSize', 0.003, 0.024).name('point size').onChange(syncMaterialFromControls);
+        fVis.add(controls, 'particleOpacity', 0.3, 1).name('opacity').onChange(syncMaterialFromControls);
+        fVis.add(controls, 'fogDensity', 0, 0.12).name('fog').onChange(syncFogFromControls);
+        fVis.open();
+
+        if (typeof attachMovableDatGui === 'function') {
+            attachMovableDatGui(gui, { title: 'Psychedelic Dragon', initialRight: 12, initialTop: 12, zIndex: 100 });
+        }
+
+        window.addEventListener('keydown', function (e) {
+            if (e.key === 'h' || e.key === 'H') {
+                if (gui.__pmDatGuiToggleVisibility) gui.__pmDatGuiToggleVisibility();
+                else gui.domElement.style.display = gui.domElement.style.display === 'none' ? '' : 'none';
+            }
+        });
+    }
+
+    function onPointer(e) {
+        var x = e.clientX, y = e.clientY;
+        mouse.x = (x / window.innerWidth) * 2 - 1;
+        mouse.y = -(y / window.innerHeight) * 2 + 1;
+    }
+    window.addEventListener('pointermove', onPointer, { passive: true });
+    window.addEventListener('pointerdown', onPointer, { passive: true });
+
+    window.addEventListener('wheel', function (e) {
+        scrollZoom += e.deltaY * controls.zoomSensitivity;
+        scrollZoom = Math.max(-0.9, Math.min(1.2, scrollZoom));
+    }, { passive: true });
+
+    function resize() {
+        var w = window.innerWidth, h = window.innerHeight;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h, true);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function updateMouseWorld(ndcX, ndcY) {
+        _unproj.set(ndcX, ndcY, 0.5);
+        _unproj.unproject(camera);
+        _dir.copy(_unproj).sub(camera.position).normalize();
+        var t = -camera.position.z / _dir.z;
+        if (t > 0 && isFinite(t)) {
+            mouseWorld.copy(camera.position).add(_dir.multiplyScalar(t));
+        } else {
+            mouseWorld.set(ndcX * 1.85, ndcY * 1.85, 0);
+        }
+    }
+
+    var loader = new THREE.TextureLoader();
+    loader.crossOrigin = 'anonymous';
+    var sourceImage = null;
+    var rebuildFromImageFn = null;
+
+    loader.load(
+        '../../images/psychedelic-dragon-ref.png',
+        function (tex) {
+            sourceImage = tex.image;
+            buildParticles(sourceImage);
+            rebuildFromImageFn = function () { buildParticles(sourceImage); };
+            setupGui();
+            syncMaterialFromControls();
+            syncFogFromControls();
+        },
+        undefined,
+        function () {
+            buildParticles(null);
+            rebuildFromImageFn = null;
+            setupGui();
+            syncMaterialFromControls();
+            syncFogFromControls();
+        }
+    );
+
+    function rebuildFromImage() {
+        if (typeof rebuildFromImageFn === 'function') rebuildFromImageFn();
+    }
+
+    var geom = null;
+    var basePos = null;
+    var vel = null;
+    var baseHue = null;
+    var clock = new THREE.Clock();
+    var pointsObj = null;
+    var ambientLight = null;
+
+    function applyNeonRgb(colArr, ix, rgb, gain) {
+        colArr[ix]     = Math.min(1, rgb.r * gain + 0.02);
+        colArr[ix + 1] = Math.min(1, rgb.g * gain + 0.02);
+        colArr[ix + 2] = Math.min(1, rgb.b * gain + 0.04);
+    }
+
+    function buildParticles(img) {
+        if (pointsObj) {
+            scene.remove(pointsObj);
+            pointsObj.geometry.dispose();
+            if (pointsObj.material) pointsObj.material.dispose();
+            pointsObj = null;
+        }
+        geom = null;
+        basePos = null;
+        vel = null;
+        baseHue = null;
+
+        var goal = particleGoal();
+        controls.pointSize = goal > 22000 ? 0.0076 : goal > 12000 ? 0.0086 : 0.0098;
+
+        var w = Math.max(260, Math.min(760, Math.round(controls.sampleDetail)));
+        var h = img ? Math.max(32, Math.round(img.height * (w / img.width))) : 400;
+        var canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        var ctx = canvas.getContext('2d');
+        if (img) {
+            ctx.drawImage(img, 0, 0, w, h);
+        } else {
+            ctx.fillStyle = '#f8f8f8';
+            ctx.fillRect(0, 0, w, h);
+            ctx.fillStyle = '#c48a24';
+            ctx.font = 'bold 48px serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('psychedelic-dragon-ref.png', w / 2, h / 2);
+        }
+        var im = ctx.getImageData(0, 0, w, h);
+        var data = im.data;
+
+        /** True for flat studio whites / light grays — not gold scales / orange trim */
+        function isBackgroundRGB(r, g, b) {
+            var mx = Math.max(r, g, b);
+            var mn = Math.min(r, g, b);
+            var chroma = mx - mn;
+            var lum = 0.299 * r + 0.587 * g + 0.114 * b;
+            return lum >= controls.bgLumMin && chroma <= controls.bgChromaMax;
+        }
+
+        function isDragonPixel(ix, iy) {
+            var iPix = (iy * w + ix) * 4;
+            var r = data[iPix];
+            var g = data[iPix + 1];
+            var b = data[iPix + 2];
+            var a = data[iPix + 3];
+            if (a < 14) return false;
+            return !isBackgroundRGB(r, g, b);
+        }
+
+        var aspectImg = w / h;
+        var spanX = aspectImg * 1.18;
+        var spanY = 1.18;
+
+        var pos = [];
+        var col = [];
+        var hues = [];
+        var tries = 0;
+        var maxTries = goal * 200;
+
+        var tx = controls.bodyAlongX;
+        var ty = controls.bodyAlongY;
+        var wig = controls.sCurveWiggle;
+        var cyc = controls.rainbowCycles;
+        var hOff = controls.hueOffset;
+        var sat = controls.colorSaturation;
+        var lit = controls.colorLightness;
+        var jit = controls.silhouetteJitter;
+        var gain = controls.neonGain;
+
+        while (pos.length / 3 < goal && tries < maxTries) {
+            tries++;
+            var ix = Math.floor(Math.random() * w);
+            var iy = Math.floor(Math.random() * h);
+            if (!isDragonPixel(ix, iy)) continue;
+
+            var u = ix / w;
+            var v = iy / h;
+            var along = v * ty + u * tx + Math.sin(u * Math.PI * 2) * wig;
+            var hueBase = fract(along * cyc + hOff);
+            hues.push(hueBase);
+
+            var nx = (u - 0.5) * spanX;
+            var ny = -(v - 0.5) * spanY;
+            var jx = (Math.random() - 0.5) * jit;
+            var jy = (Math.random() - 0.5) * jit;
+            pos.push(nx + jx, ny + jy, (Math.random() - 0.5) * 0.026);
+
+            var rgb = hslToRgb(hueBase, sat, lit);
+            col.push(0, 0, 0);
+            applyNeonRgb(col, col.length - 3, rgb, gain);
+        }
+
+        /** Only if almost nothing matched (e.g. non-white backdrop) — slightly looser chroma */
+        if (pos.length / 3 < goal * 0.12) {
+            var lumRelaxed = controls.bgLumMin - 5;
+            var chrRelaxed = controls.bgChromaMax + 10;
+            tries = 0;
+            while (pos.length / 3 < goal && tries < maxTries) {
+                tries++;
+                var ix2 = Math.floor(Math.random() * w);
+                var iy2 = Math.floor(Math.random() * h);
+                var iPix2 = (iy2 * w + ix2) * 4;
+                var r2 = data[iPix2];
+                var g2 = data[iPix2 + 1];
+                var b2 = data[iPix2 + 2];
+                var a2 = data[iPix2 + 3];
+                if (a2 < 14) continue;
+                var mx2 = Math.max(r2, g2, b2);
+                var mn2 = Math.min(r2, g2, b2);
+                var lum2 = 0.299 * r2 + 0.587 * g2 + 0.114 * b2;
+                if (lum2 >= lumRelaxed && (mx2 - mn2) <= chrRelaxed) continue;
+                var u2 = ix2 / w;
+                var v2 = iy2 / h;
+                var along2 = v2 * ty + u2 * tx + Math.sin(u2 * Math.PI * 2) * wig;
+                var hueBase2 = fract(along2 * cyc + hOff);
+                hues.push(hueBase2);
+                var nx2 = (u2 - 0.5) * spanX;
+                var ny2 = -(v2 - 0.5) * spanY;
+                var jx2 = (Math.random() - 0.5) * jit;
+                var jy2 = (Math.random() - 0.5) * jit;
+                pos.push(nx2 + jx2, ny2 + jy2, (Math.random() - 0.5) * 0.026);
+                var rgb2b = hslToRgb(hueBase2, sat, lit);
+                col.push(0, 0, 0);
+                applyNeonRgb(col, col.length - 3, rgb2b, gain);
+            }
+        }
+
+        baseHue = new Float32Array(hues);
+        basePos = new Float32Array(pos);
+        vel = new Float32Array(pos.length);
+
+        geom = new THREE.BufferGeometry();
+        geom.addAttribute('position', new THREE.BufferAttribute(new Float32Array(pos), 3));
+        geom.addAttribute('color', new THREE.BufferAttribute(new Float32Array(col), 3));
+
+        pointsMaterial = new THREE.PointsMaterial({
+            size: controls.pointSize,
+            vertexColors: THREE.VertexColors,
+            transparent: true,
+            opacity: controls.particleOpacity,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            sizeAttenuation: true
+        });
+
+        pointsObj = new THREE.Points(geom, pointsMaterial);
+        scene.add(pointsObj);
+        if (ambientLight) scene.remove(ambientLight);
+        ambientLight = new THREE.AmbientLight(0x6048a0, 0.22);
+        scene.add(ambientLight);
+        scene.fog = new THREE.FogExp2(BG, controls.fogDensity);
+    }
+
+    function curl2(px, py, time) {
+        var s = 2.1;
+        return {
+            x: Math.sin(py * s + time * 0.9) * Math.cos(px * s * 0.7 - time * 0.45),
+            y: Math.sin(px * s - time * 0.7) * Math.cos(py * 0.8 * s + time * 0.35)
+        };
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        var dt = Math.min(clock.getDelta(), 0.08);
+        var aud = (window.__pmReactiveAudio && window.__pmReactiveAudio.getDrive)
+            ? window.__pmReactiveAudio.getDrive(clock.getElapsedTime())
+            : { intensity: 1, curl: 1, flow: 1 };
+        var t = clock.getElapsedTime() * controls.flowSpeed * aud.flow;
+
+        var sharp = controls.pointerSharpness;
+        var ease = 1 - Math.exp(-sharp * dt);
+        mouseSm.x += (mouse.x - mouseSm.x) * ease;
+        mouseSm.y += (mouse.y - mouseSm.y) * ease;
+        updateMouseWorld(mouseSm.x, mouseSm.y);
+
+        var zTarget = 2.35 - scrollZoom * 0.85;
+        camera.position.z += (zTarget - camera.position.z) * (0.08 + dt * 4);
+        var par = controls.cameraParallax;
+        camera.position.x = mouseSm.x * par;
+        camera.position.y = mouseSm.y * par * 0.92;
+        camera.lookAt(scene.position);
+
+        if (geom && geom.attributes.position && basePos && vel) {
+            var arr = geom.attributes.position.array;
+            var mx = mouseWorld.x;
+            var my = mouseWorld.y;
+            var mi = controls.masterIntensity * aud.intensity;
+            var pushRadius = controls.radius;
+            var pushRadiusSq = pushRadius * pushRadius;
+            var repel = controls.repel * mi;
+            var swirl = controls.swirl * mi;
+            var spring = controls.spring;
+            var damp = Math.pow(controls.velocityDamping, dt * 60);
+
+            for (var i = 0; i < arr.length; i += 3) {
+                var bx = basePos[i];
+                var by = basePos[i + 1];
+                var bz = basePos[i + 2];
+
+                var px = arr[i];
+                var py = arr[i + 1];
+                var pz = arr[i + 2];
+
+                var dxm = px - mx;
+                var dym = py - my;
+                var distSq = dxm * dxm + dym * dym + 0.00008;
+
+                var fx = 0;
+                var fy = 0;
+                var fz = 0;
+
+                if (distSq < pushRadiusSq) {
+                    var inv = 1 / distSq;
+                    var falloff = (pushRadiusSq - distSq) / pushRadiusSq;
+                    var push = repel * falloff * falloff * inv * 0.085;
+                    fx += dxm * push;
+                    fy += dym * push;
+                    var invLen = 1 / Math.sqrt(distSq);
+                    fx += (-dym * invLen) * swirl * falloff * 0.14;
+                    fy += (dxm * invLen) * swirl * falloff * 0.14;
+                }
+
+                var c = curl2(bx * 3.2, by * 3.2, t);
+                var curl = controls.curlStrength * mi * aud.curl;
+                fx += c.x * curl;
+                fy += c.y * curl;
+
+                fx += (bx - px) * spring;
+                fy += (by - py) * spring;
+                fz += (bz + controls.depthWobble * Math.sin(t * 1.8 + bx * 5 + by * 3) - pz) * (spring * 0.68);
+
+                vel[i]     = (vel[i] + fx * dt) * damp;
+                vel[i + 1] = (vel[i + 1] + fy * dt) * damp;
+                vel[i + 2] = (vel[i + 2] + fz * dt) * damp;
+
+                arr[i]     += vel[i];
+                arr[i + 1] += vel[i + 1];
+                arr[i + 2] += vel[i + 2];
+            }
+            geom.attributes.position.needsUpdate = true;
+        }
+
+        if (baseHue && geom) {
+            var colArr = geom.attributes.color.array;
+            var n = baseHue.length;
+            var driftAmt = clock.getElapsedTime() * controls.hueDrift * 0.09 * (0.92 + 0.14 * (aud.level || 0));
+            var sat3 = controls.colorSaturation;
+            var lit3 = controls.colorLightness;
+            var gain3 = controls.neonGain;
+            var kk;
+            for (kk = 0; kk < n; kk++) {
+                var rgb3 = hslToRgb(baseHue[kk] + driftAmt, sat3, lit3);
+                applyNeonRgb(colArr, kk * 3, rgb3, gain3);
+            }
+            geom.attributes.color.needsUpdate = true;
+        }
+
+        renderer.render(scene, camera);
+    }
+
+    animate();
+})();
+    </script>
+</body>
+</html>

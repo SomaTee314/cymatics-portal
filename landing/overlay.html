@@ -1,0 +1,128 @@
+<!-- ═══ LANDING OVERLAY ═══ -->
+<div id="landing-root">
+    <div class="iframe-container"></div>
+    <div class="ui">
+        <canvas></canvas>
+        <div class="logo" style="opacity:1; transform:translate3d(0,0,0); cursor:pointer; pointer-events:auto;">
+            <span class="logo-title">CYMATICS PORTAL</span>
+        </div>
+        <div class="menu">
+            <div class="arrow is-left">
+                <div class="arrow-inner">
+                    <div class="arrow-part"></div>
+                    <div class="arrow-part"></div>
+                </div>
+            </div>
+            <div class="go-btn">
+                <div class="go-btn-bg">
+                    <div class="go-btn-bg-spinner">
+                        <div class="go-btn-bg-inner"></div>
+                    </div>
+                </div>
+                <div class="go-btn-text cache">Enter Portal</div>
+            </div>
+            <div class="arrow is-right">
+                <div class="arrow-inner">
+                    <div class="arrow-part"></div>
+                    <div class="arrow-part"></div>
+                </div>
+            </div>
+            <div class="titles-container">
+                <label class="pm-demo-label" for="pm-demo-select">Choose visual</label>
+                <select id="pm-demo-select" class="pm-demo-select" aria-label="Choose visual"></select>
+                <div class="titles-move-container" aria-hidden="true"></div>
+            </div>
+        </div>
+    </div>
+    <div class="quality-selector" style="display:block; pointer-events:auto;">
+        <div class="quality-btn" style="opacity:1; transform:translate3d(0,0,0);">
+            <div class="quality-btn-bg"><div class="quality-btn-bg-spinner"><div class="quality-btn-bg-inner"></div></div></div>
+            <div class="quality-btn-text cache">Low</div>
+        </div>
+        <div class="quality-btn" style="opacity:1; transform:translate3d(0,0,0);">
+            <div class="quality-btn-bg"><div class="quality-btn-bg-spinner"><div class="quality-btn-bg-inner"></div></div></div>
+            <div class="quality-btn-text cache">Medium</div>
+        </div>
+        <div class="quality-btn" style="opacity:1; transform:translate3d(0,0,0);">
+            <div class="quality-btn-bg"><div class="quality-btn-bg-spinner"><div class="quality-btn-bg-inner"></div></div></div>
+            <div class="quality-btn-text cache">High</div>
+        </div>
+        <div class="quality-title" style="opacity:1;">Please choose the quality of<br>the experience:</div>
+    </div>
+
+    <!-- Required by particle-love index.js init (iframe close control); hidden until engine shows it -->
+    <div class="close-btn">
+        <div class="close-btn-part"></div>
+        <div class="close-btn-part"></div>
+    </div>
+
+    <!-- ═══ INSTRUCTION GUIDE (State B — hidden until Go is clicked) ═══ -->
+    <div id="landing-guide" style="display:none;">
+        <div class="guide-backdrop"></div>
+        <div class="guide-content">
+            <h1 class="guide-title">CYMATICS PORTAL</h1>
+
+            <p class="guide-prose">Cymatics Portal is the meeting point &mdash; where ancient harmony, visionary insight, electrical genius, and quantum understanding become one living experience.</p>
+
+            <p class="guide-prose">A place where sound becomes geometry, geometry becomes awareness, and awareness becomes transformation.</p>
+
+            <blockquote class="guide-quote">
+                &ldquo;Every frequency you encounter is a doorway. Step through enough of them, and you begin to realize the universe is dreaming you as much as you are dreaming it.&rdquo;
+            </blockquote>
+
+            <blockquote class="guide-quote">
+                &ldquo;Cymatics is not a display &mdash; it&rsquo;s a teacher. It shows you that reality is a negotiation between vibration and imagination.&rdquo;
+            </blockquote>
+
+            <blockquote class="guide-quote">
+                &ldquo;The patterns you see are not decorations; they are the scaffolding of existence, briefly revealing itself before dissolving back into mystery.&rdquo;
+            </blockquote>
+
+            <blockquote class="guide-quote">
+                &ldquo;When sound becomes visible, consciousness remembers that it was never separate from the cosmic conversation.&rdquo;
+            </blockquote>
+
+            <p class="guide-prose guide-somatea-sign">૱ SomaTea ૱</p>
+
+            <div class="guide-instructions">
+                <h2>How to Use</h2>
+                <ol class="guide-steps" aria-label="Quick start steps">
+                <li class="guide-step">
+                    <span class="guide-step-badge" aria-hidden="true">01</span>
+                    <div class="guide-step-body">
+                        <h3 class="guide-step-title">Sound &amp; playback</h3>
+                        <p class="guide-step-text">Everything you hear runs from the first control column. Choose a mode (track, preset, or manual tone), set the frequency, and add a file when you are using a track. Use Play, Pause, and Stop, turn Volume to taste, and drag the track-position slider when a file is playing.</p>
+                    </div>
+                </li>
+                <li class="guide-step">
+                    <span class="guide-step-badge" aria-hidden="true">02</span>
+                    <div class="guide-step-body">
+                        <h3 class="guide-step-title">Advanced visuals</h3>
+                        <p class="guide-step-text">The second column is for the picture. Pick an Audio-Visualiser Portal and a particle count. Under that, open Advanced Visual Controls for colours and deeper tweaks. Press H to show or hide that panel. Drag a panel by its header, or tap ↺ to put it back where it started.</p>
+                    </div>
+                </li>
+                <li class="guide-step">
+                    <span class="guide-step-badge" aria-hidden="true">03</span>
+                    <div class="guide-step-body">
+                        <h3 class="guide-step-title">Start &amp; explore</h3>
+                        <p class="guide-step-text">Press Play: the pattern rides your audio in real time. For fullscreen, use the control on the bar above the visual. Two rail icons appear—Sound &amp; playback and Advanced visuals. Hover to preview, click to pin, × or Escape to close a panel. Escape again leaves fullscreen.</p>
+                    </div>
+                </li>
+                </ol>
+            </div>
+
+            <div class="guide-enter-wrap">
+                <div class="go-btn" id="enter-portal-btn">
+                    <div class="go-btn-bg">
+                        <div class="go-btn-bg-spinner">
+                            <div class="go-btn-bg-inner"></div>
+                        </div>
+                    </div>
+                    <div class="go-btn-text cache">Enter</div>
+                </div>
+                <p class="guide-enter-hint">Enter the Portal</p>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ═══ END LANDING OVERLAY ═══ -->

@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "durationMs": 35662,
+  "items": [
+    {
+      "url": "https://portal.thenifty.com/static_homepage/documents/logo.json",
+      "relativePath": "json/portal.thenifty.com/static_homepage/documents/logo.json",
+      "phase": "primary",
+      "reason": "HTTP 403 Forbidden"
+    },
+    {
+      "url": "https://portal.thenifty.com/static_homepage/documents/spin-portal.json",
+      "relativePath": "json/portal.thenifty.com/static_homepage/documents/spin-portal.json",
+      "phase": "primary",
+      "reason": "HTTP 403 Forbidden"
+    },
+    {
+      "url": "https://portal.thenifty.com/static_homepage/documents/triabngle-open.json",
+      "relativePath": "json/portal.thenifty.com/static_homepage/documents/triabngle-open.json",
+      "phase": "primary",
+      "reason": "HTTP 403 Forbidden"
+    },
+    {
+      "url": "https://portal.thenifty.com/static_homepage/documents/square-open.json",
+      "relativePath": "json/portal.thenifty.com/static_homepage/documents/square-open.json",
+      "phase": "primary",
+      "reason": "HTTP 403 Forbidden"
+    },
+    {
+      "url": "https://portal.thenifty.com/static_homepage/documents/triangle.json",
+      "relativePath": "json/portal.thenifty.com/static_homepage/documents/triangle.json",
+      "phase": "primary",
+      "reason": "HTTP 403 Forbidden"
+    },
+    {
+      "url": "https://portal.thenifty.com/static_homepage/documents/circle-animation.json",
+      "relativePath": "json/portal.thenifty.com/static_homepage/documents/circle-animation.json",
+      "phase": "primary",
+      "reason": "HTTP 403 Forbidden"
+    },
+    {
+      "url": "https://portal.thenifty.com/static_homepage/documents/portal.json",
+      "relativePath": "json/portal.thenifty.com/static_homepage/documents/portal.json",
+      "phase": "primary",
+      "reason": "HTTP 403 Forbidden"
+    },
+    {
+      "url": "https://portal.thenifty.com/static_homepage/documents/shape-animation2.json",
+      "relativePath": "json/portal.thenifty.com/static_homepage/documents/shape-animation2.json",
+      "phase": "primary",
+      "reason": "HTTP 403 Forbidden"
+    },
+    {
+      "url": "https://portal.thenifty.com/static_homepage/documents/circle-open.json",
+      "relativePath": "json/portal.thenifty.com/static_homepage/documents/circle-open.json",
+      "phase": "primary",
+      "reason": "HTTP 403 Forbidden"
+    },
+    {
+      "url": "https://portal.thenifty.com/static_homepage/documents/breaking-news.json",
+      "relativePath": "json/portal.thenifty.com/static_homepage/documents/breaking-news.json",
+      "phase": "primary",
+      "reason": "HTTP 403 Forbidden"
+    },
+    {
+      "url": "https://portal.thenifty.com/static_homepage/documents/countdown.json",
+      "relativePath": "json/portal.thenifty.com/static_homepage/documents/countdown.json",
+      "phase": "primary",
+      "reason": "HTTP 403 Forbidden"
+    }
+  ]
+}
