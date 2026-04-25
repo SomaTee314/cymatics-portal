@@ -1,36 +1,16 @@
 /**
- * Verifies public.profiles and public.saved_configs (service role).
+ * Verifies public.profiles and public.saved_configs via the anon key (RLS; head-only select).
  * Run: node scripts/verify-supabase-schema.mjs
  */
-import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
+import { loadEnvLocal } from './load-env-local.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 
-function loadEnvLocal() {
-  const p = path.join(root, '.env.local');
-  if (!fs.existsSync(p)) return;
-  for (const line of fs.readFileSync(p, 'utf8').split('\n')) {
-    const t = line.trim();
-    if (!t || t.startsWith('#')) continue;
-    const eq = t.indexOf('=');
-    if (eq === -1) continue;
-    const key = t.slice(0, eq).trim();
-    let val = t.slice(eq + 1).trim();
-    if (
-      (val.startsWith('"') && val.endsWith('"')) ||
-      (val.startsWith("'") && val.endsWith("'"))
-    ) {
-      val = val.slice(1, -1);
-    }
-    process.env[key] = val;
-  }
-}
-
-loadEnvLocal();
+loadEnvLocal(root);
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -50,5 +30,7 @@ for (const table of ['profiles', 'saved_configs']) {
   console.log(`OK  public.${table}`);
 }
 
-console.log('\nSchema matches spec (profiles + saved_configs). Check auth.users trigger in SQL Editor if needed:\n' +
-  "  SELECT tgname FROM pg_trigger WHERE tgrelid = 'auth.users'::regclass AND tgname = 'on_auth_user_created';");
+console.log(
+  '\nSchema matches spec (profiles + saved_configs). Check auth.users trigger in SQL Editor if needed:\n' +
+    "  SELECT tgname FROM pg_trigger WHERE tgrelid = 'auth.users'::regclass AND tgname = 'on_auth_user_created';",
+);

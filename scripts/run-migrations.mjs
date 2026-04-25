@@ -17,72 +17,27 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { spawnSync } from 'child_process';
 import pg from 'pg';
+import { loadEnvLocal } from './load-env-local.mjs';
+import {
+  getPostgresUrlForMigrations,
+  isPasswordOnlyMigrationsUrl,
+  projectRefFromUrl,
+} from './migrations-pg-url.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 
-function loadEnvLocal() {
-  const p = path.join(root, '.env.local');
-  if (!fs.existsSync(p)) return;
-  const text = fs.readFileSync(p, 'utf8');
-  for (const line of text.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eq = trimmed.indexOf('=');
-    if (eq === -1) continue;
-    const key = trimmed.slice(0, eq).trim();
-    let val = trimmed.slice(eq + 1).trim();
-    if (
-      (val.startsWith('"') && val.endsWith('"')) ||
-      (val.startsWith("'") && val.endsWith("'"))
-    ) {
-      val = val.slice(1, -1);
-    }
-    process.env[key] = val;
-  }
-}
+loadEnvLocal(root);
 
-loadEnvLocal();
-
-/** Single file = idempotent; supersedes 001+002+003 (kept as readable splits). */
 const FILES = ['sql/000_run_first_all_schema.sql'];
 
-function projectRefFromUrl(url) {
-  if (!url || typeof url !== 'string') return null;
-  try {
-    const host = new URL(url).hostname;
-    if (host.endsWith('.supabase.co')) {
-      return host.slice(0, -'.supabase.co'.length);
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Transaction pooler URI (port 6543) when you set SUPABASE_DB_PASSWORD but not SUPABASE_DB_URL.
- * Host pattern: aws-0-<region>.pooler.supabase.com — override region with SUPABASE_POOLER_REGION.
- */
-function connectionStringFromDbPassword() {
-  const password = process.env.SUPABASE_DB_PASSWORD;
-  if (!password?.trim()) return null;
-  const ref = projectRefFromUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
-  if (!ref) {
-    console.error(
-      'SUPABASE_DB_PASSWORD is set but NEXT_PUBLIC_SUPABASE_URL is missing or invalid.',
-    );
-    return null;
-  }
-  const region = (process.env.SUPABASE_POOLER_REGION || 'us-east-1').trim();
-  const host = `aws-0-${region}.pooler.supabase.com`;
-  const user = `postgres.${ref}`;
-  return `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:6543/postgres`;
-}
+const dbUrl = getPostgresUrlForMigrations();
+const ref = projectRefFromUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
+const usingPasswordOnly = isPasswordOnlyMigrationsUrl();
 
 function printManual() {
   console.error(
-    '\nCould not apply migrations automatically. Set SUPABASE_DB_PASSWORD or SUPABASE_DB_URL in .env.local, or paste the SQL into the Supabase SQL Editor (SQL → New query → Run).\n'
+    '\nCould not apply migrations automatically. Set SUPABASE_DB_PASSWORD or SUPABASE_DB_URL in .env.local, or paste the SQL into the Supabase SQL Editor (SQL → New query → Run).\n',
   );
   for (const rel of FILES) {
     const fp = path.join(root, rel);
@@ -93,21 +48,9 @@ function printManual() {
   }
 }
 
-const dbUrlFromPassword = connectionStringFromDbPassword();
-const dbUrl =
-  process.env.SUPABASE_DB_URL ||
-  process.env.DATABASE_URL ||
-  dbUrlFromPassword;
-const ref = projectRefFromUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
-const usingPasswordOnly =
-  !!dbUrlFromPassword &&
-  dbUrl === dbUrlFromPassword &&
-  !process.env.SUPABASE_DB_URL &&
-  !process.env.DATABASE_URL;
-
 console.log(
   'Project ref (from NEXT_PUBLIC_SUPABASE_URL):',
-  ref || '(use a real https://xxxxx.supabase.co URL)'
+  ref || '(use a real https://xxxxx.supabase.co URL)',
 );
 
 async function runWithPg() {

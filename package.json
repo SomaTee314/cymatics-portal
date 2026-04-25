@@ -22,6 +22,7 @@
     "db:supabase:link": "npx supabase link",
     "db:remote": "node scripts/supabase-option-b.mjs",
     "test:supabase": "node scripts/test-supabase.mjs",
+    "test:db": "node scripts/test-postgres-connection.mjs",
     "verify:supabase": "node scripts/verify-supabase-schema.mjs",
     "vercel:env:supabase": "node scripts/sync-vercel-supabase-env.mjs",
     "vercel:push:env": "node scripts/vercel-push-env-from-local.mjs",

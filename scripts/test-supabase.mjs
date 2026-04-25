@@ -5,36 +5,15 @@
  * Loads .env.local with override so stale shell env (e.g. old NEXT_PUBLIC_*)
  * does not win over Node's --env-file behaviour.
  */
-import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
+import { loadEnvLocal } from './load-env-local.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 
-function loadEnvLocal() {
-  const p = path.join(root, '.env.local');
-  if (!fs.existsSync(p)) return;
-  const text = fs.readFileSync(p, 'utf8');
-  for (const line of text.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eq = trimmed.indexOf('=');
-    if (eq === -1) continue;
-    const key = trimmed.slice(0, eq).trim();
-    let val = trimmed.slice(eq + 1).trim();
-    if (
-      (val.startsWith('"') && val.endsWith('"')) ||
-      (val.startsWith("'") && val.endsWith("'"))
-    ) {
-      val = val.slice(1, -1);
-    }
-    process.env[key] = val;
-  }
-}
-
-loadEnvLocal();
+loadEnvLocal(root);
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -52,10 +31,7 @@ const { error, count } = await supabase
 
 if (error) {
   console.error('Connection failed:', error.message);
-  if (
-    error.message.includes('does not exist') ||
-    error.code === '42P01'
-  ) {
+  if (error.message.includes('does not exist') || error.code === '42P01') {
     console.log('Table "profiles" not found — run sql migrations (scripts/run-migrations.mjs or SQL Editor).');
   }
   process.exit(1);
