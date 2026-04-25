@@ -12,6 +12,36 @@ const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)));
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   ...(!process.env.VERCEL ? { outputFileTracingRoot: projectRoot } : {}),
+  /**
+   * Baked at build time so the cymatics iframe URL changes on every Vercel deploy
+   * (browsers/edges otherwise cache /cymatics.html and the shell looks "stale").
+   */
+  env: {
+    NEXT_PUBLIC_ASSET_BUST:
+      process.env.VERCEL_DEPLOYMENT_ID || process.env.VERCEL_GIT_COMMIT_SHA || '',
+  },
+  async headers() {
+    return [
+      {
+        source: '/cymatics.html',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' },
+        ],
+      },
+      {
+        source: '/landing/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' },
+        ],
+      },
+      {
+        source: '/vendor/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

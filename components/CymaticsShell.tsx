@@ -60,7 +60,12 @@ function buildSubscriptionMessage(
 }
 
 /** Full portal experience: particle attract landing + instruction guide before the cymatics UI (`?skip=1` hides them). */
-const CYMATICS_IFRAME_SRC = '/cymatics.html';
+function cymaticsIframeSrc() {
+  const b = (process.env.NEXT_PUBLIC_ASSET_BUST || '').trim();
+  return b
+    ? `/cymatics.html?d=${encodeURIComponent(b)}`
+    : '/cymatics.html';
+}
 
 /** Isolated from overlay re-renders — same props skip React reconciliation of the iframe subtree. */
 const CymaticsFrame = memo(
@@ -70,7 +75,7 @@ const CymaticsFrame = memo(
         <iframe
           ref={ref}
           title="Cymatics Portal"
-          src={CYMATICS_IFRAME_SRC}
+          src={cymaticsIframeSrc()}
           className="fixed inset-0 z-0 h-full w-full border-0"
           onLoad={onLoad}
           referrerPolicy="same-origin"

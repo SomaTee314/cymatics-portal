@@ -1,5 +1,9 @@
 # Source archives and dev-only. Root index.html is rebuilt on Vercel then removed (see scripts/prebuild.mjs).
 /index.html
+# Never upload generated portal assets from a dev machine; prebuild on Vercel is the only source of truth.
+public/cymatics.html
+public/landing
+public/vendor
 *.zip
 __pycache__
 *.pyc
