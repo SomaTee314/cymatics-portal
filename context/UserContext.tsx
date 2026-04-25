@@ -89,9 +89,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const refreshProfile = useCallback(async () => {
     if (devMode) return;
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const authUser = session?.user;
     if (authUser) {
       const profile = await fetchProfile(authUser.id);
       if (profile) setUser(profile);
@@ -115,65 +114,57 @@ export function UserProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    var bootFinished = false;
-    function finishInitialBoot() {
-      if (bootFinished) return;
-      bootFinished = true;
-      setIsLoading(false);
-    }
+    let mounted = true;
+    const profileTimeoutMs = 15000;
 
-    var authTimeoutMs = 15000;
-    var authDeadline = new Promise<{ data: { user: null } }>(function (_, reject) {
-      window.setTimeout(function () {
-        reject(new Error('Supabase auth bootstrap timed out'));
-      }, authTimeoutMs);
-    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'TOKEN_REFRESHED') return;
+        if (!mounted) return;
 
-    Promise.race([supabase.auth.getUser(), authDeadline])
-      .then(async function (res) {
-        var authUser = res.data?.user ?? null;
-        if (authUser) {
+        if (session?.user) {
           try {
-            var profile = await Promise.race([
-              fetchProfile(authUser.id),
-              new Promise<null>(function (_, reject) {
-                window.setTimeout(function () {
-                  reject(new Error('profiles fetch timed out'));
-                }, authTimeoutMs);
+            const profile = await Promise.race([
+              fetchProfile(session.user.id),
+              new Promise<null>((_, reject) => {
+                window.setTimeout(
+                  () => reject(new Error('profiles fetch timed out')),
+                  profileTimeoutMs
+                );
               }),
             ]);
             if (!profile) {
-              console.error('[UserContext] Session present but profiles row missing', {
-                authUserId: authUser.id,
-                email: authUser.email,
-                hint: 'Run sql/002_trigger_new_user.sql or insert profile manually.',
-              });
+              console.error(
+                '[UserContext] Session present but profiles row missing',
+                {
+                  authUserId: session.user.id,
+                  email: session.user.email,
+                  hint: 'Run sql/002_trigger_new_user.sql or insert profile manually.',
+                }
+              );
             }
-            setUser(profile);
+            if (mounted) setUser(profile);
           } catch (e) {
             console.error('[UserContext] profile load failed', e);
-            setUser(null);
+            if (mounted) setUser(null);
           }
+        } else {
+          if (mounted) setUser(null);
         }
-      })
-      .catch(function (e) {
-        console.error('[UserContext] getUser failed', e);
-      })
-      .finally(finishInitialBoot);
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'TOKEN_REFRESHED') return;
-      if (session?.user) {
-        const profile = await fetchProfile(session.user.id);
-        setUser(profile);
-      } else {
-        setUser(null);
+        if (mounted) setIsLoading(false);
       }
-    });
+    );
 
-    return () => subscription.unsubscribe();
+    const loadingFailsafe = window.setTimeout(() => {
+      if (mounted) setIsLoading(false);
+    }, 20000);
+
+    return () => {
+      mounted = false;
+      window.clearTimeout(loadingFailsafe);
+      subscription.unsubscribe();
+    };
   }, [devMode, supabase, fetchProfile]);
 
   const effectiveTier = user
