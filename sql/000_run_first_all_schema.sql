@@ -2,7 +2,7 @@
 -- Cymatics Portal — full public schema (run once in Supabase)
 -- Supabase Dashboard → SQL Editor → New query → paste this file → Run
 -- You should see: public.profiles, public.saved_configs
--- Also run from CLI:  npm run migrate  (if SUPABASE_DB_URL or link is set)
+-- Also run from CLI:  npm run migrate  (needs SUPABASE_DB_PASSWORD or DB URI in .env.local — not API keys)
 -- =============================================================================
 
 -- UUID generation (Supabase usually has this; safe if already on)

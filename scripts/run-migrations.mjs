@@ -2,10 +2,12 @@
  * Applies sql/*.sql to the remote Supabase database.
  *
  * Prerequisites (pick one):
- *   A) Set SUPABASE_DB_URL in .env.local (Supabase → Connect → Session pooler URI), then:
- *        node scripts/run-migrations.mjs
- *        (Uses direct Postgres via `pg` — no `supabase link` required.)
- *   B) npx supabase login && npx supabase link --project-ref <ref> -p <db_password>
+ *   A) Easiest: SUPABASE_DB_PASSWORD in .env.local (Project Settings → Database: Postgres password) +
+ *        NEXT_PUBLIC_SUPABASE_URL. This script builds the pooler URI (port 6543, transaction mode).
+ *        Optional: SUPABASE_POOLER_REGION if not us-east-1.
+ *   B) Or paste SUPABASE_DB_URL: Dashboard → Connect → choose "Direct" (Connection string) →
+ *        pick a Postgres URI (Transaction pooler is port 6543, or use Direct/Session as shown there).
+ *   C) npx supabase login && npx supabase link --project-ref <ref> -p <db_password>
  *      then: node scripts/run-migrations.mjs
  *
  * CLI v2 uses `supabase db query`, not `db execute`.
@@ -59,8 +61,8 @@ function projectRefFromUrl(url) {
 }
 
 /**
- * Session pooler URI when you set SUPABASE_DB_PASSWORD but not SUPABASE_DB_URL.
- * Region: Dashboard → Connect → Session pooler (e.g. aws-0-us-east-1) or set SUPABASE_POOLER_REGION.
+ * Transaction pooler URI (port 6543) when you set SUPABASE_DB_PASSWORD but not SUPABASE_DB_URL.
+ * Host pattern: aws-0-<region>.pooler.supabase.com — override region with SUPABASE_POOLER_REGION.
  */
 function connectionStringFromDbPassword() {
   const password = process.env.SUPABASE_DB_PASSWORD;
@@ -80,7 +82,7 @@ function connectionStringFromDbPassword() {
 
 function printManual() {
   console.error(
-    '\nCould not apply migrations automatically. Add SUPABASE_DB_URL (Session pooler) to .env.local and re-run, or paste each block into the Supabase SQL Editor (SQL → New query → Run).\n'
+    '\nCould not apply migrations automatically. Set SUPABASE_DB_PASSWORD or SUPABASE_DB_URL in .env.local, or paste the SQL into the Supabase SQL Editor (SQL → New query → Run).\n'
   );
   for (const rel of FILES) {
     const fp = path.join(root, rel);
@@ -128,7 +130,7 @@ if (dbUrl) {
   if (usingPasswordOnly) {
     const reg = (process.env.SUPABASE_POOLER_REGION || 'us-east-1').trim();
     console.log(
-      `Using SUPABASE_DB_PASSWORD + session pooler (aws-0-${reg}.pooler.supabase.com).\n`,
+      `Using SUPABASE_DB_PASSWORD + pooler (transaction mode, :6543, aws-0-${reg}.pooler.supabase.com).\n`,
     );
   } else {
     console.log('Using SUPABASE_DB_URL / DATABASE_URL with direct Postgres (pg module).\n');
@@ -140,11 +142,11 @@ if (dbUrl) {
   });
 } else {
   console.log(
-    'No Postgres connection for migrations. API keys (NEXT_PUBLIC_SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY) ' +
-      'cannot run SQL; you need the database password or URI.\n' +
-      'Add to .env.local: SUPABASE_DB_URL (Dashboard → Connect → Session pooler), ' +
-      'or SUPABASE_DB_PASSWORD (Database Settings → database password) + NEXT_PUBLIC_SUPABASE_URL. ' +
-      'Alternatively: npx supabase login && npx supabase link --project-ref',
+    'No Postgres connection for migrations. API keys (anon / service_role) do not run SQL; ' +
+      'use the database password or a Postgres URI.\n' +
+      '  • Best: set SUPABASE_DB_PASSWORD (Project Settings → Database) + NEXT_PUBLIC_SUPABASE_URL.\n' +
+      '  • Or: copy a URI from Project → Connect → Direct → choose connection string type (e.g. Transaction / Direct).\n' +
+      '  • Or: npx supabase login && npx supabase link --project-ref',
     ref || '<your-ref>',
     '-p <db_password>\n' +
       'Then: npm run migrate (or npx supabase db push).\n',
