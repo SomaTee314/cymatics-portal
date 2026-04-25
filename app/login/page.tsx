@@ -1,8 +1,9 @@
 'use client';
 
+import { authCallbackAbsoluteUrl, authNextFromSearchParam } from '@/lib/auth/auth-redirect';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
-import { FormEvent, useState, Suspense, useEffect } from 'react';
+import { FormEvent, useState, Suspense, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -14,6 +15,15 @@ function LoginForm() {
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [successEmail, setSuccessEmail] = useState<string | null>(null);
+
+  const nextPath = useMemo(
+    () =>
+      authNextFromSearchParam(
+        searchParams.get('redirect'),
+        searchParams.get('next'),
+      ),
+    [searchParams],
+  );
 
   useEffect(() => {
     if (searchParams.get('error') === 'auth_failed') {
@@ -34,7 +44,10 @@ function LoginForm() {
       const { error } = await supabase.auth.signInWithOtp({
         email: trimmed,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: authCallbackAbsoluteUrl(
+            window.location.origin,
+            nextPath,
+          ),
         },
       });
       if (error) {
@@ -134,7 +147,11 @@ function LoginForm() {
           <p className="mt-8 text-center text-sm text-white/40 sm:text-left">
             Don&apos;t have an account?{' '}
             <Link
-              href="/signup"
+              href={
+                nextPath !== '/'
+                  ? `/signup?redirect=${encodeURIComponent(nextPath)}`
+                  : '/signup'
+              }
               prefetch={false}
               className="text-white/40 underline-offset-4 transition-colors hover:text-white hover:underline"
             >

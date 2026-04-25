@@ -1,13 +1,24 @@
 'use client';
 
+import { authCallbackAbsoluteUrl, authNextFromSearchParam } from '@/lib/auth/auth-redirect';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
-import { FormEvent, useState } from 'react';
+import { FormEvent, useState, Suspense, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function SignupForm() {
   const supabase = createClient();
+  const searchParams = useSearchParams();
+  const nextPath = useMemo(
+    () =>
+      authNextFromSearchParam(
+        searchParams.get('redirect'),
+        searchParams.get('next'),
+      ),
+    [searchParams],
+  );
   const [email, setEmail] = useState('');
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -26,7 +37,10 @@ function SignupForm() {
       const { error } = await supabase.auth.signInWithOtp({
         email: trimmed,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: authCallbackAbsoluteUrl(
+            window.location.origin,
+            nextPath,
+          ),
         },
       });
       if (error) {
@@ -120,7 +134,11 @@ function SignupForm() {
           <p className="mt-8 text-center text-sm text-white/40 sm:text-left">
             Already have an account?{' '}
             <Link
-              href="/login"
+              href={
+                nextPath !== '/'
+                  ? `/login?redirect=${encodeURIComponent(nextPath)}`
+                  : '/login'
+              }
               prefetch={false}
               className="text-white/40 underline-offset-4 transition-colors hover:text-white hover:underline"
             >
@@ -134,5 +152,15 @@ function SignupForm() {
 }
 
 export default function SignupPage() {
-  return <SignupForm />;
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-black font-sans text-white/50">
+          Loading…
+        </div>
+      }
+    >
+      <SignupForm />
+    </Suspense>
+  );
 }

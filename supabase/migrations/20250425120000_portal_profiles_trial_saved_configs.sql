@@ -1,0 +1,76 @@
+-- Portal: profiles, new-user trial trigger, saved_configs (matches sql/001–003)
+
+-- sql/001_profiles.sql
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+  email TEXT,
+  display_name TEXT,
+  tier TEXT NOT NULL DEFAULT 'free' CHECK (tier IN ('free', 'trial', 'pro', 'creator', 'lifetime')),
+  trial_started_at TIMESTAMPTZ,
+  trial_expires_at TIMESTAMPTZ,
+  subscription_id TEXT,
+  subscription_status TEXT,
+  subscription_provider TEXT DEFAULT 'polar',
+  current_period_end TIMESTAMPTZ,
+  lifetime_purchased_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own profile"
+  ON public.profiles FOR SELECT
+  USING (auth.uid() = id);
+
+CREATE POLICY "Users can update own profile"
+  ON public.profiles FOR UPDATE
+  USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
+
+CREATE POLICY "Service role full access"
+  ON public.profiles FOR ALL
+  USING (auth.role() = 'service_role');
+
+-- sql/002_trigger_new_user.sql
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, tier, trial_started_at, trial_expires_at)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    'trial',
+    NOW(),
+    NOW() + INTERVAL '7 days'
+  );
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user();
+
+-- sql/003_saved_configs.sql
+CREATE TABLE IF NOT EXISTS public.saved_configs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  config JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.saved_configs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage own configs"
+  ON public.saved_configs FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);

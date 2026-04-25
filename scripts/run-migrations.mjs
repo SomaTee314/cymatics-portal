@@ -61,6 +61,26 @@ function projectRefFromUrl(url) {
   }
 }
 
+/**
+ * Session pooler URI when you set SUPABASE_DB_PASSWORD but not SUPABASE_DB_URL.
+ * Region: Dashboard → Connect → Session pooler (e.g. aws-0-us-east-1) or set SUPABASE_POOLER_REGION.
+ */
+function connectionStringFromDbPassword() {
+  const password = process.env.SUPABASE_DB_PASSWORD;
+  if (!password?.trim()) return null;
+  const ref = projectRefFromUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  if (!ref) {
+    console.error(
+      'SUPABASE_DB_PASSWORD is set but NEXT_PUBLIC_SUPABASE_URL is missing or invalid.',
+    );
+    return null;
+  }
+  const region = (process.env.SUPABASE_POOLER_REGION || 'us-east-1').trim();
+  const host = `aws-0-${region}.pooler.supabase.com`;
+  const user = `postgres.${ref}`;
+  return `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:6543/postgres`;
+}
+
 function printManual() {
   console.error(
     '\nCould not apply migrations automatically. Add SUPABASE_DB_URL (Session pooler) to .env.local and re-run, or paste each block into the Supabase SQL Editor (SQL → New query → Run).\n'
@@ -74,8 +94,17 @@ function printManual() {
   }
 }
 
-const dbUrl = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL;
+const dbUrlFromPassword = connectionStringFromDbPassword();
+const dbUrl =
+  process.env.SUPABASE_DB_URL ||
+  process.env.DATABASE_URL ||
+  dbUrlFromPassword;
 const ref = projectRefFromUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
+const usingPasswordOnly =
+  !!dbUrlFromPassword &&
+  dbUrl === dbUrlFromPassword &&
+  !process.env.SUPABASE_DB_URL &&
+  !process.env.DATABASE_URL;
 
 console.log(
   'Project ref (from NEXT_PUBLIC_SUPABASE_URL):',
@@ -99,7 +128,14 @@ async function runWithPg() {
 }
 
 if (dbUrl) {
-  console.log('Using SUPABASE_DB_URL with direct Postgres (pg module).\n');
+  if (usingPasswordOnly) {
+    const reg = (process.env.SUPABASE_POOLER_REGION || 'us-east-1').trim();
+    console.log(
+      `Using SUPABASE_DB_PASSWORD + session pooler (aws-0-${reg}.pooler.supabase.com).\n`,
+    );
+  } else {
+    console.log('Using SUPABASE_DB_URL / DATABASE_URL with direct Postgres (pg module).\n');
+  }
   runWithPg().catch((err) => {
     console.error(err);
     printManual();
@@ -107,10 +143,11 @@ if (dbUrl) {
   });
 } else {
   console.log(
-    'No SUPABASE_DB_URL — trying Supabase CLI with --linked. If this fails, add ' +
-      'SUPABASE_DB_URL to .env.local (Connect → Session pooler), or run: npx supabase link --project-ref',
+    'No database connection — add SUPABASE_DB_URL, or SUPABASE_DB_PASSWORD (+ NEXT_PUBLIC_SUPABASE_URL), ' +
+      'to .env.local, or run: npx supabase login && npx supabase link --project-ref',
     ref || '<your-ref>',
-    '-p <db_password>\n'
+    '-p <db_password>\n' +
+      'Then: npm run migrate (or npx supabase db push --db-url <encoded-uri>).\n',
   );
 
   let failed = false;
