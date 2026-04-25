@@ -26,7 +26,8 @@
     "vercel:env:supabase": "node scripts/sync-vercel-supabase-env.mjs",
     "vercel:push:env": "node scripts/vercel-push-env-from-local.mjs",
     "test:polar": "node scripts/test-polar-checkout.mjs",
-    "github:push": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/complete-github-push.ps1"
+    "github:push": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/complete-github-push.ps1",
+    "release:live": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/publish-to-live.ps1"
   },
   "dependencies": {
     "@polar-sh/sdk": "^0.46.0",
