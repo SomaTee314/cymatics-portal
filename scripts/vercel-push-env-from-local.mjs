@@ -1,9 +1,9 @@
 /**
- * Pushes app env vars from .env.local to the linked Vercel project
+ * Pushes app env vars from `.env.sh` (or `.env.local`) to the linked Vercel project
  * (production + preview) via the Vercel REST API. Avoids the Windows bug where
  * `vercel env add` can hang after a successful save.
  *
- * Requires: VERCEL_TOKEN in .env.local (https://vercel.com/account/tokens) and
+ * Requires: VERCEL_TOKEN in `.env.sh` (https://vercel.com/account/tokens) and
  *           `.vercel/project.json` (from `npx vercel link`).
  *
  * Run: node scripts/vercel-push-env-from-local.mjs
@@ -12,32 +12,16 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { loadProjectEnv } from './load-env-local.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 const projectJson = path.join(root, '.vercel', 'project.json');
 
-function loadEnvLocal() {
-  const p = path.join(root, '.env.local');
-  if (!fs.existsSync(p)) {
-    console.error('Missing .env.local');
-    process.exit(1);
-  }
-  for (const line of fs.readFileSync(p, 'utf8').split('\n')) {
-    const t = line.trim();
-    if (!t || t.startsWith('#')) continue;
-    const eq = t.indexOf('=');
-    if (eq === -1) continue;
-    const key = t.slice(0, eq).trim();
-    let val = t.slice(eq + 1).trim();
-    if (
-      (val.startsWith('"') && val.endsWith('"')) ||
-      (val.startsWith("'") && val.endsWith("'"))
-    ) {
-      val = val.slice(1, -1);
-    }
-    process.env[key] = val;
-  }
+loadProjectEnv(root);
+if (!fs.existsSync(path.join(root, '.env.sh')) && !fs.existsSync(path.join(root, '.env.local'))) {
+  console.error('Missing .env.sh (or .env.local as fallback).');
+  process.exit(1);
 }
 
 function isMissing(v) {
@@ -46,12 +30,10 @@ function isMissing(v) {
   return false;
 }
 
-loadEnvLocal();
-
 const vercelToken = process.env.VERCEL_TOKEN;
 if (!vercelToken) {
   console.error(
-    'VERCEL_TOKEN is not set in .env.local.\n' +
+    'VERCEL_TOKEN is not set in .env.sh (or .env.local).\n' +
       'Create a token: https://vercel.com/account/tokens\n' +
       'Add a line: VERCEL_TOKEN=...\n' +
       'Then run: npm run vercel:push:env\n',
@@ -76,7 +58,7 @@ const sensitiveKeys = new Set([
 
 /**
  * @typedef {{ key: string, value?: string }} EnvSpec
- * If `value` is set, it overrides .env.local (e.g. force DEV_MODE off in Vercel).
+ * If `value` is set, it overrides .env.sh (e.g. force DEV_MODE off in Vercel).
  * `NEXT_PUBLIC_SUBSCRIPTION_PAUSED=true` only affects shell pricing redirects, not iframe capabilities.
  * Set to `false` when you want upgrade clicks to open `/pricing`.
  */
@@ -99,7 +81,7 @@ const spec = /** @type {EnvSpec[]} */ ([
 for (const { key, value: override } of spec) {
   const v = override !== undefined ? String(override) : (process.env[key] ?? '');
   if (isMissing(v)) {
-    console.warn(`Skip ${key} (not in .env.local or empty)`);
+    console.warn(`Skip ${key} (not in env file or empty)`);
     continue;
   }
   const valueType = sensitiveKeys.has(key) ? 'sensitive' : 'encrypted';

@@ -2,7 +2,7 @@
  * Applies sql/*.sql to the remote Supabase database.
  *
  * Prerequisites (pick one):
- *   A) Easiest: SUPABASE_DB_PASSWORD in .env.local (Project Settings → Database: Postgres password) +
+ *   A) Easiest: SUPABASE_DB_PASSWORD in .env.sh (Project Settings → Database: Postgres password) +
  *        NEXT_PUBLIC_SUPABASE_URL. This script builds the pooler URI (port 6543, transaction mode).
  *        Optional: SUPABASE_POOLER_REGION if not us-east-1.
  *   B) Or paste SUPABASE_DB_URL: Dashboard → Connect → choose "Direct" (Connection string) →
@@ -17,7 +17,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { spawnSync } from 'child_process';
 import pg from 'pg';
-import { loadEnvLocal } from './load-env-local.mjs';
+import { loadProjectEnv } from './load-env-local.mjs';
 import {
   getPostgresUrlForMigrations,
   isPasswordOnlyMigrationsUrl,
@@ -27,7 +27,7 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 
-loadEnvLocal(root);
+loadProjectEnv(root);
 
 const FILES = ['sql/000_run_first_all_schema.sql'];
 
@@ -37,7 +37,7 @@ const usingPasswordOnly = isPasswordOnlyMigrationsUrl();
 
 function printManual() {
   console.error(
-    '\nCould not apply migrations automatically. Set SUPABASE_DB_PASSWORD or SUPABASE_DB_URL in .env.local, or paste the SQL into the Supabase SQL Editor (SQL → New query → Run).\n',
+    '\nCould not apply migrations automatically. Set SUPABASE_DB_PASSWORD or SUPABASE_DB_URL in .env.sh (or .env.local), or paste the SQL into the Supabase SQL Editor (SQL → New query → Run).\n',
   );
   for (const rel of FILES) {
     const fp = path.join(root, rel);

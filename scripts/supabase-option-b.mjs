@@ -1,7 +1,7 @@
 /**
  * Option B: Supabase CLI — login → link → db push
  *
- * Requires in .env.local:
+ * Requires in .env.sh:
  *   SUPABASE_ACCESS_TOKEN  — https://supabase.com/dashboard/account/tokens
  *   SUPABASE_DB_PASSWORD   — Project Settings → Database (Postgres password)
  *   NEXT_PUBLIC_SUPABASE_URL — used to derive project ref, or set SUPABASE_PROJECT_REF
@@ -9,33 +9,12 @@
  * Usage: node scripts/supabase-option-b.mjs
  */
 import { spawnSync } from 'child_process';
-import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { loadProjectEnv } from './load-env-local.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
-
-function loadEnvLocal() {
-  const p = path.join(root, '.env.local');
-  if (!fs.existsSync(p)) return;
-  const text = fs.readFileSync(p, 'utf8');
-  for (const line of text.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eq = trimmed.indexOf('=');
-    if (eq === -1) continue;
-    const key = trimmed.slice(0, eq).trim();
-    let val = trimmed.slice(eq + 1).trim();
-    if (
-      (val.startsWith('"') && val.endsWith('"')) ||
-      (val.startsWith("'") && val.endsWith("'"))
-    ) {
-      val = val.slice(1, -1);
-    }
-    process.env[key] = val;
-  }
-}
 
 function projectRefFromUrl(url) {
   if (!url || typeof url !== 'string') return null;
@@ -64,7 +43,7 @@ function runSupabase(args) {
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
-loadEnvLocal();
+loadProjectEnv(root);
 
 const ref =
   (process.env.SUPABASE_PROJECT_REF || '').trim() ||
@@ -85,7 +64,7 @@ if (!token) {
 Create a personal access token:
   https://supabase.com/dashboard/account/tokens
 
-Add to .env.local:
+Add to .env.sh:
   SUPABASE_ACCESS_TOKEN=sbp_...
 `);
   process.exit(1);
@@ -96,7 +75,7 @@ if (!password) {
 
 Use the database password from Supabase → Project Settings → Database (not the anon or service_role keys).
 
-Add to .env.local:
+Add to .env.sh:
   SUPABASE_DB_PASSWORD=your_postgres_password
 `);
   process.exit(1);

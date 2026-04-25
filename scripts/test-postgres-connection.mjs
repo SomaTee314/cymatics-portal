@@ -7,13 +7,13 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import pg from 'pg';
-import { loadEnvLocal } from './load-env-local.mjs';
+import { loadProjectEnv } from './load-env-local.mjs';
 import { getPostgresUrlForMigrations, isPasswordOnlyMigrationsUrl } from './migrations-pg-url.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 
-loadEnvLocal(root);
+loadProjectEnv(root);
 
 const dbUrl = getPostgresUrlForMigrations();
 
@@ -28,7 +28,7 @@ function safeEndpoint(connectionString) {
 
 if (!dbUrl) {
   console.error(
-    'No Postgres URL for migrations. Set in .env.local (uncommented):\n' +
+    'No Postgres URL for migrations. Set in .env.sh (or .env.local, uncommented):\n' +
       '  • SUPABASE_DB_URL=...  (from Connect → Direct), or\n' +
       '  • SUPABASE_DB_PASSWORD=... + NEXT_PUBLIC_SUPABASE_URL=...  (and SUPABASE_POOLER_REGION if not us-east-1)',
   );

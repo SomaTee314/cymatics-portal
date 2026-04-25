@@ -2,38 +2,17 @@
  * Smoke test: Polar SDK can create a checkout (uses same shape as app/api/checkout/route.ts).
  * Run: node scripts/test-polar-checkout.mjs
  *
- * Loads .env.local with override (see scripts/test-supabase.mjs).
+ * Loads .env.sh (or .env.local) — see scripts/load-env-local.mjs.
  */
-import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { Polar, ServerProduction, ServerSandbox } from '@polar-sh/sdk';
+import { loadProjectEnv } from './load-env-local.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 
-function loadEnvLocal() {
-  const p = path.join(root, '.env.local');
-  if (!fs.existsSync(p)) return;
-  const text = fs.readFileSync(p, 'utf8');
-  for (const line of text.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eq = trimmed.indexOf('=');
-    if (eq === -1) continue;
-    const key = trimmed.slice(0, eq).trim();
-    let val = trimmed.slice(eq + 1).trim();
-    if (
-      (val.startsWith('"') && val.endsWith('"')) ||
-      (val.startsWith("'") && val.endsWith("'"))
-    ) {
-      val = val.slice(1, -1);
-    }
-    process.env[key] = val;
-  }
-}
-
-loadEnvLocal();
+loadProjectEnv(root);
 
 const accessToken = process.env.POLAR_ACCESS_TOKEN;
 const productId =
@@ -42,7 +21,7 @@ const productId =
 
 if (!accessToken || !productId) {
   console.error(
-    'Need POLAR_ACCESS_TOKEN and NEXT_PUBLIC_POLAR_PRO_PRODUCT_ID (or TEST_POLAR_PRODUCT_ID) in .env.local',
+    'Need POLAR_ACCESS_TOKEN and NEXT_PUBLIC_POLAR_PRO_PRODUCT_ID (or TEST_POLAR_PRODUCT_ID) in .env.sh (or .env.local)',
   );
   process.exit(1);
 }

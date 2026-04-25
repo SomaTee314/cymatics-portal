@@ -5,12 +5,12 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
-import { loadEnvLocal } from './load-env-local.mjs';
+import { loadProjectEnv } from './load-env-local.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 
-loadEnvLocal(root);
+loadProjectEnv(root);
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

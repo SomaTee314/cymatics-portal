@@ -1,6 +1,6 @@
 /**
  * Resolves the Postgres connection string for `npm run migrate` and DB smoke tests.
- * After `loadEnvLocal`, reads `SUPABASE_DB_URL` / `DATABASE_URL` or builds pooler URI from
+ * After `loadProjectEnv` (`.env.sh` / `.env.local`), reads `SUPABASE_DB_URL` / `DATABASE_URL` or builds pooler URI from
  * `SUPABASE_DB_PASSWORD` + `NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_POOLER_REGION`.
  */
 

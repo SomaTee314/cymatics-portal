@@ -1,9 +1,14 @@
 import type { NextConfig } from 'next';
 import path from 'path';
 import { fileURLToPath } from 'url';
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- Node resolves .mjs at config load time
+import { loadProjectEnv } from './scripts/load-env-local.mjs';
 
 /** Absolute project root — required when a parent folder (e.g. C:\\Users\\you) has its own package-lock.json */
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)));
+
+/** Runs after Next merges default `.env*`; overlays `.env.sh` (or `.env.local`) so values in that file win. */
+loadProjectEnv(projectRoot);
 
 /**
  * Local/monorepo: lock tracing to this repo when a parent folder has another package-lock.json.
