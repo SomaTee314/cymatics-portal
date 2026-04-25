@@ -22,6 +22,7 @@
     "db:supabase:link": "npx supabase link",
     "db:remote": "node scripts/supabase-option-b.mjs",
     "test:supabase": "node scripts/test-supabase.mjs",
+    "verify:supabase": "node scripts/verify-supabase-schema.mjs",
     "vercel:env:supabase": "node scripts/sync-vercel-supabase-env.mjs",
     "test:polar": "node scripts/test-polar-checkout.mjs",
     "github:push": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/complete-github-push.ps1"
