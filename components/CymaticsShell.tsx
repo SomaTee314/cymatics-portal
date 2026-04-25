@@ -11,7 +11,6 @@ import {
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
 import { AccountMenu } from '@/components/shell/AccountMenu';
-import { TrialBanner } from '@/components/subscription/TrialBanner';
 import { SessionTimer } from '@/components/subscription/SessionTimer';
 import {
   hasFeature,
@@ -230,7 +229,6 @@ export function CymaticsShell() {
 
   return (
     <div className="relative min-h-screen w-full bg-[#030508]">
-      <TrialBanner reachedPortal={reachedPortal} />
       <SessionTimer />
       <AccountMenu showAnonymousSignup={reachedPortal} />
       <SignUpPromptModal
