@@ -18,6 +18,7 @@
     "migrate": "node scripts/run-migrations.mjs",
     "db:push": "npx supabase db push --include-all --yes",
     "db:supabase:login": "npx supabase login",
+    "db:supabase:reauth": "node scripts/supabase-reauth.mjs",
     "db:supabase:link": "npx supabase link",
     "db:remote": "node scripts/supabase-option-b.mjs",
     "test:supabase": "node scripts/test-supabase.mjs",
