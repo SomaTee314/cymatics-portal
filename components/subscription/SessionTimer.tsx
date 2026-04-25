@@ -3,12 +3,7 @@
 import { useUser } from '@/context/UserContext';
 import { useEffect, useState } from 'react';
 
-type SessionTimerProps = {
-  /** Full-screen sign-up gate is shown; hide the corner timer (session is moot). */
-  preAuthGateActive?: boolean;
-};
-
-export function SessionTimer({ preAuthGateActive = false }: SessionTimerProps) {
+export function SessionTimer() {
   const { features, isDevMode, isAuthenticated } = useUser();
   const [secondsRemaining, setSecondsRemaining] = useState<number | null>(null);
   const [dismissed, setDismissed] = useState(false);
@@ -33,7 +28,7 @@ export function SessionTimer({ preAuthGateActive = false }: SessionTimerProps) {
     return () => clearInterval(interval);
   }, [sessionLimit, isDevMode]);
 
-  if (preAuthGateActive || secondsRemaining === null || isDevMode) return null;
+  if (secondsRemaining === null || isDevMode) return null;
 
   const minutes = Math.floor(secondsRemaining / 60);
   const seconds = secondsRemaining % 60;

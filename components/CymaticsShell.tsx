@@ -22,7 +22,7 @@ import {
 } from '@/lib/tiers';
 import { isDevMode } from '@/lib/dev-mode';
 import { isSubscriptionPaused } from '@/lib/subscription-pause';
-import { PortalSignUpGate } from '@/components/shell/PortalSignUpGate';
+import { SignUpPromptModal } from '@/components/shell/SignUpPromptModal';
 
 const SUB_MSG = 'cp-subscription';
 
@@ -117,8 +117,7 @@ export function CymaticsShell() {
     isAuthenticated,
   } = useUser();
   const subscriptionPaused = isSubscriptionPaused();
-  const showPortalGate =
-    reachedPortal && !isAuthenticated && !ctxDev;
+  const [signUpModalOpen, setSignUpModalOpen] = useState(false);
 
   const postSubscriptionToIframe = useCallback(
     (force?: boolean) => {
@@ -201,24 +200,41 @@ export function CymaticsShell() {
         setReachedPortal(true);
         return;
       }
-      if (subscriptionPaused) return;
-      if (d.action === 'upgrade-clicked' || d.action === 'session-expired') {
-        router.push('/pricing');
+      if (d.action === 'signup-prompt' || d.action === 'upgrade-clicked') {
+        if (!isAuthenticated && !ctxDev) {
+          setSignUpModalOpen(true);
+          return;
+        }
+        if (d.action === 'upgrade-clicked' && isAuthenticated) {
+          if (!subscriptionPaused) {
+            void router.push('/pricing');
+          }
+        }
+        return;
+      }
+      if (d.action === 'session-expired') {
+        if (!isAuthenticated) {
+          setSignUpModalOpen(true);
+          return;
+        }
+        if (!subscriptionPaused) {
+          void router.push('/pricing');
+        }
       }
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [router, subscriptionPaused]);
+  }, [router, subscriptionPaused, isAuthenticated, ctxDev]);
 
   return (
     <div className="relative min-h-screen w-full bg-[#030508]">
-      <TrialBanner
-        reachedPortal={reachedPortal}
-        hideAnonymousBar={showPortalGate}
-      />
-      <SessionTimer preAuthGateActive={showPortalGate} />
+      <TrialBanner reachedPortal={reachedPortal} />
+      <SessionTimer />
       <AccountMenu showAnonymousSignup={reachedPortal} />
-      {showPortalGate ? <PortalSignUpGate /> : null}
+      <SignUpPromptModal
+        open={signUpModalOpen}
+        onClose={() => setSignUpModalOpen(false)}
+      />
       <CymaticsFrame
         key={iframeMountKey}
         ref={iframeRef}

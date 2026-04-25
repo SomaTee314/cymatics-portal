@@ -5,12 +5,13 @@ import { authCallbackAbsoluteUrl, authNextFromSearchParam } from '@/lib/auth/aut
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { FormEvent, useState, Suspense, useMemo, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function SignupForm() {
   const supabase = createClient();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = useMemo(
     () =>
@@ -84,7 +85,17 @@ function SignupForm() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-black px-4 py-8 sm:py-12">
+    <div className="relative flex min-h-screen flex-col bg-black px-4 py-8 sm:py-12">
+      <button
+        type="button"
+        onClick={() => router.push('/')}
+        className="absolute right-4 top-4 z-10 rounded-lg p-2 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+        aria-label="Close and return home"
+      >
+        <span className="text-2xl leading-none" aria-hidden>
+          &times;
+        </span>
+      </button>
       <div className="mx-auto w-full max-w-md flex-1 flex flex-col">
         <header className="mb-10">
           <Link

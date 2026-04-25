@@ -217,7 +217,7 @@
             var opt = selPreset.options[i];
             var idx = parseInt(opt.value, 10);
             var ok = allow.indexOf(idx) >= 0;
-            opt.disabled = !ok;
+            opt.disabled = false;
             var base = __cpPresetBaseLabel(opt);
             if (!ok && !se.isDevMode) {
                 opt.text = base + __CP_LOCK;
@@ -245,7 +245,7 @@
         for (i = 0; i < aggressionSel.options.length; i++) {
             var opt = aggressionSel.options[i];
             if (opt.value === 'fractalMB' || opt.value === 'fractalJulia') {
-                opt.disabled = !se.allowFractalVisuals;
+                opt.disabled = false;
                 opt.title =
                     !se.allowFractalVisuals && !se.isDevMode ? __CP_UPGRADE_TIP : '';
             } else {
@@ -267,11 +267,11 @@
         for (i = 0; i < modeSel.options.length; i++) {
             var opt = modeSel.options[i];
             if (opt.value === 'track') {
-                opt.disabled = !se.allowMic;
+                opt.disabled = false;
                 opt.title =
                     !se.allowMic && !se.isDevMode ? __CP_UPGRADE_TIP : '';
             } else if (opt.value === 'manual') {
-                opt.disabled = !se.allowCustomHz;
+                opt.disabled = false;
                 opt.title =
                     !se.allowCustomHz && !se.isDevMode ? __CP_UPGRADE_TIP : '';
             } else {
@@ -311,6 +311,100 @@
         }
     }
 
+    var __cpGatedSelectAttached = false;
+    var __cpIgnoreModeChange = false;
+    var __cpIgnoreAggroChange = false;
+    var __cpIgnorePresetChange = false;
+    var __cpLastGatedPresetValue = null;
+
+    function __cpPostSignupPrompt() {
+        try {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage(
+                    { type: 'cp-action', action: 'signup-prompt' },
+                    '*'
+                );
+            }
+        } catch (ePsp) {}
+    }
+
+    function __cpAttachGatedSelectListeners() {
+        if (__cpGatedSelectAttached) return;
+        if (!aggressionSel || !modeSel || !selPreset) return;
+        __cpGatedSelectAttached = true;
+        __cpLastGatedPresetValue = selPreset.value;
+
+        aggressionSel.addEventListener('change', function () {
+            if (__cpIgnoreAggroChange) return;
+            var se = __cpSubEffective();
+            if (se.isDevMode || se.allowFractalVisuals) return;
+            var v = aggressionSel.value;
+            if (v === 'fractalMB' || v === 'fractalJulia') {
+                __cpIgnoreAggroChange = true;
+                aggressionSel.value = 'balanced';
+                if (typeof applyAggressionPreset === 'function') {
+                    applyAggressionPreset('balanced');
+                } else {
+                    try {
+                        aggressionSel.dispatchEvent(
+                            new Event('change', { bubbles: true })
+                        );
+                    } catch (eAg) {}
+                }
+                __cpIgnoreAggroChange = false;
+                __cpPostSignupPrompt();
+            }
+        });
+
+        modeSel.addEventListener('change', function () {
+            if (__cpIgnoreModeChange) return;
+            var se = __cpSubEffective();
+            if (se.isDevMode) return;
+            var v = modeSel.value;
+            if (!se.allowMic && v === 'track') {
+                __cpIgnoreModeChange = true;
+                modeSel.value = 'preset';
+                try {
+                    modeSel.dispatchEvent(new Event('change', { bubbles: true }));
+                } catch (eMs) {}
+                __cpIgnoreModeChange = false;
+                __cpPostSignupPrompt();
+                return;
+            }
+            if (!se.allowCustomHz && v === 'manual') {
+                __cpIgnoreModeChange = true;
+                modeSel.value = 'preset';
+                try {
+                    modeSel.dispatchEvent(new Event('change', { bubbles: true }));
+                } catch (eMs2) {}
+                __cpIgnoreModeChange = false;
+                __cpPostSignupPrompt();
+            }
+        });
+
+        selPreset.addEventListener('change', function () {
+            if (__cpIgnorePresetChange) return;
+            var se = __cpSubEffective();
+            var allow = se.allowedPresetIndices;
+            if (se.isDevMode || allow == null) {
+                __cpLastGatedPresetValue = selPreset.value;
+                return;
+            }
+            var cur = parseInt(selPreset.value, 10) || 0;
+            if (allow.indexOf(cur) >= 0) {
+                __cpLastGatedPresetValue = selPreset.value;
+                return;
+            }
+            __cpIgnorePresetChange = true;
+            selPreset.value = __cpLastGatedPresetValue || String(allow[0]);
+            try {
+                selPreset.dispatchEvent(new Event('change', { bubbles: true }));
+            } catch (ePr) {}
+            __cpIgnorePresetChange = false;
+            __cpPostSignupPrompt();
+        });
+    }
+
     function __cpEnsureUpgradeControl() {
         if (window.parent === window) return;
         var el = document.getElementById('cp-shell-upgrade');
@@ -320,13 +414,13 @@
             el.style.cssText = 'margin-top:8px;font-size:12px;line-height:1.4;';
             var a = document.createElement('a');
             a.href = '#';
-            a.textContent = 'Upgrade for full access \u2192';
+            a.textContent = 'Create account to unlock \u2192';
             a.style.cssText = 'color:#7eb8ff;text-decoration:underline;cursor:pointer;';
             a.addEventListener('click', function (ev) {
                 ev.preventDefault();
                 try {
                     window.parent.postMessage(
-                        { type: 'cp-action', action: 'upgrade-clicked' },
+                        { type: 'cp-action', action: 'signup-prompt' },
                         '*'
                     );
                 } catch (e5) {}
@@ -392,6 +486,10 @@
         __cpApplyUnlockedProductDefaults();
         __cpRestartSessionTimer();
         __cpEnsureUpgradeControl();
+        if (selPreset) {
+            __cpLastGatedPresetValue = selPreset.value;
+        }
+        __cpAttachGatedSelectListeners();
     };
 
     window.addEventListener('message', function (ev) {
