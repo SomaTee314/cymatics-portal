@@ -30,14 +30,10 @@ export function getAllowedPresetIndices(tier: UserTier): number[] | null {
 
 export const FREE_SOLFEGGIO: string[] = ['432', '528'];
 /**
- * Iframe `aggressionSel` values. Include Julia (and other fractal presets) for anonymous/free
- * so the default can be fractalJulia; upgrade prompts remain for other features.
+ * Iframe `aggressionSel` values for the free (and anonymous) tier: Julia-only preview;
+ * Balanced, Mandelbrot, mic, custom Hz, and extra presets require sign-up / upgrade.
  */
-export const FREE_VISUAL_MODES: string[] = [
-  'balanced',
-  'fractalMB',
-  'fractalJulia',
-];
+export const FREE_VISUAL_MODES: string[] = ['fractalJulia'];
 
 export const TIER_FEATURES: Record<UserTier, TierFeatures> = {
   free: {
@@ -202,6 +198,17 @@ export function isVisualModeAvailable(
   const modes = TIER_FEATURES[tier].visualModes;
   if (modes === 'all') return true;
   return modes.includes(modeId);
+}
+
+/** PostMessage: `null` = all visual modes; otherwise explicit allow-list for `aggressionSel`. */
+export function getAllowedAggressionValuesForMessage(
+  tier: UserTier,
+  isDev: boolean
+): string[] | null {
+  if (isDev) return null;
+  const vm = TIER_FEATURES[tier].visualModes;
+  if (vm === 'all') return null;
+  return [...vm];
 }
 
 export function isFrequencyAvailable(

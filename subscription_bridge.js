@@ -41,25 +41,35 @@
                 allowCustomHz: true,
                 allowedPresetIndices: null,
                 exportWatermark: false,
-                sessionMinutes: null
+                sessionMinutes: null,
+                allowedAggressionValues: null
             };
         }
         if (!d) {
             return {
                 tier: 'free',
                 isDevMode: false,
-                allowFractalVisuals: false,
+                allowFractalVisuals: true,
                 allowMic: false,
                 allowCustomHz: false,
                 allowedPresetIndices: [0, 5, 6],
                 exportWatermark: true,
-                sessionMinutes: 15
+                sessionMinutes: 15,
+                allowedAggressionValues: ['fractalJulia']
             };
         }
+        var ag = d.allowedAggressionValues;
+        if (ag === undefined) {
+            ag = d.allowFractalVisuals ? null : ['balanced'];
+        }
+        var allowFractalVisuals =
+            ag == null
+                ? true
+                : ag.indexOf('fractalMB') >= 0 || ag.indexOf('fractalJulia') >= 0;
         return {
             tier: d.tier || 'free',
             isDevMode: false,
-            allowFractalVisuals: !!d.allowFractalVisuals,
+            allowFractalVisuals: allowFractalVisuals,
             allowMic: !!d.allowMic,
             allowCustomHz: !!d.allowCustomHz,
             allowedPresetIndices:
@@ -68,7 +78,8 @@
             sessionMinutes:
                 d.sessionMinutes !== undefined && d.sessionMinutes !== null
                     ? d.sessionMinutes
-                    : null
+                    : null,
+            allowedAggressionValues: ag
         };
     }
 
@@ -77,6 +88,7 @@
             return JSON.stringify({
                 tier: data.tier || 'free',
                 allowedPresetIndices: data.allowedPresetIndices,
+                allowedAggressionValues: data.allowedAggressionValues,
                 sessionMinutes: data.sessionMinutes,
                 isDevMode: !!data.isDevMode,
                 allowFractalVisuals: !!data.allowFractalVisuals,
@@ -123,6 +135,35 @@
         return base;
     }
 
+    function __cpAggroBaseLabel(opt) {
+        var b = opt.getAttribute('data-cp-aggro-label');
+        if (b != null && b !== '') return b;
+        b = opt.text.replace(/\s*\uD83D\uDD12\s*$/u, '').trim();
+        opt.setAttribute('data-cp-aggro-label', b);
+        return b;
+    }
+
+    function __cpFirstAllowedAggressionInList(allow) {
+        if (!allow || !allow.length) return 'balanced';
+        if (allow.indexOf('fractalJulia') >= 0) return 'fractalJulia';
+        return allow[0];
+    }
+
+    window.__cpIsAggressionAllowed = function (key) {
+        var se = __cpSubEffective();
+        if (se.isDevMode) return true;
+        var a = se.allowedAggressionValues;
+        if (a == null) return true;
+        return a.indexOf(key) >= 0;
+    };
+    window.__cpFirstAllowedAggressionValue = function () {
+        var se = __cpSubEffective();
+        if (se.isDevMode || se.allowedAggressionValues == null) {
+            return 'fractalJulia';
+        }
+        return __cpFirstAllowedAggressionInList(se.allowedAggressionValues);
+    };
+
     function __cpApplyPresetOptionsGate() {
         if (!selPreset) return;
         var se = __cpSubEffective();
@@ -166,21 +207,40 @@
         if (!aggressionSel) return;
         var se = __cpSubEffective();
         var i;
-        for (i = 0; i < aggressionSel.options.length; i++) {
-            var opt = aggressionSel.options[i];
-            if (opt.value === 'fractalMB' || opt.value === 'fractalJulia') {
+        var allow = se.allowedAggressionValues;
+        if (se.isDevMode || allow == null) {
+            for (i = 0; i < aggressionSel.options.length; i++) {
+                var o0 = aggressionSel.options[i];
+                o0.disabled = false;
+                o0.title = '';
+                o0.text = __cpAggroBaseLabel(o0);
+            }
+        } else {
+            for (i = 0; i < aggressionSel.options.length; i++) {
+                var opt = aggressionSel.options[i];
+                var ok = allow.indexOf(opt.value) >= 0;
                 opt.disabled = false;
-                opt.title =
-                    !se.allowFractalVisuals && !se.isDevMode ? __CP_UPGRADE_TIP : '';
-            } else {
-                opt.disabled = false;
-                opt.title = '';
+                var base = __cpAggroBaseLabel(opt);
+                if (!ok) {
+                    opt.text = base + __CP_LOCK;
+                    opt.title = __CP_UPGRADE_TIP;
+                } else {
+                    opt.text = base;
+                    opt.title = '';
+                }
             }
         }
-        if (!se.allowFractalVisuals &&
-            (aggressionSel.value === 'fractalMB' ||
-                aggressionSel.value === 'fractalJulia')) {
-            aggressionSel.value = 'balanced';
+        if (
+            allow &&
+            allow.length &&
+            allow.indexOf(aggressionSel.value) < 0
+        ) {
+            aggressionSel.value = __cpFirstAllowedAggressionInList(allow);
+            try {
+                aggressionSel.dispatchEvent(
+                    new Event('change', { bubbles: true })
+                );
+            } catch (eAg0) {}
         }
     }
 
@@ -240,6 +300,7 @@
     var __cpIgnoreAggroChange = false;
     var __cpIgnorePresetChange = false;
     var __cpLastGatedPresetValue = null;
+    var __cpLastGatedAggressionValue = null;
 
     function __cpPostSignupPrompt() {
         try {
@@ -257,27 +318,39 @@
         if (!aggressionSel || !modeSel || !selPreset) return;
         __cpGatedSelectAttached = true;
         __cpLastGatedPresetValue = selPreset.value;
+        __cpLastGatedAggressionValue = aggressionSel.value;
 
         aggressionSel.addEventListener('change', function () {
             if (__cpIgnoreAggroChange) return;
             var se = __cpSubEffective();
-            if (se.isDevMode || se.allowFractalVisuals) return;
-            var v = aggressionSel.value;
-            if (v === 'fractalMB' || v === 'fractalJulia') {
-                __cpIgnoreAggroChange = true;
-                aggressionSel.value = 'balanced';
-                if (typeof applyAggressionPreset === 'function') {
-                    applyAggressionPreset('balanced');
-                } else {
-                    try {
-                        aggressionSel.dispatchEvent(
-                            new Event('change', { bubbles: true })
-                        );
-                    } catch (eAg) {}
-                }
-                __cpIgnoreAggroChange = false;
-                __cpPostSignupPrompt();
+            var allow = se.allowedAggressionValues;
+            if (se.isDevMode || allow == null) {
+                __cpLastGatedAggressionValue = aggressionSel.value;
+                return;
             }
+            var v = aggressionSel.value;
+            if (allow.indexOf(v) >= 0) {
+                __cpLastGatedAggressionValue = v;
+                return;
+            }
+            __cpIgnoreAggroChange = true;
+            var back =
+                __cpLastGatedAggressionValue &&
+                allow.indexOf(__cpLastGatedAggressionValue) >= 0
+                    ? __cpLastGatedAggressionValue
+                    : __cpFirstAllowedAggressionInList(allow);
+            aggressionSel.value = back;
+            if (typeof applyAggressionPreset === 'function') {
+                applyAggressionPreset(back);
+            } else {
+                try {
+                    aggressionSel.dispatchEvent(
+                        new Event('change', { bubbles: true })
+                    );
+                } catch (eAg) {}
+            }
+            __cpIgnoreAggroChange = false;
+            __cpPostSignupPrompt();
         });
 
         modeSel.addEventListener('change', function () {
@@ -364,7 +437,7 @@
      */
     function __cpApplyUnlockedProductDefaults() {
         var se = __cpSubEffective();
-        if (!se.allowMic || !se.allowFractalVisuals) {
+        if (!se.allowMic || se.allowedAggressionValues != null) {
             return;
         }
         if (!modeSel || !aggressionSel) {
@@ -413,6 +486,19 @@
         if (selPreset) {
             __cpLastGatedPresetValue = selPreset.value;
         }
+        if (aggressionSel) {
+            var sea = __cpSubEffective().allowedAggressionValues;
+            if (
+                sea == null ||
+                sea.indexOf(aggressionSel.value) >= 0
+            ) {
+                __cpLastGatedAggressionValue = aggressionSel.value;
+            } else {
+                __cpLastGatedAggressionValue = __cpFirstAllowedAggressionInList(
+                    sea
+                );
+            }
+        }
         __cpAttachGatedSelectListeners();
     };
 
@@ -438,6 +524,10 @@
                     data.allowedPresetIndices !== undefined
                         ? data.allowedPresetIndices
                         : null,
+                allowedAggressionValues:
+                    data.allowedAggressionValues !== undefined
+                        ? data.allowedAggressionValues
+                        : undefined,
                 sessionMinutes:
                     data.sessionMinutes !== undefined
                         ? data.sessionMinutes
@@ -465,7 +555,8 @@
             features: {},
             allowedPresetIndices: [0, 5, 6],
             sessionMinutes: 15,
-            allowFractalVisuals: false,
+            allowedAggressionValues: ['fractalJulia'],
+            allowFractalVisuals: true,
             allowMic: false,
             allowCustomHz: false,
             exportWatermark: true

@@ -16,6 +16,7 @@ import {
   hasFeature,
   isVisualModeAvailable,
   getAllowedPresetIndices,
+  getAllowedAggressionValuesForMessage,
   tierFeaturesToMessage,
   type UserTier,
 } from '@/lib/tiers';
@@ -30,6 +31,7 @@ type SubscriptionMessage = {
   tier: UserTier;
   features: ReturnType<typeof tierFeaturesToMessage>;
   allowedPresetIndices: number[] | null;
+  allowedAggressionValues: string[] | null;
   sessionMinutes: number | null;
   isDevMode: boolean;
   allowFractalVisuals: boolean;
@@ -56,18 +58,22 @@ function buildSubscriptionMessage(
     : isDevMode() || ctxDev;
   const features = tierFeaturesToMessage(tier);
   const allowedPresetIndices = dev ? null : getAllowedPresetIndices(tier);
+  const allowedAggressionValues = getAllowedAggressionValuesForMessage(
+    tier,
+    dev
+  );
   return {
     type: SUB_MSG,
     tier,
     features,
     allowedPresetIndices,
+    allowedAggressionValues,
     sessionMinutes: features.sessionMinutes,
     isDevMode: dev,
-    allowFractalVisuals: lockAnonymous
-      ? false
-      : dev ||
-        isVisualModeAvailable(tier, 'fractalMB') ||
-        isVisualModeAvailable(tier, 'fractalJulia'),
+    allowFractalVisuals:
+      dev ||
+      isVisualModeAvailable(tier, 'fractalMB') ||
+      isVisualModeAvailable(tier, 'fractalJulia'),
     allowMic: dev || hasFeature(tier, 'micInput'),
     allowCustomHz: dev || hasFeature(tier, 'customFrequencyInput'),
     exportWatermark: dev ? false : features.exportWatermark,
