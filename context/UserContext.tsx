@@ -9,6 +9,7 @@ import {
   useMemo,
   type ReactNode,
 } from 'react';
+import type { Session, User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
 import { isDevMode, DEV_USER_CONTEXT, DEV_MODE_LOG_MESSAGE } from '@/lib/dev-mode';
 import {
@@ -26,6 +27,18 @@ interface UserProfile {
   trialStartedAt: string | null;
   trialExpiresAt: string | null;
   subscriptionStatus: string | null;
+}
+
+/** When Supabase has a session but `profiles` is missing or slow, keep the UI logged in. */
+function stubProfileFromAuthUser(authUser: User): UserProfile {
+  return {
+    id: authUser.id,
+    email: authUser.email ?? null,
+    tier: 'free',
+    trialStartedAt: null,
+    trialExpiresAt: null,
+    subscriptionStatus: null,
+  };
 }
 
 interface UserContextValue {
@@ -91,10 +104,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
     if (devMode) return;
     const { data: { session } } = await supabase.auth.getSession();
     const authUser = session?.user;
-    if (authUser) {
-      const profile = await fetchProfile(authUser.id);
-      if (profile) setUser(profile);
-    }
+    if (!authUser) return;
+    const profile = await fetchProfile(authUser.id);
+    setUser(profile ?? stubProfileFromAuthUser(authUser));
   }, [devMode, supabase, fetchProfile]);
 
   useEffect(() => {
@@ -115,43 +127,41 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
 
     let mounted = true;
-    const profileTimeoutMs = 15000;
+
+    async function applyAuthSession(session: Session | null) {
+      if (!session?.user) {
+        if (mounted) setUser(null);
+        return;
+      }
+      const authUser = session.user;
+      try {
+        const profile = await fetchProfile(authUser.id);
+        if (!mounted) return;
+        if (!profile) {
+          console.warn(
+            '[UserContext] No profiles row yet — using stub until DB trigger runs.',
+            { authUserId: authUser.id, email: authUser.email }
+          );
+        }
+        setUser(profile ?? stubProfileFromAuthUser(authUser));
+      } catch (e) {
+        console.error('[UserContext] profile load failed', e);
+        if (mounted) setUser(stubProfileFromAuthUser(authUser));
+      }
+    }
+
+    void (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!mounted) return;
+      await applyAuthSession(session);
+      if (mounted) setIsLoading(false);
+    })();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'TOKEN_REFRESHED') return;
         if (!mounted) return;
-
-        if (session?.user) {
-          try {
-            const profile = await Promise.race([
-              fetchProfile(session.user.id),
-              new Promise<null>((_, reject) => {
-                window.setTimeout(
-                  () => reject(new Error('profiles fetch timed out')),
-                  profileTimeoutMs
-                );
-              }),
-            ]);
-            if (!profile) {
-              console.error(
-                '[UserContext] Session present but profiles row missing',
-                {
-                  authUserId: session.user.id,
-                  email: session.user.email,
-                  hint: 'Run sql/002_trigger_new_user.sql or insert profile manually.',
-                }
-              );
-            }
-            if (mounted) setUser(profile);
-          } catch (e) {
-            console.error('[UserContext] profile load failed', e);
-            if (mounted) setUser(null);
-          }
-        } else {
-          if (mounted) setUser(null);
-        }
-
+        await applyAuthSession(session);
         if (mounted) setIsLoading(false);
       }
     );
