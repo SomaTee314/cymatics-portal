@@ -28,8 +28,13 @@ if (sync.status !== 0) {
   process.exit(sync.status ?? 1);
 }
 
-/* Root index.html is the static portal artifact; Vercel’s Next output can lose `/` if it lingers here. */
-if (process.env.VERCEL) {
+/* On Vercel **cloud** builds only: root index is generated then copied to public/; the leftover
+   file can confuse routing in rare cases. Do not use bare `VERCEL` — a local shell may set it
+   after `vercel` CLI and would delete index.html before commit. */
+const vercelCloudBuild =
+  process.env.VERCEL === '1' &&
+  (process.env.VERCEL_ENV === 'production' || process.env.VERCEL_ENV === 'preview');
+if (vercelCloudBuild) {
   try {
     fs.unlinkSync(path.join(root, 'index.html'));
   } catch {
