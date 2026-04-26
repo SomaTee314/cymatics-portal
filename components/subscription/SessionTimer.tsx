@@ -44,7 +44,7 @@ export function SessionTimer() {
             You&apos;ve reached the free session limit.
             {isAuthenticated
               ? ' Upgrade to Pro for unlimited sessions.'
-              : ' Sign up for a free 7-day Pro trial.'}
+              : ' Sign up for free access to continue with full features.'}
           </p>
           <div className="flex justify-center gap-3">
             <button
@@ -58,7 +58,7 @@ export function SessionTimer() {
               href={isAuthenticated ? '/pricing' : '/signup'}
               className="rounded-lg bg-white px-5 py-2 text-sm font-medium text-black hover:bg-white/90"
             >
-              {isAuthenticated ? 'Upgrade' : 'Start free trial'}
+              {isAuthenticated ? 'Upgrade' : 'Sign up for free access'}
             </a>
           </div>
         </div>

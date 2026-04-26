@@ -177,7 +177,7 @@ function LoginForm() {
               prefetch={false}
               className="text-white/40 underline-offset-4 transition-colors hover:text-white hover:underline"
             >
-              Start your free trial
+              Sign up for free access
             </Link>
           </p>
         </main>

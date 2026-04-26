@@ -117,7 +117,7 @@ function SignupForm() {
                   We&apos;ve sent a magic link to{' '}
                   <span className="text-white/90">{successEmail}</span>. Open
                   the link in this same browser, or use the 6-digit code in that
-                  email to begin your trial.
+                  email to finish signing up.
                 </p>
                 <EmailAuthFollowup
                   email={successEmail}
@@ -128,10 +128,11 @@ function SignupForm() {
             ) : (
               <>
                 <h1 className="font-heading text-2xl font-bold tracking-tight text-white sm:text-[1.65rem]">
-                  Begin Your Resonance
+                  Sign up for free access
                 </h1>
                 <p className="mt-3 text-sm leading-relaxed text-white/50">
-                  Start with 7 days of full Pro access. No card required.
+                  Create your account with email. New accounts get a 7-day Pro
+                  trial — no card required.
                 </p>
 
                 <form onSubmit={onSubmit} className="mt-8 space-y-5">
@@ -168,7 +169,7 @@ function SignupForm() {
                         Sending...
                       </>
                     ) : (
-                      'Start Free Trial'
+                      'Sign up for free access'
                     )}
                   </button>
                 </form>

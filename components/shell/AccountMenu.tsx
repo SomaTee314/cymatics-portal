@@ -107,8 +107,9 @@ export function AccountMenu({ showAnonymousSignup = true }: AccountMenuProps) {
           href="/signup"
           prefetch={false}
           className="inline-flex rounded-full border border-white/10 bg-black/75 px-4 py-1.5 text-sm text-white/70 transition-colors hover:bg-black/85 hover:text-white/90"
+          aria-label="Sign up for free access"
         >
-          Sign Up — Free Trial
+          Sign up for free access
         </Link>
       </div>
     );
@@ -170,7 +171,7 @@ export function AccountMenu({ showAnonymousSignup = true }: AccountMenuProps) {
             className="mt-0.5 w-full rounded-lg px-2 py-2 text-left text-sm text-white/85 transition-colors hover:bg-white/10"
             onClick={() => void onSignOut()}
           >
-            Sign Out
+            Log out
           </button>
         </div>
       ) : null}

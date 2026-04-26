@@ -67,13 +67,13 @@ function UpgradePrompt({ feature }: { feature: keyof TierFeatures }) {
       <p className="mb-4 text-sm text-white/50">
         {isAuthenticated
           ? 'Upgrade to Pro for full access.'
-          : 'Sign up for a free 7-day Pro trial.'}
+          : 'Sign up for free access to unlock this in the app.'}
       </p>
       <a
         href={isAuthenticated ? '/pricing' : '/signup'}
         className="inline-block rounded-lg bg-white px-6 py-2 text-sm font-medium text-black transition-colors hover:bg-white/90"
       >
-        {isAuthenticated ? 'View plans' : 'Start free trial'}
+        {isAuthenticated ? 'View plans' : 'Sign up for free access'}
       </a>
     </div>
   );

@@ -51,10 +51,11 @@ export function SignUpPromptModal({ open, onClose }: SignUpPromptModalProps) {
           id="signup-prompt-title"
           className="text-balance text-xl font-semibold tracking-tight text-white"
         >
-          Create a free account to use this
+          Sign up for free access
         </h2>
         <p className="mt-3 text-sm text-white/60">
-          7-day Pro trial with full access to every frequency, mode, and visual.
+          Create a free account to unlock extra frequencies, modes, and visual
+          options in the app. No card required.
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Link
@@ -63,7 +64,7 @@ export function SignUpPromptModal({ open, onClose }: SignUpPromptModalProps) {
             onClick={onClose}
             className="inline-flex justify-center rounded-xl bg-white px-6 py-2.5 text-sm font-medium text-zinc-950 transition-colors hover:bg-white/90"
           >
-            Sign up free
+            Sign up for free access
           </Link>
           <Link
             href={`/login?redirect=${encodeURIComponent(REDIRECT)}`}
