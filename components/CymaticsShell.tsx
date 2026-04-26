@@ -38,26 +38,38 @@ type SubscriptionMessage = {
   exportWatermark: boolean;
 };
 
+/**
+ * In production, visitors who are not logged in must always get strict free-tier gating
+ * in the iframe (ignores accidental NEXT_PUBLIC_DEV_MODE on the server).
+ * Logged-in users get their real effective tier (trial / pro / etc.).
+ */
 function buildSubscriptionMessage(
   effectiveTier: UserTier,
-  ctxDev: boolean
+  ctxDev: boolean,
+  isAuthenticated: boolean
 ): SubscriptionMessage {
-  const dev = isDevMode() || ctxDev;
-  const features = tierFeaturesToMessage(effectiveTier);
-  const allowedPresetIndices = dev ? null : getAllowedPresetIndices(effectiveTier);
+  const isProd = process.env.NODE_ENV === 'production';
+  const lockAnonymous = isProd && !isAuthenticated;
+  const tier: UserTier = lockAnonymous ? 'free' : effectiveTier;
+  const dev = lockAnonymous
+    ? false
+    : isDevMode() || ctxDev;
+  const features = tierFeaturesToMessage(tier);
+  const allowedPresetIndices = dev ? null : getAllowedPresetIndices(tier);
   return {
     type: SUB_MSG,
-    tier: effectiveTier,
+    tier,
     features,
     allowedPresetIndices,
     sessionMinutes: features.sessionMinutes,
     isDevMode: dev,
-    allowFractalVisuals:
-      dev ||
-      isVisualModeAvailable(effectiveTier, 'fractalMB') ||
-      isVisualModeAvailable(effectiveTier, 'fractalJulia'),
-    allowMic: dev || hasFeature(effectiveTier, 'micInput'),
-    allowCustomHz: dev || hasFeature(effectiveTier, 'customFrequencyInput'),
+    allowFractalVisuals: lockAnonymous
+      ? false
+      : dev ||
+        isVisualModeAvailable(tier, 'fractalMB') ||
+        isVisualModeAvailable(tier, 'fractalJulia'),
+    allowMic: dev || hasFeature(tier, 'micInput'),
+    allowCustomHz: dev || hasFeature(tier, 'customFrequencyInput'),
     exportWatermark: dev ? false : features.exportWatermark,
   };
 }
@@ -124,7 +136,11 @@ export function CymaticsShell() {
         window.location.origin && window.location.origin !== 'null'
           ? window.location.origin
           : '*';
-      const msg = buildSubscriptionMessage(effectiveTier, ctxDev);
+      const msg = buildSubscriptionMessage(
+        effectiveTier,
+        ctxDev,
+        isAuthenticated
+      );
       const json = JSON.stringify(msg);
       if (!force && lastPostedJsonRef.current === json) return;
       lastPostedJsonRef.current = json;
@@ -140,7 +156,7 @@ export function CymaticsShell() {
         console.error('[CymaticsShell] postMessage failed', e);
       }
     },
-    [effectiveTier, ctxDev]
+    [effectiveTier, ctxDev, isAuthenticated]
   );
 
   const onIframeLoad = useCallback(() => {

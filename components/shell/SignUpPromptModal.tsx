@@ -39,12 +39,12 @@ export function SignUpPromptModal({ open, onClose }: SignUpPromptModalProps) {
       >
         <button
           type="button"
-          className="absolute right-3 top-3 rounded-lg p-1.5 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+          className="absolute right-3 top-3 flex size-9 items-center justify-center rounded-lg border border-white/15 bg-white/5 text-white/80 transition-colors hover:border-white/25 hover:bg-white/10 hover:text-white"
           onClick={onClose}
-          aria-label="Close"
+          aria-label="Close sign-up prompt"
         >
-          <span className="text-2xl leading-none" aria-hidden>
-            &times;
+          <span className="text-xl font-light leading-none" aria-hidden>
+            ×
           </span>
         </button>
         <h2
