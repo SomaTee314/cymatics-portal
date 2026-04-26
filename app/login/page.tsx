@@ -2,9 +2,14 @@
 
 import { EmailAuthFollowup } from '@/components/EmailAuthFollowup';
 import { authCallbackAbsoluteUrl, authNextFromSearchParam } from '@/lib/auth/auth-redirect';
+import {
+  messageForOtpRequestError,
+  otpCooldownRemainingMs,
+  recordOtpRequestSent,
+} from '@/lib/auth/otp-error-message';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
-import { FormEvent, useState, Suspense, useEffect, useMemo } from 'react';
+import { FormEvent, useState, Suspense, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -16,6 +21,7 @@ function LoginForm() {
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [successEmail, setSuccessEmail] = useState<string | null>(null);
+  const submitInFlight = useRef(false);
 
   const nextPath = useMemo(
     () =>
@@ -48,12 +54,21 @@ function LoginForm() {
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (submitInFlight.current) return;
     setErr(null);
     const trimmed = email.trim();
     if (!EMAIL_RE.test(trimmed)) {
       setErr('Enter a valid email address.');
       return;
     }
+    const wait = otpCooldownRemainingMs(trimmed);
+    if (wait > 0) {
+      setErr(
+        `Please wait ${Math.ceil(wait / 1000)}s before requesting another code for this address.`
+      );
+      return;
+    }
+    submitInFlight.current = true;
     setBusy(true);
     try {
       const { error } = await supabase.auth.signInWithOtp({
@@ -67,18 +82,15 @@ function LoginForm() {
         },
       });
       if (error) {
-        const msg = error.message.toLowerCase();
-        if (msg.includes('rate') || msg.includes('too many')) {
-          setErr('Too many attempts. Please wait a few minutes and try again.');
-        } else {
-          setErr(error.message);
-        }
+        setErr(messageForOtpRequestError(error));
         return;
       }
+      recordOtpRequestSent(trimmed);
       setSuccessEmail(trimmed);
     } catch {
       setErr('Network error. Check your connection and try again.');
     } finally {
+      submitInFlight.current = false;
       setBusy(false);
     }
   };
