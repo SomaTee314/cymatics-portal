@@ -5,3 +5,24 @@
 body {
   margin: 0;
 }
+
+/* Auth pages: foldables / narrow viewports — avoid overlays blocking inputs, safe
+ * areas, scroll when vertical space is tight, 44px+ touch targets, 16px text on
+ * mobile to reduce focus zoom quirks. */
+@layer components {
+  .auth-page-shell {
+    @apply flex min-h-dvh flex-col bg-black px-4 pt-[max(1.25rem,env(safe-area-inset-top,0px)+0.5rem)] pb-[max(1.25rem,env(safe-area-inset-bottom,0px))] sm:py-12;
+  }
+
+  .auth-main {
+    @apply flex min-h-0 flex-1 flex-col justify-start overflow-y-auto overscroll-y-contain pb-8 [-webkit-overflow-scrolling:touch] sm:justify-center sm:overflow-visible sm:pb-12;
+  }
+
+  .auth-field {
+    @apply w-full min-h-11 touch-manipulation rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white placeholder:text-white/35 outline-none transition-colors focus:border-white/25 focus:ring-1 focus:ring-white/20 disabled:opacity-50 sm:py-3.5 sm:text-sm;
+  }
+
+  .auth-button-primary {
+    @apply flex min-h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-medium transition-opacity disabled:opacity-50;
+  }
+}

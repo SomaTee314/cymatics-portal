@@ -142,18 +142,18 @@ function LoginForm() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-black px-4 py-8 sm:py-12">
+    <div className="auth-page-shell">
       <div className="mx-auto w-full max-w-md flex-1 flex flex-col">
-        <header className="mb-10">
+        <header className="mb-6 sm:mb-10">
           <Link
             href="/"
-            className="font-heading text-sm font-medium tracking-tight text-white/70 transition-colors hover:text-white"
+            className="font-heading inline-flex min-h-11 items-center text-sm font-medium tracking-tight text-white/70 transition-colors hover:text-white"
           >
             ← Cymatics Portal
           </Link>
         </header>
 
-        <main className="flex flex-1 flex-col justify-center pb-12">
+        <main className="auth-main">
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 shadow-[0_0_80px_-20px_rgba(255,255,255,0.08)]">
             {successEmail ? (
               <div className="text-center sm:text-left">
@@ -193,11 +193,13 @@ function LoginForm() {
                         id="login-email"
                         type="email"
                         autoComplete="email"
+                        inputMode="email"
+                        enterKeyHint="done"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="your@email.com"
                         disabled={busy}
-                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder:text-white/35 outline-none transition-colors focus:border-white/25 focus:ring-1 focus:ring-white/20 disabled:opacity-50"
+                        className="auth-field"
                       />
                       {err ? (
                         <p className="mt-2 text-sm text-red-400/95">{err}</p>
@@ -207,7 +209,7 @@ function LoginForm() {
                     <button
                       type="submit"
                       disabled={busy}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3.5 text-sm font-medium text-black transition-opacity hover:opacity-95 disabled:opacity-50"
+                      className="auth-button-primary bg-white text-black hover:opacity-95"
                     >
                       {busy ? (
                         <>
@@ -222,18 +224,18 @@ function LoginForm() {
                       )}
                     </button>
 
-                    <p className="text-center text-sm text-white/45">
+                    <div className="text-center text-sm text-white/45">
                       <button
                         type="button"
                         onClick={() => {
                           setErr(null);
                           setMode('password');
                         }}
-                        className="text-white/55 underline-offset-4 transition-colors hover:text-white hover:underline"
+                        className="min-h-11 touch-manipulation text-white/55 underline-offset-4 transition-colors hover:text-white hover:underline"
                       >
                         Sign in with password
                       </button>
-                    </p>
+                    </div>
                   </form>
                 ) : (
                   <form onSubmit={onPasswordSubmit} className="mt-8 space-y-5">
@@ -245,11 +247,13 @@ function LoginForm() {
                         id="login-email-pw"
                         type="email"
                         autoComplete="email"
+                        inputMode="email"
+                        enterKeyHint="next"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="your@email.com"
                         disabled={busy}
-                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder:text-white/35 outline-none transition-colors focus:border-white/25 focus:ring-1 focus:ring-white/20 disabled:opacity-50"
+                        className="auth-field"
                       />
                     </div>
                     <div>
@@ -260,11 +264,12 @@ function LoginForm() {
                         id="login-password"
                         type="password"
                         autoComplete="current-password"
+                        enterKeyHint="done"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Password"
                         disabled={busy}
-                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder:text-white/35 outline-none transition-colors focus:border-white/25 focus:ring-1 focus:ring-white/20 disabled:opacity-50"
+                        className="auth-field"
                       />
                       {err ? (
                         <p className="mt-2 text-sm text-red-400/95">{err}</p>
@@ -274,7 +279,7 @@ function LoginForm() {
                     <button
                       type="submit"
                       disabled={busy}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3.5 text-sm font-medium text-black transition-opacity hover:opacity-95 disabled:opacity-50"
+                      className="auth-button-primary bg-white text-black hover:opacity-95"
                     >
                       {busy ? (
                         <>
@@ -289,7 +294,7 @@ function LoginForm() {
                       )}
                     </button>
 
-                    <p className="text-center text-sm text-white/45">
+                    <div className="text-center text-sm text-white/45">
                       <button
                         type="button"
                         onClick={() => {
@@ -297,11 +302,11 @@ function LoginForm() {
                           setPassword('');
                           setMode('magic');
                         }}
-                        className="text-white/55 underline-offset-4 transition-colors hover:text-white hover:underline"
+                        className="min-h-11 touch-manipulation text-white/55 underline-offset-4 transition-colors hover:text-white hover:underline"
                       >
                         Email me a magic link instead
                       </button>
-                    </p>
+                    </div>
                   </form>
                 )}
               </>
@@ -332,7 +337,7 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-black font-sans text-white/50">
+        <div className="flex min-h-dvh items-center justify-center bg-black font-sans text-white/50">
           Loading…
         </div>
       }

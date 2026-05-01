@@ -135,7 +135,7 @@ export function EmailAuthFollowup({
           onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 8))}
           placeholder="6-digit code"
           disabled={busy}
-          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/35 outline-none transition-colors focus:border-white/25 focus:ring-1 focus:ring-white/20 disabled:opacity-50"
+          className="auth-field"
         />
         {otpErr ? (
           <p className="text-sm text-red-400/95">{otpErr}</p>
@@ -143,7 +143,7 @@ export function EmailAuthFollowup({
         <button
           type="submit"
           disabled={busy}
-          className="w-full rounded-xl border border-white/15 bg-white/5 py-3 text-sm font-medium text-white transition-opacity hover:bg-white/10 disabled:opacity-50"
+          className="auth-button-primary border border-white/15 bg-white/5 text-white hover:bg-white/10"
         >
           {busy
             ? 'Verifying…'

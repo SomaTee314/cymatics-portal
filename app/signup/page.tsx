@@ -129,28 +129,28 @@ function SignupForm() {
   };
 
   return (
-    <div className="relative flex min-h-screen flex-col bg-black px-4 py-8 sm:py-12">
-      <button
-        type="button"
-        onClick={() => router.push('/')}
-        className="absolute right-4 top-4 z-10 rounded-lg p-2 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
-        aria-label="Close and return home"
-      >
-        <span className="text-2xl leading-none" aria-hidden>
-          &times;
-        </span>
-      </button>
+    <div className="auth-page-shell relative">
       <div className="mx-auto w-full max-w-md flex-1 flex flex-col">
-        <header className="mb-10">
+        <header className="mb-6 flex shrink-0 items-center justify-between gap-3 sm:mb-10">
           <Link
             href="/"
-            className="font-heading text-sm font-medium tracking-tight text-white/70 transition-colors hover:text-white"
+            className="font-heading inline-flex min-h-11 min-w-0 items-center text-sm font-medium tracking-tight text-white/70 transition-colors hover:text-white"
           >
             ← Cymatics Portal
           </Link>
+          <button
+            type="button"
+            onClick={() => router.push('/')}
+            className="flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-lg text-white/50 transition-colors hover:bg-white/10 hover:text-white active:bg-white/15"
+            aria-label="Close and return home"
+          >
+            <span className="text-2xl leading-none" aria-hidden>
+              &times;
+            </span>
+          </button>
         </header>
 
-        <main className="flex flex-1 flex-col justify-center pb-12">
+        <main className="auth-main">
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 shadow-[0_0_80px_-20px_rgba(255,255,255,0.08)]">
             {successEmail ? (
               <div className="text-center sm:text-left">
@@ -211,11 +211,13 @@ function SignupForm() {
                       id="signup-email"
                       type="email"
                       autoComplete="email"
+                      inputMode="email"
+                      enterKeyHint="next"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="your@email.com"
                       disabled={busy}
-                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder:text-white/35 outline-none transition-colors focus:border-white/25 focus:ring-1 focus:ring-white/20 disabled:opacity-50"
+                      className="auth-field"
                     />
                   </div>
                   <div>
@@ -226,11 +228,12 @@ function SignupForm() {
                       id="signup-display-name"
                       type="text"
                       autoComplete="nickname"
+                      enterKeyHint="next"
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
                       placeholder="Display name (optional)"
                       disabled={busy}
-                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder:text-white/35 outline-none transition-colors focus:border-white/25 focus:ring-1 focus:ring-white/20 disabled:opacity-50"
+                      className="auth-field"
                     />
                   </div>
                   <div>
@@ -241,11 +244,12 @@ function SignupForm() {
                       id="signup-password"
                       type="password"
                       autoComplete="new-password"
+                      enterKeyHint="next"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Password"
                       disabled={busy}
-                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder:text-white/35 outline-none transition-colors focus:border-white/25 focus:ring-1 focus:ring-white/20 disabled:opacity-50"
+                      className="auth-field"
                     />
                   </div>
                   <div>
@@ -256,11 +260,12 @@ function SignupForm() {
                       id="signup-confirm"
                       type="password"
                       autoComplete="new-password"
+                      enterKeyHint="done"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="Confirm password"
                       disabled={busy}
-                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder:text-white/35 outline-none transition-colors focus:border-white/25 focus:ring-1 focus:ring-white/20 disabled:opacity-50"
+                      className="auth-field"
                     />
                     {err ? (
                       <p className="mt-2 text-sm text-red-400/95">{err}</p>
@@ -270,7 +275,7 @@ function SignupForm() {
                   <button
                     type="submit"
                     disabled={busy}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3.5 text-sm font-medium text-black transition-opacity hover:opacity-95 disabled:opacity-50"
+                    className="auth-button-primary bg-white text-black hover:opacity-95"
                   >
                     {busy ? (
                       <>
@@ -313,7 +318,7 @@ export default function SignupPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-black font-sans text-white/50">
+        <div className="flex min-h-dvh items-center justify-center bg-black font-sans text-white/50">
           Loading…
         </div>
       }

@@ -38,6 +38,8 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   themeColor: '#000000',
+  /** Helps Android foldables / Chrome resize the layout when the keyboard opens. */
+  interactiveWidget: 'resizes-content',
 };
 
 export const metadata: Metadata = {
@@ -81,7 +83,7 @@ export default function RootLayout({
   return (
     <html lang="en-GB">
       <body
-        className={`${spaceGrotesk.variable} ${dmSans.variable} min-h-screen bg-black font-sans text-white antialiased`}
+        className={`${spaceGrotesk.variable} ${dmSans.variable} min-h-dvh bg-black font-sans text-white antialiased`}
       >
         <UserProvider>{children}</UserProvider>
       </body>
