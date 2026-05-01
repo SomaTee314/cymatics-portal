@@ -9,15 +9,27 @@ import {
 } from '@/lib/auth/otp-error-message';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
-import { FormEvent, useState, Suspense, useEffect, useMemo, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
+import {
+  FormEvent,
+  useState,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+type LoginMode = 'magic' | 'password';
+
 function LoginForm() {
   const supabase = createClient();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [mode, setMode] = useState<LoginMode>('magic');
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [successEmail, setSuccessEmail] = useState<string | null>(null);
@@ -51,6 +63,40 @@ function LoginForm() {
     }
     setErr('Sign-in could not be completed. Request a new link, or use the 6-digit code if your email includes it.');
   }, [searchParams]);
+
+  const onPasswordSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (submitInFlight.current) return;
+    setErr(null);
+    const trimmed = email.trim();
+    if (!EMAIL_RE.test(trimmed)) {
+      setErr('Enter a valid email address.');
+      return;
+    }
+    if (!password) {
+      setErr('Enter your password.');
+      return;
+    }
+    submitInFlight.current = true;
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: trimmed,
+        password,
+      });
+      if (error) {
+        setErr(error.message);
+        return;
+      }
+      router.replace(nextPath || '/');
+      router.refresh();
+    } catch {
+      setErr('Network error. Check your connection and try again.');
+    } finally {
+      submitInFlight.current = false;
+      setBusy(false);
+    }
+  };
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -132,48 +178,132 @@ function LoginForm() {
                   Welcome Back
                 </h1>
                 <p className="mt-3 text-sm leading-relaxed text-white/50">
-                  We&apos;ll email you a secure one-time link. No password
-                  needed.
+                  {mode === 'magic'
+                    ? "We'll email you a secure one-time link. Or sign in with a password if you created one when you signed up."
+                    : 'Sign in with the email and password you use for this account.'}
                 </p>
 
-                <form onSubmit={onSubmit} className="mt-8 space-y-5">
-                  <div>
-                    <label htmlFor="login-email" className="sr-only">
-                      Email
-                    </label>
-                    <input
-                      id="login-email"
-                      type="email"
-                      autoComplete="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="your@email.com"
-                      disabled={busy}
-                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder:text-white/35 outline-none transition-colors focus:border-white/25 focus:ring-1 focus:ring-white/20 disabled:opacity-50"
-                    />
-                    {err ? (
-                      <p className="mt-2 text-sm text-red-400/95">{err}</p>
-                    ) : null}
-                  </div>
+                {mode === 'magic' ? (
+                  <form onSubmit={onSubmit} className="mt-8 space-y-5">
+                    <div>
+                      <label htmlFor="login-email" className="sr-only">
+                        Email
+                      </label>
+                      <input
+                        id="login-email"
+                        type="email"
+                        autoComplete="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="your@email.com"
+                        disabled={busy}
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder:text-white/35 outline-none transition-colors focus:border-white/25 focus:ring-1 focus:ring-white/20 disabled:opacity-50"
+                      />
+                      {err ? (
+                        <p className="mt-2 text-sm text-red-400/95">{err}</p>
+                      ) : null}
+                    </div>
 
-                  <button
-                    type="submit"
-                    disabled={busy}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3.5 text-sm font-medium text-black transition-opacity hover:opacity-95 disabled:opacity-50"
-                  >
-                    {busy ? (
-                      <>
-                        <span
-                          className="size-4 animate-spin rounded-full border-2 border-black border-t-transparent"
-                          aria-hidden
-                        />
-                        Sending...
-                      </>
-                    ) : (
-                      'Send Magic Link'
-                    )}
-                  </button>
-                </form>
+                    <button
+                      type="submit"
+                      disabled={busy}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3.5 text-sm font-medium text-black transition-opacity hover:opacity-95 disabled:opacity-50"
+                    >
+                      {busy ? (
+                        <>
+                          <span
+                            className="size-4 animate-spin rounded-full border-2 border-black border-t-transparent"
+                            aria-hidden
+                          />
+                          Sending...
+                        </>
+                      ) : (
+                        'Send Magic Link'
+                      )}
+                    </button>
+
+                    <p className="text-center text-sm text-white/45">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setErr(null);
+                          setMode('password');
+                        }}
+                        className="text-white/55 underline-offset-4 transition-colors hover:text-white hover:underline"
+                      >
+                        Sign in with password
+                      </button>
+                    </p>
+                  </form>
+                ) : (
+                  <form onSubmit={onPasswordSubmit} className="mt-8 space-y-5">
+                    <div>
+                      <label htmlFor="login-email-pw" className="sr-only">
+                        Email
+                      </label>
+                      <input
+                        id="login-email-pw"
+                        type="email"
+                        autoComplete="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="your@email.com"
+                        disabled={busy}
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder:text-white/35 outline-none transition-colors focus:border-white/25 focus:ring-1 focus:ring-white/20 disabled:opacity-50"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="login-password" className="sr-only">
+                        Password
+                      </label>
+                      <input
+                        id="login-password"
+                        type="password"
+                        autoComplete="current-password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Password"
+                        disabled={busy}
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder:text-white/35 outline-none transition-colors focus:border-white/25 focus:ring-1 focus:ring-white/20 disabled:opacity-50"
+                      />
+                      {err ? (
+                        <p className="mt-2 text-sm text-red-400/95">{err}</p>
+                      ) : null}
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={busy}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3.5 text-sm font-medium text-black transition-opacity hover:opacity-95 disabled:opacity-50"
+                    >
+                      {busy ? (
+                        <>
+                          <span
+                            className="size-4 animate-spin rounded-full border-2 border-black border-t-transparent"
+                            aria-hidden
+                          />
+                          Signing in…
+                        </>
+                      ) : (
+                        'Sign in'
+                      )}
+                    </button>
+
+                    <p className="text-center text-sm text-white/45">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setErr(null);
+                          setPassword('');
+                          setMode('magic');
+                        }}
+                        className="text-white/55 underline-offset-4 transition-colors hover:text-white hover:underline"
+                      >
+                        Email me a magic link instead
+                      </button>
+                    </p>
+                  </form>
+                )}
               </>
             )}
           </div>

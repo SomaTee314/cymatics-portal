@@ -49,11 +49,15 @@ export async function GET(request: NextRequest) {
     return authFailedRedirect(origin, 'missing_code', from, next);
   }
 
-  const destination = new URL(
-    next.startsWith('/') ? next : `/${next}`,
-    origin
-  );
-  const response = NextResponse.redirect(destination);
+  const finalDestination =
+    from === 'signup'
+      ? (() => {
+          const u = new URL('/signup/set-password', origin);
+          u.searchParams.set('redirect', next);
+          return u;
+        })()
+      : new URL(next.startsWith('/') ? next : `/${next}`, origin);
+  const response = NextResponse.redirect(finalDestination);
 
   const supabase = createServerClient(
     getPublicSupabaseUrl(),

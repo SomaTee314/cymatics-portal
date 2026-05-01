@@ -6,6 +6,12 @@ import { FormEvent, useState } from 'react';
 
 type Variant = 'login' | 'signup';
 
+function signupSetPasswordPath(nextPath: string) {
+  const base = '/signup/set-password';
+  if (!nextPath || nextPath === '/') return base;
+  return `${base}?redirect=${encodeURIComponent(nextPath)}`;
+}
+
 export function EmailAuthFollowup({
   email,
   nextPath,
@@ -37,6 +43,11 @@ export function EmailAuthFollowup({
         type: 'email',
       });
       if (!emailFlow.error) {
+        if (variant === 'signup') {
+          router.replace(signupSetPasswordPath(nextPath || '/'));
+          router.refresh();
+          return;
+        }
         router.replace(nextPath || '/');
         router.refresh();
         return;
@@ -51,7 +62,7 @@ export function EmailAuthFollowup({
           setOtpErr(signupFlow.error.message);
           return;
         }
-        router.replace(nextPath || '/');
+        router.replace(signupSetPasswordPath(nextPath || '/'));
         router.refresh();
         return;
       }
