@@ -1,25 +1,28 @@
 'use client';
 
+import {
+  applyPasswordAndDisplayName,
+  SIGNUP_MIN_PASSWORD_LEN,
+  signupSetPasswordPath,
+} from '@/lib/auth/signup-post-verify';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 
 type Variant = 'login' | 'signup';
 
-function signupSetPasswordPath(nextPath: string) {
-  const base = '/signup/set-password';
-  if (!nextPath || nextPath === '/') return base;
-  return `${base}?redirect=${encodeURIComponent(nextPath)}`;
-}
-
 export function EmailAuthFollowup({
   email,
   nextPath,
   variant,
+  pendingPassword,
+  pendingDisplayName,
 }: {
   email: string;
   nextPath: string;
   variant: Variant;
+  pendingPassword?: string;
+  pendingDisplayName?: string | null;
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -44,6 +47,21 @@ export function EmailAuthFollowup({
       });
       if (!emailFlow.error) {
         if (variant === 'signup') {
+          const pwd = pendingPassword?.trim() ?? '';
+          if (pwd.length >= SIGNUP_MIN_PASSWORD_LEN) {
+            const { error: applyErr } = await applyPasswordAndDisplayName(
+              supabase,
+              pwd,
+              pendingDisplayName ?? null,
+            );
+            if (applyErr) {
+              setOtpErr(applyErr);
+              return;
+            }
+            router.replace(nextPath || '/');
+            router.refresh();
+            return;
+          }
           router.replace(signupSetPasswordPath(nextPath || '/'));
           router.refresh();
           return;
@@ -60,6 +78,21 @@ export function EmailAuthFollowup({
         });
         if (signupFlow.error) {
           setOtpErr(signupFlow.error.message);
+          return;
+        }
+        const pwd = pendingPassword?.trim() ?? '';
+        if (pwd.length >= SIGNUP_MIN_PASSWORD_LEN) {
+          const { error: applyErr } = await applyPasswordAndDisplayName(
+            supabase,
+            pwd,
+            pendingDisplayName ?? null,
+          );
+          if (applyErr) {
+            setOtpErr(applyErr);
+            return;
+          }
+          router.replace(nextPath || '/');
+          router.refresh();
           return;
         }
         router.replace(signupSetPasswordPath(nextPath || '/'));

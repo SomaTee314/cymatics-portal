@@ -1,6 +1,10 @@
 'use client';
 
 import { authNextFromSearchParam } from '@/lib/auth/auth-redirect';
+import {
+  applyPasswordAndDisplayName,
+  SIGNUP_MIN_PASSWORD_LEN,
+} from '@/lib/auth/signup-post-verify';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import {
@@ -12,8 +16,6 @@ import {
   useState,
 } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-
-const MIN_PASSWORD_LEN = 6;
 
 function SetPasswordForm() {
   const supabase = createClient();
@@ -27,6 +29,7 @@ function SetPasswordForm() {
       ),
     [searchParams],
   );
+  const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [err, setErr] = useState<string | null>(null);
@@ -69,8 +72,8 @@ function SetPasswordForm() {
     e.preventDefault();
     if (submitInFlight.current || !sessionChecked) return;
     setErr(null);
-    if (password.length < MIN_PASSWORD_LEN) {
-      setErr(`Password must be at least ${MIN_PASSWORD_LEN} characters.`);
+    if (password.length < SIGNUP_MIN_PASSWORD_LEN) {
+      setErr(`Password must be at least ${SIGNUP_MIN_PASSWORD_LEN} characters.`);
       return;
     }
     if (password !== confirm) {
@@ -80,9 +83,13 @@ function SetPasswordForm() {
     submitInFlight.current = true;
     setBusy(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) {
-        setErr(error.message);
+      const { error: applyErr } = await applyPasswordAndDisplayName(
+        supabase,
+        password,
+        displayName.trim() || null,
+      );
+      if (applyErr) {
+        setErr(applyErr);
         return;
       }
       goNext();
@@ -135,6 +142,21 @@ function SetPasswordForm() {
             </p>
 
             <form onSubmit={onSubmit} className="mt-8 space-y-5">
+              <div>
+                <label htmlFor="set-pw-display-name" className="sr-only">
+                  Display name (optional)
+                </label>
+                <input
+                  id="set-pw-display-name"
+                  type="text"
+                  autoComplete="nickname"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="Display name (optional)"
+                  disabled={busy}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder:text-white/35 outline-none transition-colors focus:border-white/25 focus:ring-1 focus:ring-white/20 disabled:opacity-50"
+                />
+              </div>
               <div>
                 <label htmlFor="set-pw-password" className="sr-only">
                   Password
