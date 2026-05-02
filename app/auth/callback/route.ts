@@ -26,11 +26,9 @@ function authFailedReason(
 function authFailedRedirect(
   origin: string,
   reason: string,
-  from: string | null,
   nextPath: string
 ) {
-  const base = from === 'signup' ? '/signup' : '/login';
-  const u = new URL(base, origin);
+  const u = new URL('/login', origin);
   u.searchParams.set('error', 'auth_failed');
   u.searchParams.set('reason', reason);
   if (nextPath && nextPath !== '/') {
@@ -43,20 +41,14 @@ export async function GET(request: NextRequest) {
   const origin = requestPublicOrigin(request);
   const code = request.nextUrl.searchParams.get('code');
   const next = sanitizeAuthNextPath(request.nextUrl.searchParams.get('next'));
-  const from = request.nextUrl.searchParams.get('from');
-
   if (!code) {
-    return authFailedRedirect(origin, 'missing_code', from, next);
+    return authFailedRedirect(origin, 'missing_code', next);
   }
 
-  const finalDestination =
-    from === 'signup'
-      ? (() => {
-          const u = new URL('/signup/set-password', origin);
-          u.searchParams.set('redirect', next);
-          return u;
-        })()
-      : new URL(next.startsWith('/') ? next : `/${next}`, origin);
+  const finalDestination = new URL(
+    next.startsWith('/') ? next : `/${next}`,
+    origin
+  );
   const response = NextResponse.redirect(finalDestination);
 
   const supabase = createServerClient(
@@ -81,7 +73,7 @@ export async function GET(request: NextRequest) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) {
     const reason = authFailedReason(error);
-    return authFailedRedirect(origin, reason, from, next);
+    return authFailedRedirect(origin, reason, next);
   }
 
   return response;

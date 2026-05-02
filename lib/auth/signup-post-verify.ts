@@ -2,14 +2,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 export const SIGNUP_MIN_PASSWORD_LEN = 6;
 
-export function signupSetPasswordPath(nextPath: string) {
-  const base = '/signup/set-password';
-  if (!nextPath || nextPath === '/') return base;
-  return `${base}?redirect=${encodeURIComponent(nextPath)}`;
-}
-
 /**
- * After OTP/magic-link verify, persist password and optional display_name on profiles.
+ * Optionally set password and/or display_name after session exists (e.g. post-signUp).
  */
 export async function applyPasswordAndDisplayName(
   supabase: SupabaseClient,

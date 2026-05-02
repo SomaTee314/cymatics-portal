@@ -1,14 +1,13 @@
 'use client';
 
-import { EmailAuthFollowup } from '@/components/EmailAuthFollowup';
-import { SignupLinkRecoveryForm } from '@/components/SignupLinkRecoveryForm';
-import { authCallbackAbsoluteUrl, authNextFromSearchParam } from '@/lib/auth/auth-redirect';
-import { SIGNUP_MIN_PASSWORD_LEN } from '@/lib/auth/signup-post-verify';
 import {
-  messageForOtpRequestError,
-  otpCooldownRemainingMs,
-  recordOtpRequestSent,
-} from '@/lib/auth/otp-error-message';
+  authCallbackAbsoluteUrl,
+  authNextFromSearchParam,
+} from '@/lib/auth/auth-redirect';
+import {
+  applyPasswordAndDisplayName,
+  SIGNUP_MIN_PASSWORD_LEN,
+} from '@/lib/auth/signup-post-verify';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import {
@@ -40,40 +39,20 @@ function SignupForm() {
   const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [authMessage, setAuthMessage] = useState<string | null>(null);
+  const [authBanner, setAuthBanner] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [successEmail, setSuccessEmail] = useState<string | null>(null);
   const submitInFlight = useRef(false);
 
   useEffect(() => {
     if (!authFailed) {
-      setAuthMessage(null);
+      setAuthBanner(null);
       return;
     }
-    const reason = searchParams.get('reason');
-    if (reason === 'pkce') {
-      setAuthMessage(
-        'That link often fails if it opens in another browser or inside your email app. Use the same browser you started in, or finish sign-up with your email and the 6-digit code in the section below.',
-      );
-      return;
-    }
-    if (reason === 'expired' || reason === 'exchange') {
-      setAuthMessage(
-        'This sign-up link is invalid, expired, or was already used. Request a new link from the form below, or enter your email and 6-digit code if your message includes one.',
-      );
-      return;
-    }
-    if (reason === 'missing_code') {
-      setAuthMessage(
-        'The sign-up link was missing data (try opening it in one tap). Use the form below to request a new link or verify with your email and code.',
-      );
-      return;
-    }
-    setAuthMessage(
-      'We could not complete sign-up from that link. Use the form below to try again or enter your email and 6-digit code.',
+    setAuthBanner(
+      'We could not finish confirming your email from that link. Create your account below, or sign in if you already have one.',
     );
-  }, [searchParams, authFailed]);
+  }, [authFailed]);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -93,33 +72,50 @@ function SignupForm() {
       setErr('Passwords do not match.');
       return;
     }
-    const wait = otpCooldownRemainingMs(trimmed);
-    if (wait > 0) {
-      setErr(
-        `Please wait ${Math.ceil(wait / 1000)}s before requesting another code for this address.`,
-      );
-      return;
-    }
     submitInFlight.current = true;
     setBusy(true);
     try {
-      const { error } = await supabase.auth.signInWithOtp({
+      const { data, error } = await supabase.auth.signUp({
         email: trimmed,
+        password: pwd,
         options: {
-          shouldCreateUser: true,
           emailRedirectTo: authCallbackAbsoluteUrl(
             window.location.origin,
             nextPath,
-            'signup',
           ),
+          data: {
+            display_name: displayName.trim() || undefined,
+          },
         },
       });
       if (error) {
-        setErr(messageForOtpRequestError(error));
+        setErr(error.message);
         return;
       }
-      recordOtpRequestSent(trimmed);
-      setSuccessEmail(trimmed);
+      if (data.session) {
+        const name = displayName.trim() || null;
+        if (name) {
+          const { error: applyErr } = await applyPasswordAndDisplayName(
+            supabase,
+            '',
+            name,
+          );
+          if (applyErr) {
+            setErr(applyErr);
+            return;
+          }
+        }
+        router.replace(nextPath || '/');
+        router.refresh();
+        return;
+      }
+      if (data.user) {
+        setErr(
+          'We could not sign you in automatically. In the Supabase Dashboard, open Authentication → Email and turn Confirm email off (or ask an admin), then try again.',
+        );
+        return;
+      }
+      setErr('Could not create your account. Try again.');
     } catch {
       setErr('Network error. Check your connection and try again.');
     } finally {
@@ -152,146 +148,106 @@ function SignupForm() {
 
         <main className="auth-main">
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 shadow-[0_0_80px_-20px_rgba(255,255,255,0.08)]">
-            {successEmail ? (
-              <div className="text-center sm:text-left">
-                <h1 className="font-heading text-2xl font-bold tracking-tight text-white sm:text-[1.65rem]">
-                  Check your inbox
-                </h1>
-                <p className="mt-4 text-sm leading-relaxed text-white/60">
-                  We&apos;ve sent a magic link to{' '}
-                  <span className="text-white/90">{successEmail}</span>. Open
-                  the link in this same browser, or use the 6-digit code in that
-                  email to finish signing up.
-                </p>
-                <EmailAuthFollowup
-                  email={successEmail}
-                  nextPath={nextPath}
-                  variant="signup"
-                  pendingPassword={password}
-                  pendingDisplayName={displayName.trim() || null}
+            <h1 className="font-heading text-2xl font-bold tracking-tight text-white sm:text-[1.65rem]">
+              Sign up for free access
+            </h1>
+            <p className="mt-3 text-sm leading-relaxed text-white/50">
+              Create your account with email and password. New accounts get a 7-day
+              Pro trial — no card required.
+            </p>
+
+            {authBanner ? (
+              <p className="mt-6 text-sm text-amber-400/95">{authBanner}</p>
+            ) : null}
+
+            <form onSubmit={onSubmit} className="mt-8 space-y-5">
+              <div>
+                <label htmlFor="signup-email" className="sr-only">
+                  Email
+                </label>
+                <input
+                  id="signup-email"
+                  type="email"
+                  autoComplete="email"
+                  inputMode="email"
+                  enterKeyHint="next"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  disabled={busy}
+                  className="auth-field"
                 />
               </div>
-            ) : (
-              <>
-                <h1 className="font-heading text-2xl font-bold tracking-tight text-white sm:text-[1.65rem]">
-                  Sign up for free access
-                </h1>
-                <p className="mt-3 text-sm leading-relaxed text-white/50">
-                  Create your account with email and password. New accounts get a
-                  7-day Pro trial — no card required.
-                </p>
-
-                {authMessage ? (
-                  <p className="mt-6 text-sm text-red-400/95">{authMessage}</p>
+              <div>
+                <label htmlFor="signup-display-name" className="sr-only">
+                  Display name (optional)
+                </label>
+                <input
+                  id="signup-display-name"
+                  type="text"
+                  autoComplete="nickname"
+                  enterKeyHint="next"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="Display name (optional)"
+                  disabled={busy}
+                  className="auth-field"
+                />
+              </div>
+              <div>
+                <label htmlFor="signup-password" className="sr-only">
+                  Password
+                </label>
+                <input
+                  id="signup-password"
+                  type="password"
+                  autoComplete="new-password"
+                  enterKeyHint="next"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Password"
+                  disabled={busy}
+                  className="auth-field"
+                />
+              </div>
+              <div>
+                <label htmlFor="signup-confirm" className="sr-only">
+                  Confirm password
+                </label>
+                <input
+                  id="signup-confirm"
+                  type="password"
+                  autoComplete="new-password"
+                  enterKeyHint="done"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm password"
+                  disabled={busy}
+                  className="auth-field"
+                />
+                {err ? (
+                  <p className="mt-2 text-sm text-red-400/95">{err}</p>
                 ) : null}
+              </div>
 
-                {authFailed ? (
-                  <SignupLinkRecoveryForm
-                    nextPath={nextPath}
-                    pendingPassword={password}
-                    pendingDisplayName={displayName.trim() || null}
-                  />
-                ) : null}
-
-                {authFailed ? (
-                  <p className="mt-6 text-center text-xs font-medium uppercase tracking-wide text-white/35">
-                    Or start fresh
-                  </p>
-                ) : null}
-
-                <form
-                  onSubmit={onSubmit}
-                  className={`space-y-5 ${authFailed ? 'mt-4' : 'mt-8'}`}
-                >
-                  <div>
-                    <label htmlFor="signup-email" className="sr-only">
-                      Email
-                    </label>
-                    <input
-                      id="signup-email"
-                      type="email"
-                      autoComplete="email"
-                      inputMode="email"
-                      enterKeyHint="next"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="your@email.com"
-                      disabled={busy}
-                      className="auth-field"
+              <button
+                type="submit"
+                disabled={busy}
+                className="auth-button-primary bg-white text-black hover:opacity-95"
+              >
+                {busy ? (
+                  <>
+                    <span
+                      className="size-4 animate-spin rounded-full border-2 border-black border-t-transparent"
+                      aria-hidden
                     />
-                  </div>
-                  <div>
-                    <label htmlFor="signup-display-name" className="sr-only">
-                      Display name (optional)
-                    </label>
-                    <input
-                      id="signup-display-name"
-                      type="text"
-                      autoComplete="nickname"
-                      enterKeyHint="next"
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      placeholder="Display name (optional)"
-                      disabled={busy}
-                      className="auth-field"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="signup-password" className="sr-only">
-                      Password
-                    </label>
-                    <input
-                      id="signup-password"
-                      type="password"
-                      autoComplete="new-password"
-                      enterKeyHint="next"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Password"
-                      disabled={busy}
-                      className="auth-field"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="signup-confirm" className="sr-only">
-                      Confirm password
-                    </label>
-                    <input
-                      id="signup-confirm"
-                      type="password"
-                      autoComplete="new-password"
-                      enterKeyHint="done"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Confirm password"
-                      disabled={busy}
-                      className="auth-field"
-                    />
-                    {err ? (
-                      <p className="mt-2 text-sm text-red-400/95">{err}</p>
-                    ) : null}
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={busy}
-                    className="auth-button-primary bg-white text-black hover:opacity-95"
-                  >
-                    {busy ? (
-                      <>
-                        <span
-                          className="size-4 animate-spin rounded-full border-2 border-black border-t-transparent"
-                          aria-hidden
-                        />
-                        Sending...
-                      </>
-                    ) : (
-                      'Sign up for free access'
-                    )}
-                  </button>
-                </form>
-              </>
-            )}
+                    Creating account…
+                  </>
+                ) : (
+                  'Create account'
+                )}
+              </button>
+            </form>
           </div>
 
           <p className="mt-8 text-center text-sm text-white/40 sm:text-left">

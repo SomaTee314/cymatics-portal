@@ -53,7 +53,6 @@ interface UserContextValue {
   isTrialExpired: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
-  signInWithMagicLink: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -202,14 +201,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
     [supabase]
   );
 
-  const signInWithMagicLink = useCallback(
-    async (email: string) => {
-      const { error } = await supabase.auth.signInWithOtp({ email });
-      if (error) throw error;
-    },
-    [supabase]
-  );
-
   const signOut = useCallback(async () => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -234,7 +225,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
       isTrialExpired,
       signIn,
       signUp,
-      signInWithMagicLink,
       signOut,
       refreshProfile,
     }),
@@ -249,7 +239,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
       isTrialExpired,
       signIn,
       signUp,
-      signInWithMagicLink,
       signOut,
       refreshProfile,
     ]

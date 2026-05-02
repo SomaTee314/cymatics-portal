@@ -1,5 +1,5 @@
 /**
- * Safe path after magic-link auth. Only same-origin relative paths are allowed.
+ * Safe path after auth redirect (e.g. email confirmation). Only same-origin relative paths.
  */
 export function sanitizeAuthNextPath(path: string | null | undefined): string {
   if (!path) return '/';
@@ -18,14 +18,9 @@ export function authNextFromSearchParam(
   return sanitizeAuthNextPath(redirect ?? next);
 }
 
-/** `from` controls where auth callback errors are redirected (login vs sign-up). */
-export function authCallbackAbsoluteUrl(
-  origin: string,
-  nextPath: string,
-  from?: 'login' | 'signup',
-): string {
+/** Build /auth/callback URL with safe post-auth `next` (e.g. email confirmation redirect). */
+export function authCallbackAbsoluteUrl(origin: string, nextPath: string): string {
   const u = new URL('/auth/callback', origin);
   u.searchParams.set('next', sanitizeAuthNextPath(nextPath));
-  if (from) u.searchParams.set('from', from);
   return u.toString();
 }
