@@ -67,6 +67,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const devMode = isDevMode();
+  /** Mock profile only in local `next dev` — production builds always use Supabase session. */
+  const useMockDevProfile = devMode && process.env.NODE_ENV === 'development';
   const [supabase] = useState(() => createClient());
 
   const fetchProfile = useCallback(
@@ -114,16 +116,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
   );
 
   const refreshProfile = useCallback(async () => {
-    if (devMode) return;
+    if (useMockDevProfile) return;
     const { data: { session } } = await supabase.auth.getSession();
     const authUser = session?.user;
     if (!authUser) return;
     const profile = await fetchProfile(authUser.id);
     setUser(profile ?? stubProfileFromAuthUser(authUser));
-  }, [devMode, supabase, fetchProfile]);
+  }, [useMockDevProfile, supabase, fetchProfile]);
 
   useEffect(() => {
-    if (devMode) {
+    if (useMockDevProfile) {
       if (typeof window !== 'undefined') {
         console.info(DEV_MODE_LOG_MESSAGE);
       }
@@ -188,7 +190,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       window.clearTimeout(loadingFailsafe);
       subscription.unsubscribe();
     };
-  }, [devMode, supabase, fetchProfile]);
+  }, [useMockDevProfile, supabase, fetchProfile]);
 
   const effectiveTier = user
     ? resolveEffectiveTier(user.tier, user.trialExpiresAt)
