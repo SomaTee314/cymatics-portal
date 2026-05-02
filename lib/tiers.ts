@@ -129,7 +129,8 @@ export function resolveEffectiveTier(
 ): UserTier {
   if (tier === 'trial' && trialExpiresAt) {
     const expired = new Date(trialExpiresAt) < new Date();
-    if (expired) return 'free';
+    /* Legacy 7-day rows: after expiry treat as full access (aligned with current signup policy). */
+    if (expired) return 'pro';
   }
   return tier;
 }

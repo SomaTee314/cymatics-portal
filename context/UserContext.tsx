@@ -11,7 +11,11 @@ import {
 } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
-import { isDevMode, DEV_USER_CONTEXT, DEV_MODE_LOG_MESSAGE } from '@/lib/dev-mode';
+import {
+  isDevMode,
+  DEV_USER_CONTEXT,
+  DEV_MODE_LOG_MESSAGE,
+} from '@/lib/dev-mode';
 import {
   resolveEffectiveTier,
   getFeaturesForTier,
@@ -67,11 +71,21 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const fetchProfile = useCallback(
     async (userId: string) => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      const load = () =>
+        supabase.from('profiles').select('*').eq('id', userId).single();
+
+      let { data, error } = await load();
+
+      /* Trigger may commit slightly after auth.users insert; avoid treating as missing. */
+      if (error?.code === 'PGRST116') {
+        for (let i = 0; i < 3; i++) {
+          await new Promise((r) => setTimeout(r, 350));
+          const retry = await load();
+          data = retry.data;
+          error = retry.error;
+          if (!error || error.code !== 'PGRST116') break;
+        }
+      }
 
       if (error) {
         console.error('[UserContext] fetchProfile failed', {
@@ -214,7 +228,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({
-      isAuthenticated: !!user && !devMode,
+      /* Real Supabase users only — not the local dev mock (`dev-user`). */
+      isAuthenticated: !!user && user.id !== DEV_USER_CONTEXT.id,
       isLoading,
       isDevMode: devMode,
       user,

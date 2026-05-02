@@ -1,5 +1,6 @@
 'use client';
 
+import { useUser } from '@/context/UserContext';
 import { authNextFromSearchParam } from '@/lib/auth/auth-redirect';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
@@ -16,6 +17,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function LoginForm() {
+  const { refreshProfile } = useUser();
   const supabase = createClient();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -76,6 +78,7 @@ function LoginForm() {
         setErr(error.message);
         return;
       }
+      await refreshProfile();
       router.replace(nextPath || '/');
       router.refresh();
     } catch {
@@ -144,6 +147,16 @@ function LoginForm() {
                   <p className="mt-2 text-sm text-red-400/95">{err}</p>
                 ) : null}
               </div>
+
+              <p className="text-right">
+                <Link
+                  href="/forgot-password"
+                  prefetch={false}
+                  className="text-sm text-white/45 underline-offset-4 hover:text-white/75 hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </p>
 
               <button
                 type="submit"
