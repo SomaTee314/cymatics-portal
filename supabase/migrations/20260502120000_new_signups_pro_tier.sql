@@ -1,4 +1,5 @@
--- New signups: pro tier (full portal access), no trial expiry
+-- New auth users get pro tier (same feature set as paid Resonator / no time limit).
+-- Re-run safe: replaces function only. Existing profiles are unchanged.
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
@@ -19,9 +20,3 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW
-  EXECUTE FUNCTION public.handle_new_user();

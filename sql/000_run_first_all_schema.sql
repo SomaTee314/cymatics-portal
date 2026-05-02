@@ -47,7 +47,7 @@ CREATE POLICY "Service role full access"
   USING (auth.role() = 'service_role');
 
 -- ---------------------------------------------------------------------------
--- New auth user → profile row (7-day trial)
+-- New auth user → profile row (full portal access: pro tier, no trial window)
 -- If a row already exists, do nothing (idempotent re-runs, rare races)
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -61,9 +61,9 @@ BEGIN
   VALUES (
     NEW.id,
     NEW.email,
-    'trial',
-    NOW(),
-    NOW() + INTERVAL '7 days'
+    'pro',
+    NULL,
+    NULL
   )
   ON CONFLICT (id) DO NOTHING;
   RETURN NEW;

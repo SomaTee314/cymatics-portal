@@ -30,7 +30,7 @@ try {
 }
 
 const defaultDescription =
-  'Experience Chladni standing-wave physics, Solfeggio healing frequencies, and sacred geometry visualisation in your browser. Sign up for free access; new accounts include a 7-day Pro trial.';
+  'Experience Chladni standing-wave physics, Solfeggio healing frequencies, and sacred geometry visualisation in your browser. Sign up with email for free, full access.';
 
 const pageTitle = 'Cymatics Portal — Visualise Sound, Feel Frequency';
 

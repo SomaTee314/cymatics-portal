@@ -14,14 +14,14 @@ function tierDisplay(
 ): { label: string; className: string } {
   if (storedTier === 'trial' && isTrialActive) {
     return {
-      label: 'Pro Trial',
+      label: 'Full access',
       className: 'bg-indigo-500/25 text-indigo-300 ring-1 ring-indigo-400/30',
     };
   }
   switch (effectiveTier) {
     case 'trial':
       return {
-        label: 'Pro Trial',
+        label: 'Full access',
         className: 'bg-indigo-500/25 text-indigo-300 ring-1 ring-indigo-400/30',
       };
     case 'pro':
@@ -63,7 +63,6 @@ export function AccountMenu({ showAnonymousSignup = true }: AccountMenuProps) {
     user,
     effectiveTier,
     isTrialActive,
-    trialDaysLeft,
     signOut,
   } = useUser();
   const [open, setOpen] = useState(false);
@@ -151,11 +150,6 @@ export function AccountMenu({ showAnonymousSignup = true }: AccountMenuProps) {
               {label}
             </span>
           </div>
-          {isTrialActive && trialDaysLeft > 0 ? (
-            <p className="mt-2 text-xs text-white/50">
-              {trialDaysLeft} day{trialDaysLeft !== 1 ? 's' : ''} remaining
-            </p>
-          ) : null}
           <div className="my-3 border-t border-white/10" />
           <Link
             href="/pricing"

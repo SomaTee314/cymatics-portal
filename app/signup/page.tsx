@@ -152,8 +152,8 @@ function SignupForm() {
               Sign up for free access
             </h1>
             <p className="mt-3 text-sm leading-relaxed text-white/50">
-              Create your account with email and password. New accounts get a 7-day
-              Pro trial — no card required.
+              Create your account with email and password for full access — free, no
+              card required.
             </p>
 
             {authBanner ? (
