@@ -55,10 +55,13 @@ interface UserContextValue {
   trialDaysLeft: number;
   isTrialActive: boolean;
   isTrialExpired: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (
+    email: string,
+    password: string,
+  ) => Promise<{ user: User | null; session: Session | null }>;
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
-  refreshProfile: () => Promise<void>;
+  refreshProfile: (sessionHint?: Session | null) => Promise<void>;
 }
 
 const UserContext = createContext<UserContextValue | null>(null);
@@ -115,14 +118,22 @@ export function UserProvider({ children }: { children: ReactNode }) {
     [supabase]
   );
 
-  const refreshProfile = useCallback(async () => {
-    if (useMockDevProfile) return;
-    const { data: { session } } = await supabase.auth.getSession();
-    const authUser = session?.user;
-    if (!authUser) return;
-    const profile = await fetchProfile(authUser.id);
-    setUser(profile ?? stubProfileFromAuthUser(authUser));
-  }, [useMockDevProfile, supabase, fetchProfile]);
+  const refreshProfile = useCallback(
+    async (sessionHint?: Session | null) => {
+      if (useMockDevProfile) return;
+      let session: Session | null =
+        sessionHint !== undefined && sessionHint !== null ? sessionHint : null;
+      if (!session) {
+        const { data } = await supabase.auth.getSession();
+        session = data.session;
+      }
+      const authUser = session?.user;
+      if (!authUser) return;
+      const profile = await fetchProfile(authUser.id);
+      setUser(profile ?? stubProfileFromAuthUser(authUser));
+    },
+    [useMockDevProfile, supabase, fetchProfile],
+  );
 
   useEffect(() => {
     if (useMockDevProfile) {
@@ -203,10 +214,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(
     async (email: string, password: string) => {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
       if (error) throw error;
+      return {
+        user: data.user,
+        session: data.session,
+      };
     },
-    [supabase]
+    [supabase],
   );
 
   const signUp = useCallback(

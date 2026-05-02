@@ -2,7 +2,6 @@
 
 import { useUser } from '@/context/UserContext';
 import { authNextFromSearchParam } from '@/lib/auth/auth-redirect';
-import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import {
   FormEvent,
@@ -17,8 +16,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function LoginForm() {
-  const { refreshProfile } = useUser();
-  const supabase = createClient();
+  const { signIn, refreshProfile } = useUser();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
@@ -70,19 +68,14 @@ function LoginForm() {
     submitInFlight.current = true;
     setBusy(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: trimmed,
-        password,
-      });
-      if (error) {
-        setErr(error.message);
-        return;
-      }
-      await refreshProfile();
+      const { session } = await signIn(trimmed, password);
+      await refreshProfile(session);
       router.replace(nextPath || '/');
       router.refresh();
-    } catch {
-      setErr('Network error. Check your connection and try again.');
+    } catch (e) {
+      const msg =
+        e instanceof Error ? e.message : 'Sign-in failed. Try again.';
+      setErr(msg);
     } finally {
       submitInFlight.current = false;
       setBusy(false);
