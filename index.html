@@ -583,116 +583,225 @@
       z-index: 1;
     }
 
-    /* ── Landing attract screen (State A) — sphere CTA; same language as guide Enter ── */
     /*
-     * Particle Love centers .go-btn inside .menu, but .menu had zero height and -30px
-     * margin — fix by fixing .menu to the viewport center (logo stays absolute on .ui).
+     * Steady intense electric cyan halo on the OM wrapper (no stepped keyframe flashing).
+     * Traveling rim pulse lives in landing-om.svg SMIL (<object> keeps animation active vs <img>).
      */
-    #landing-root .menu {
-      position: fixed !important;
-      left: 50% !important;
-      top: 50% !important;
-      right: auto !important;
-      bottom: auto !important;
-      transform: translate(-50%, -50%) !important;
-      margin-left: 0 !important;
-      margin-top: 0 !important;
-      width: 124px !important;
-      min-width: 124px !important;
-      height: 124px !important;
-      min-height: 124px !important;
+    /* Transparent vector OM centred on particle field (landing screen A); hides with instruction guide */
+    #landing-root .landing-particle-om {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 4;
+      pointer-events: none;
+      -webkit-user-select: none;
+      user-select: none;
+      box-sizing: border-box;
+      line-height: 0;
     }
 
-    @media screen and (max-device-width: 640px) {
-      #landing-root .menu {
-        width: 108px !important;
-        min-width: 108px !important;
-        height: 108px !important;
-        min-height: 108px !important;
+    #landing-root.cp-landing-guide-open .landing-particle-om {
+      visibility: hidden;
+    }
+
+    #landing-root .landing-particle-om-svg {
+      display: block;
+      width: 40mm;
+      height: auto;
+      aspect-ratio: 356 / 367;
+      vertical-align: top;
+      border: 0;
+      outline: none;
+      pointer-events: none;
+      -webkit-user-drag: none;
+      filter:
+        saturate(1.5)
+        contrast(1.12)
+        brightness(1.1)
+        drop-shadow(0 0 2px rgba(248, 252, 255, 1))
+        drop-shadow(0 0 11px rgba(0, 250, 255, 1))
+        drop-shadow(0 0 26px rgba(0, 195, 255, 1))
+        drop-shadow(0 0 56px rgba(0, 120, 255, 0.9))
+        drop-shadow(0 0 94px rgba(40, 0, 236, 0.38))
+        drop-shadow(0 -1px 6px rgba(160, 255, 255, 0.5));
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #landing-root .landing-particle-om-svg {
+        filter:
+          saturate(1.42)
+          contrast(1.1)
+          brightness(1.06)
+          drop-shadow(0 0 2px rgba(248, 252, 255, 1))
+          drop-shadow(0 0 10px rgba(0, 248, 255, 1))
+          drop-shadow(0 0 24px rgba(0, 188, 255, 1))
+          drop-shadow(0 0 50px rgba(0, 110, 255, 0.85))
+          drop-shadow(0 -1px 5px rgba(160, 255, 255, 0.45));
       }
     }
 
-    #landing-root .menu > .go-btn {
-      width: 124px;
-      height: 124px;
-      margin-left: -62px;
-      margin-top: -62px;
+    /*
+     * Hero Cymatics Portal wordmark (before .cp-logo-compact FLIP): centred above the OM
+     * (~40mm + neon bloom); particle GSAP vertical-centre bypassed in particle-landing.
+     */
+    #landing-root .logo:not(.cp-logo-compact) {
+      position: fixed !important;
+      left: 50% !important;
+      right: auto !important;
+      top: max(
+        calc(env(safe-area-inset-top, 0px) + 28px),
+        calc(min(50dvh, 50vh) - 34mm - 104px)
+      ) !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      width: max-content !important;
+      max-width: min(560px, 94vw);
+      transform: translate3d(-50%, 0, 0) !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: center !important;
+      text-align: center !important;
+      pointer-events: auto !important;
     }
 
-    #landing-root .menu > .go-btn .go-btn-bg {
-      transform: none;
-      border-radius: 50%;
-      background: radial-gradient(
-        circle at 32% 28%,
-        rgba(120, 200, 220, 0.35) 0%,
-        #1a2330 42%,
-        #0a0e14 100%
-      );
-      box-shadow:
-        0 6px 28px rgba(0, 0, 0, 0.55),
-        inset 0 -4px 12px rgba(0, 0, 0, 0.45),
-        inset 0 2px 14px rgba(255, 255, 255, 0.1),
-        0 0 0 2px rgba(85, 248, 255, 0.55);
+    #landing-root .logo:not(.cp-logo-compact) .logo-title {
+      text-align: center !important;
     }
 
-    #landing-root .menu > .go-btn .go-btn-bg-spinner {
-      border-radius: 50%;
+    /*
+     * Compact “icon”: true top-left after FLIP tween (landing_bridge_js + TweenMax).
+     */
+    #landing-root .logo.cp-logo-compact {
+      position: fixed !important;
+      left: max(10px, calc(max(28px, 5vw) - 0.75cm)) !important;
+      right: auto !important;
+      top: max(calc(env(safe-area-inset-top, 0px) + 10px), 14px, 2.5vmin) !important;
+      bottom: auto !important;
+      margin: 0 !important;
+      transform-origin: center center !important;
+      width: auto !important;
+      max-width: min(420px, 92vw) !important;
+      min-height: 0 !important;
+      padding: 10px 22.5px !important;
+      display: inline-flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: center !important;
+      text-align: center !important;
+      background: rgba(5, 10, 18, 0.58);
+      border: 1px solid rgba(100, 220, 255, 0.35);
+      border-radius: 999px;
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.4);
+      pointer-events: auto !important;
+      z-index: 30;
+      opacity: 1 !important;
+      box-sizing: border-box !important;
+    }
+
+    #landing-root .logo.cp-logo-compact .logo-title {
+      font-family: 'Courier New', Courier, monospace !important;
+      font-size: clamp(11.25px, 1.525vw, 13.75px) !important;
+      font-style: normal !important;
+      line-height: 1.18 !important;
+      letter-spacing: 0.14em !important;
+      font-weight: 700 !important;
+      white-space: nowrap;
       overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      text-shadow: 0 1.25px 3.75px rgba(0, 0, 0, 0.85);
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.95);
     }
 
-    #landing-root .menu > .go-btn .go-btn-bg-inner {
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      border: none;
-      border-radius: 50%;
-      transform: none;
-      transform-origin: center;
-      background: rgba(85, 248, 255, 0.22);
-      opacity: 0;
-      transition: opacity 0.22s ease;
-      box-sizing: border-box;
-    }
+    /* ── Enter Portal: capsule chip (paired sizing with #landing-root .logo.cp-logo-compact) ── */
 
-    #landing-root .menu > .go-btn:hover .go-btn-bg-inner {
-      transform: none;
-      opacity: 1;
-    }
-
-    #landing-root .menu > .go-btn .go-btn-text {
-      display: flex;
+    #landing-root .menu .go-btn {
+      position: relative;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      line-height: 1.2;
-      font-size: 13px;
-      font-style: normal;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      padding: 0 12px;
+      left: auto;
+      top: auto;
+      margin: 0;
+      width: auto;
+      height: auto;
+      min-height: 0;
+      flex-shrink: 0;
+      padding: 10px 22.5px;
+      cursor: pointer;
+      background: rgba(5, 10, 18, 0.58);
+      border: 1px solid rgba(100, 220, 255, 0.35);
+      border-radius: 999px;
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.4);
       box-sizing: border-box;
-      color: #fffef5;
-      text-shadow:
-        0 0 1px rgba(0, 0, 0, 1),
-        0 2px 6px rgba(0, 0, 0, 0.9);
-      z-index: 2;
-      text-align: center;
+      transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     }
 
-    #landing-root .menu > .go-btn:hover .go-btn-text {
+    #landing-root .menu .go-btn:hover {
+      background: rgba(8, 16, 28, 0.72);
+      border-color: rgba(130, 235, 255, 0.5);
+      box-shadow: 0 13px 40px rgba(0, 0, 0, 0.46);
+    }
+
+    #landing-root .menu .go-btn .go-btn-bg {
+      display: none !important;
+    }
+
+    #landing-root .menu .go-btn .go-btn-text {
+      position: relative;
+      left: auto;
+      top: auto;
+      width: auto;
+      height: auto;
+      display: inline-flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      line-height: 1.18;
+      padding: 0;
+      font-size: clamp(11.25px, 1.525vw, 13.75px) !important;
+      font-style: normal;
+      font-family: 'Courier New', Courier, monospace;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      box-sizing: border-box;
+      color: rgba(255, 255, 255, 0.95);
+      text-shadow: 0 1.25px 3.75px rgba(0, 0, 0, 0.85);
+      z-index: 2;
+      text-align: center;
+      pointer-events: none;
+      max-width: min(92vw, 400px);
+      white-space: nowrap;
+    }
+
+    #landing-root .menu .go-btn:hover .go-btn-text {
       color: #ffffff;
     }
 
     @media screen and (max-device-width: 640px) {
-      #landing-root .menu > .go-btn {
-        width: 108px;
-        height: 108px;
-        margin-left: -54px;
-        margin-top: -54px;
+      #landing-root .logo.cp-logo-compact {
+        left: max(8px, calc(max(18px, 4vw) - 0.75cm)) !important;
+        padding: 8.75px 17.5px !important;
       }
-      #landing-root .menu > .go-btn .go-btn-text {
-        font-size: 12px;
-        padding: 0 8px;
+      #landing-root .logo.cp-logo-compact .logo-title {
+        font-size: clamp(10px, 3.25vw, 12.5px) !important;
+        letter-spacing: 0.12em !important;
+      }
+      #landing-root .menu .go-btn {
+        padding: 8.75px 17.5px;
+      }
+      #landing-root .menu .go-btn .go-btn-text {
+        font-size: clamp(10px, 3.25vw, 12.5px) !important;
+        letter-spacing: 0.12em;
       }
     }
 
@@ -700,7 +809,8 @@
      * Hide "Choose visual" label + demo select — only Cymatics is used.
      * Markup must stay in DOM (particle-love queries .titles-container / #pm-demo-select).
      */
-    #landing-root .menu .titles-container {
+    #landing-root .menu .titles-container,
+    #landing-root .titles-container {
       position: absolute !important;
       width: 1px !important;
       height: 1px !important;
@@ -889,83 +999,74 @@
       );
       pointer-events: none;
     }
-    .guide-enter-wrap #enter-portal-btn,
-    .guide-enter-wrap .guide-enter-hint {
+    .guide-enter-wrap #enter-portal-btn {
       pointer-events: auto;
     }
 
     /*
-     * Enter CTA — override particle-love .go-btn (absolute 50%/50% diamond).
-     * Sphere, in-flow, sticky strip so it does not cover body copy.
+     * Guide Enter — same capsule chip as hero CTA / compact Cymatics title
      */
     #landing-guide #enter-portal-btn {
       position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       left: auto;
       top: auto;
       margin: 0;
-      width: 96px;
-      height: 96px;
+      width: auto;
+      height: auto;
+      min-height: 0;
       flex-shrink: 0;
+      padding: 10px 22.5px;
+      cursor: pointer;
+      background: rgba(5, 10, 18, 0.58);
+      border: 1px solid rgba(100, 220, 255, 0.35);
+      border-radius: 999px;
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.4);
+      box-sizing: border-box;
+      transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    #landing-guide #enter-portal-btn:hover {
+      background: rgba(8, 16, 28, 0.72);
+      border-color: rgba(130, 235, 255, 0.5);
+      box-shadow: 0 13px 40px rgba(0, 0, 0, 0.46);
     }
 
     #landing-guide #enter-portal-btn .go-btn-bg {
-      transform: none;
-      border-radius: 50%;
-      background: radial-gradient(
-        circle at 32% 28%,
-        rgba(120, 200, 220, 0.35) 0%,
-        #1a2330 42%,
-        #0a0e14 100%
-      );
-      box-shadow:
-        0 6px 28px rgba(0, 0, 0, 0.55),
-        inset 0 -4px 12px rgba(0, 0, 0, 0.45),
-        inset 0 2px 14px rgba(255, 255, 255, 0.1),
-        0 0 0 2px rgba(85, 248, 255, 0.55);
-    }
-
-    #landing-guide #enter-portal-btn .go-btn-bg-spinner {
-      border-radius: 50%;
-      overflow: hidden;
-    }
-
-    #landing-guide #enter-portal-btn .go-btn-bg-inner {
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      border: none;
-      border-radius: 50%;
-      transform: none;
-      transform-origin: center;
-      background: rgba(85, 248, 255, 0.22);
-      opacity: 0;
-      transition: opacity 0.22s ease;
-      box-sizing: border-box;
-    }
-
-    #landing-guide #enter-portal-btn:hover .go-btn-bg-inner {
-      transform: none;
-      opacity: 1;
+      display: none !important;
     }
 
     #landing-guide #enter-portal-btn .go-btn-text {
-      display: flex;
+      position: relative;
+      left: auto;
+      top: auto;
+      width: auto;
+      height: auto;
+      display: inline-flex;
+      flex-direction: row;
       align-items: center;
       justify-content: center;
-      line-height: 1.2;
-      font-size: 13px;
+      gap: 0;
+      line-height: 1.18;
+      padding: 0;
+      font-size: clamp(11.25px, 1.525vw, 13.75px);
       font-style: normal;
-      letter-spacing: 0.08em;
+      font-family: 'Courier New', Courier, monospace;
+      font-weight: 700;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
-      padding: 0 12px;
       box-sizing: border-box;
       text-align: center;
-      color: #fffef5;
-      text-shadow:
-        0 0 1px rgba(0, 0, 0, 1),
-        0 2px 6px rgba(0, 0, 0, 0.9);
+      color: rgba(255, 255, 255, 0.95);
+      text-shadow: 0 1.25px 3.75px rgba(0, 0, 0, 0.85);
       z-index: 2;
+      pointer-events: none;
+      max-width: min(92vw, 400px);
+      white-space: nowrap;
     }
 
     #landing-guide #enter-portal-btn:hover .go-btn-text {
@@ -974,24 +1075,14 @@
 
     @media screen and (max-device-width: 640px) {
       #landing-guide #enter-portal-btn {
-        width: 84px;
-        height: 84px;
+        padding: 8.75px 17.5px;
       }
       #landing-guide #enter-portal-btn .go-btn-text {
-        font-size: 12px;
-        padding: 0 8px;
+        font-size: clamp(10px, 3.25vw, 12.5px);
+        letter-spacing: 0.12em;
       }
     }
 
-    .guide-enter-hint {
-      font-size: 15px;
-      font-style: normal;
-      opacity: 0.88;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: rgba(255, 248, 224, 0.92);
-      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
-    }
     .track-transport {
       border: 1px solid rgba(255,248,224,0.18);
       border-radius: 8px;
@@ -1076,6 +1167,120 @@
     #landing-root .quality-title {
       opacity: 0 !important;
     }
+
+    /* Hero block: user offset −0.75cm X, +1.5cm Y (wording + Enter Portal move together) */
+    #landing-root .menu {
+      position: fixed !important;
+      left: max(28px, 5vw) !important;
+      right: auto !important;
+      top: 50vh !important;
+      bottom: auto !important;
+      transform: translate(-0.75cm, calc(-50% - clamp(12px, 2.2vh, 30px) + 1.5cm)) !important;
+      z-index: 6;
+      box-sizing: border-box !important;
+      margin-left: 0 !important;
+      margin-top: 0 !important;
+      width: min(540px, calc(100vw - max(52px, 10vw))) !important;
+      min-width: 260px;
+      max-width: calc(100vw - max(52px, 10vw));
+      max-height: none !important;
+      height: auto !important;
+      min-height: 0 !important;
+      overflow: visible !important;
+      padding-right: max(12px, 1.5vw);
+    }
+    @media screen and (max-device-width: 640px) {
+      #landing-root .menu {
+        left: max(18px, 4vw) !important;
+        width: calc(100vw - max(36px, 9vw)) !important;
+        transform: translate(-0.75cm, calc(-50% - clamp(10px, 2vh, 26px) + 1.5cm)) !important;
+      }
+    }
+
+    /* Narrow left column: more room for particle hero; intro + CTA share width */
+    #landing-root .landing-hero-stack {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      width: 100%;
+      box-sizing: border-box;
+      --landing-hero-measure: min(38ch, 100%);
+    }
+
+    #landing-root .landing-hero-intro {
+      text-align: left;
+      user-select: text;
+      -webkit-user-select: text;
+      cursor: auto;
+      text-shadow: 0 2px 14px rgba(0,0,0,0.55);
+      width: 100%;
+      max-width: var(--landing-hero-measure);
+      box-sizing: border-box;
+    }
+
+    /* +30% headline type; two-line stack, left-aligned with narrow column */
+    #landing-root .landing-hero-kicker {
+      margin: 0 0 0.75em;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.12em;
+      font-weight: 700;
+      line-height: 1.22;
+      color: rgba(255,255,255,0.97);
+      letter-spacing: 0.03em;
+      text-align: left;
+    }
+
+    #landing-root .landing-hero-kicker-line1,
+    #landing-root .landing-hero-kicker-line2 {
+      font-size: clamp(20.8px, 2.47vw, 27.3px);
+      font-style: normal;
+    }
+
+    #landing-root .landing-hero-kicker-line2 {
+      margin-left: 0;
+      letter-spacing: 0.035em;
+      opacity: 0.94;
+    }
+
+    #landing-root .landing-hero-lead,
+    #landing-root .landing-hero-note {
+      margin: 0 0 1em;
+      font-size: clamp(13px, 1.48vw, 16px);
+      line-height: 1.62;
+      color: rgba(255,255,255,0.88);
+      overflow-wrap: break-word;
+    }
+
+    #landing-root .landing-hero-note {
+      margin-bottom: 0.9em;
+      color: rgba(255,255,255,0.84);
+    }
+
+    #landing-root .landing-hero-close {
+      margin: 0;
+      margin-top: 0.35em;
+      font-size: clamp(13px, 1.45vw, 16px);
+      font-weight: 700;
+      line-height: 1.5;
+      color: rgba(180,215,255,0.95);
+    }
+
+    #landing-root .landing-hero-cta {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      width: 100%;
+      max-width: var(--landing-hero-measure);
+      margin-top: 28px;
+      padding-bottom: 6px;
+      pointer-events: auto;
+      flex-shrink: 0;
+      box-sizing: border-box;
+    }
+
+    /* Sphere CTA + “Choose visual” hide: _portal_nifty.css (#landing-root .menu .go-btn, .titles-container) */
 </style>
 </head>
 <body>
@@ -1084,23 +1289,39 @@
     <div class="iframe-container"></div>
     <div class="ui">
         <canvas></canvas>
-        <div class="logo" style="opacity:1; transform:translate3d(0,0,0); cursor:pointer; pointer-events:auto;">
+        <div class="landing-particle-om" aria-hidden="true">
+            <object class="landing-particle-om-svg" type="image/svg+xml" data="./landing/img/landing-om.svg" width="356" height="367" tabindex="-1" aria-hidden="true"></object>
+        </div>
+        <div class="logo" style="opacity:1; cursor:pointer; pointer-events:auto;">
             <span class="logo-title">CYMATICS PORTAL</span>
         </div>
         <div class="menu">
+            <div class="landing-hero-stack">
+                <div class="landing-hero-intro">
+                    <h2 class="landing-hero-kicker">
+                        <span class="landing-hero-kicker-line1">Nāda Brahma</span>
+                        <span class="landing-hero-kicker-line2">Sound Made Visible</span>
+                    </h2>
+                    <p class="landing-hero-lead">A contemplative audio-visual instrument where frequency resolves into living geometry. Sweep a tone, summon a Solfeggio, or feed in a track — and watch the spectrum render itself as standing wave, fractal, and sacred form. Tens of thousands of particles, listening in real time.</p>
+                    <p class="landing-hero-note">An invitation to sit with a frequency and remember that listening is itself a practice.</p>
+                    <p class="landing-hero-close">The ancient claim and modern physics agree...form arises from vibration!</p>
+                </div>
+                <div class="landing-hero-cta">
+                    <div class="go-btn">
+                        <div class="go-btn-bg">
+                            <div class="go-btn-bg-spinner">
+                                <div class="go-btn-bg-inner"></div>
+                            </div>
+                        </div>
+                        <div class="go-btn-text cache">Enter Portal</div>
+                    </div>
+                </div>
+            </div>
             <div class="arrow is-left">
                 <div class="arrow-inner">
                     <div class="arrow-part"></div>
                     <div class="arrow-part"></div>
                 </div>
-            </div>
-            <div class="go-btn">
-                <div class="go-btn-bg">
-                    <div class="go-btn-bg-spinner">
-                        <div class="go-btn-bg-inner"></div>
-                    </div>
-                </div>
-                <div class="go-btn-text cache">Enter Portal</div>
             </div>
             <div class="arrow is-right">
                 <div class="arrow-inner">
@@ -1108,11 +1329,11 @@
                     <div class="arrow-part"></div>
                 </div>
             </div>
-            <div class="titles-container">
-                <label class="pm-demo-label" for="pm-demo-select">Choose visual</label>
-                <select id="pm-demo-select" class="pm-demo-select" aria-label="Choose visual"></select>
-                <div class="titles-move-container" aria-hidden="true"></div>
-            </div>
+        </div>
+        <div class="titles-container" aria-hidden="true">
+            <label class="pm-demo-label" for="pm-demo-select">Choose visual</label>
+            <select id="pm-demo-select" class="pm-demo-select" aria-label="Choose visual"></select>
+            <div class="titles-move-container" aria-hidden="true"></div>
         </div>
     </div>
     <div class="quality-selector" style="display:block; pointer-events:auto;">
@@ -1167,26 +1388,19 @@
 
             <div class="guide-instructions">
                 <h2>How to Use</h2>
-                <ol class="guide-steps" aria-label="Quick start steps">
+                <ol class="guide-steps" aria-label="Sound and visuals">
                 <li class="guide-step">
                     <span class="guide-step-badge" aria-hidden="true">01</span>
                     <div class="guide-step-body">
                         <h3 class="guide-step-title">Sound &amp; playback</h3>
-                        <p class="guide-step-text">Everything you hear runs from the first control column. Choose a mode (track, preset, or manual tone), set the frequency, and add a file when you are using a track. Use Play, Pause, and Stop, turn Volume to taste, and drag the track-position slider when a file is playing.</p>
+                        <p class="guide-step-text">In the first column, choose an <strong>Audio Mode</strong>: <strong>Upload Track</strong> (choose an <strong>Audio file</strong>), <strong>Healing Presets</strong> (pick a preset), or <strong>Manual tone</strong>. Set <strong>Frequency</strong> with the slider or number box when that mode uses it. Use <strong>Play</strong>, <strong>Pause</strong>, and <strong>Stop</strong>; adjust <strong>Volume</strong>. For an uploaded track, scrub the timeline and watch the time label while it plays.</p>
                     </div>
                 </li>
                 <li class="guide-step">
                     <span class="guide-step-badge" aria-hidden="true">02</span>
                     <div class="guide-step-body">
                         <h3 class="guide-step-title">Advanced visuals</h3>
-                        <p class="guide-step-text">The second column is for the picture. Pick an Audio-Visualiser Portal and a particle count. Under that, open Advanced Visual Controls for colours and deeper tweaks. Press H to show or hide that panel. Drag a panel by its header, or tap ↺ to put it back where it started.</p>
-                    </div>
-                </li>
-                <li class="guide-step">
-                    <span class="guide-step-badge" aria-hidden="true">03</span>
-                    <div class="guide-step-body">
-                        <h3 class="guide-step-title">Start &amp; explore</h3>
-                        <p class="guide-step-text">Press Play: the pattern rides your audio in real time. For fullscreen, use the control on the bar above the visual. Two rail icons appear—Sound &amp; playback and Advanced visuals. Hover to preview, click to pin, × or Escape to close a panel. Escape again leaves fullscreen.</p>
+                        <p class="guide-step-text">In the second column, pick an <strong>Audio-Visualiser Portal</strong> (<strong>Balanced</strong>, <strong>Mandelbrot</strong>, or <strong>Julia</strong>) and set <strong>Particle count</strong> with the slider or number box. Press <strong>H</strong> to show or hide <strong>Advanced Visual Controls</strong>. Drag that window by its header; tap ↺ to snap it back to its default spot.</p>
                     </div>
                 </li>
                 </ol>
@@ -1199,9 +1413,8 @@
                             <div class="go-btn-bg-inner"></div>
                         </div>
                     </div>
-                    <div class="go-btn-text cache">Enter</div>
+                    <div class="go-btn-text cache">Enter Portal</div>
                 </div>
-                <p class="guide-enter-hint">Enter the Portal</p>
             </div>
         </div>
     </div>
@@ -2476,18 +2689,333 @@
   <script src="./landing/js/particle-landing.js"></script>
   <script>
 (function() {
+    /* Landing perf ingest: disabled by default. Use ?cpDebugPerf=1 to enable (loads extra RAF + POST /api/debug-ingest). */
+    if (/[?&]cpDebugPerf=1(?:&|$)/.test(location.search || '')) (function () {
+        /* Perf NDJSON → parent postMessage + optional same-origin POST /api/debug-ingest. */
+        function _send(loc, hypothesisId, message, data) {
+            var payload = {
+                sessionId: '7e891a',
+                runId: 'baseline',
+                location: loc,
+                hypothesisId: hypothesisId,
+                message: message,
+                data: data || {},
+                timestamp: Date.now()
+            };
+            var body = JSON.stringify(payload);
+            try {
+                if (
+                    window.parent !== window &&
+                    window.location.origin &&
+                    window.location.origin !== 'null'
+                ) {
+                    window.parent.postMessage(
+                        {
+                            type: 'cp-landing-perf',
+                            sessionId: '7e891a',
+                            envelope: payload
+                        },
+                        window.location.origin
+                    );
+                }
+            } catch (_pm) {}
+            // Same-origin fallback when Cymatics runs under `next dev` (writes workspace debug-7e891a.log via /api/debug-ingest).
+            var _nwUrl = null;
+            try {
+                var _p = window.location && window.location.protocol;
+                if (_p === 'http:' || _p === 'https:') {
+                    _nwUrl = window.location.origin + '/api/debug-ingest';
+                }
+            } catch (_u) {}
+            if (_nwUrl) {
+                fetch(_nwUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Debug-Session-Id': '7e891a'
+                    },
+                    body: body,
+                    credentials: 'same-origin',
+                    keepalive: true
+                })
+                    .then(function (res) {
+                        if (res.ok) return;
+                        return res.text().then(function (txt) {
+                            try {
+                                console.warn(
+                                    '[DEBUG-7e891a-ingest-http]',
+                                    res.status,
+                                    txt.slice(0, 200)
+                                );
+                            } catch (_) {}
+                        });
+                    })
+                    .catch(function (err) {
+                    try {
+                        console.warn(
+                            '[DEBUG-7e891a-local-ingest-fail]',
+                            err && String(err.message)
+                        );
+                    } catch (_) {}
+                });
+            }
+            // Verbose NDJSON mirror (DevTools Verbose/Debug level hides `debug` unless enabled).
+            try {
+                console.debug('[DEBUG-7e891a]', body);
+            } catch (_) {}
+        }
+        try {
+            _send('_build_portal:landing_bridge', 'H0', 'bridge_early', {
+                skipLanding: document.documentElement.classList.contains('skip-landing'),
+                hasLandingRoot: !!document.getElementById('landing-root'),
+                inIframe: window.parent !== window
+            });
+        } catch (_) {}
+        setTimeout(function () {
+            try {
+                var root = document.getElementById('landing-root');
+                var qs = root && root.querySelector('.quality-selector');
+                var cs = qs ? window.getComputedStyle(qs) : null;
+                _send(
+                    '_build_portal:landing_bridge',
+                    'H1',
+                    'post_quality_gate_dom',
+                    {
+                        qBtnCount: document.querySelectorAll('#landing-root .quality-btn').length,
+                        qsDisplay: cs && cs.display,
+                        qsVisibility: cs && cs.visibility,
+                        qsOpacity: cs && cs.opacity,
+                        qsPointerEvents: cs && cs.pointerEvents
+                    }
+                );
+            } catch (eQ) {
+                _send('_build_portal:landing_bridge', 'H1', 'post_quality_gate_err', {
+                    err: String(eQ && eQ.message)
+                });
+            }
+        }, 360);
+        setTimeout(function () {
+            try {
+                var root = document.getElementById('landing-root');
+                var cv = root && root.querySelector('canvas');
+                var vv = typeof window.visualViewport !== 'undefined' ? window.visualViewport : null;
+                var dpr = window.devicePixelRatio || 1;
+                var cw = cv ? cv.clientWidth : 0;
+                var ch = cv ? cv.clientHeight : 0;
+                var bw = cv ? cv.width : 0;
+                var bh = cv ? cv.height : 0;
+                var expW = cw * dpr;
+                var expH = ch * dpr;
+                var n = 0;
+                var tPrev = performance.now();
+                var maxDt = 0;
+                var sumDt = 0;
+                function rafTick() {
+                    var tNow = performance.now();
+                    var dt = tNow - tPrev;
+                    maxDt = Math.max(maxDt, dt);
+                    sumDt += dt;
+                    tPrev = tNow;
+                    n += 1;
+                    if (n < 41) requestAnimationFrame(rafTick);
+                    else {
+                        var avg = sumDt / 40;
+                        _send('_build_portal:landing_bridge', 'H2', 'canvas_rafsample', {
+                            dpr: dpr,
+                            canvasClientW: cw,
+                            canvasClientH: ch,
+                            canvasBufferW: bw,
+                            canvasBufferH: bh,
+                            bufferOverClientWdpr:
+                                cw > 0 ? bw / Math.max(expW, 1) : null,
+                            bufferOverClientHdpr:
+                                ch > 0 ? bh / Math.max(expH, 1) : null,
+                            vw: vv ? vv.width : null,
+                            vh: vv ? vv.height : null,
+                            innerW: window.innerWidth,
+                            innerH: window.innerHeight,
+                            uaShort:
+                                navigator.userAgent && navigator.userAgent.slice(0, 96),
+                            cores: navigator.hardwareConcurrency || null
+                        });
+                        _send('_build_portal:landing_bridge', 'H3', 'raf_spacing', {
+                            rafIntervals: 40,
+                            avgMs: avg,
+                            maxMs: maxDt,
+                            approxFpsMedian: avg > 0 ? 1000 / avg : null
+                        });
+                    }
+                }
+                requestAnimationFrame(rafTick);
+            } catch (eS) {
+                _send('_build_portal:landing_bridge', 'H2+H3', 'canvas_raf_err', {
+                    err: String(eS && eS.message)
+                });
+            }
+        }, 420);
+        try {
+            _send('_build_portal:landing_bridge', 'H5', 'landing_env', {
+                hasVisualViewport:
+                    typeof window.visualViewport !== 'undefined' &&
+                    !!window.visualViewport,
+                prefersReducedMotion: (function () {
+                    try {
+                        return window.matchMedia(
+                            '(prefers-reduced-motion: reduce)'
+                        ).matches;
+                    } catch (eM) {
+                        return null;
+                    }
+                })()
+            });
+        } catch (eE) {}
+    })();
+
     if (document.documentElement.classList.contains('skip-landing')) return;
 
     var landingRoot = document.getElementById('landing-root');
     if (!landingRoot) return;
 
     // ── 1. AUTO-SKIP QUALITY GATE ──
+    /* Index 0 = Low (LANDING_PAGE_FIXES.md). Deferred click so async preload can attach handlers. */
     var qualityBtns = landingRoot.querySelectorAll('.quality-btn');
-    if (qualityBtns.length >= 2) {
-        setTimeout(function() {
-            qualityBtns[1].click(); // "Medium"
+    if (qualityBtns.length >= 1) {
+        window.setTimeout(function () {
+            try {
+                qualityBtns[0].click(); // Low
+            } catch (_eQ) {}
         }, 100);
     }
+
+    // ── 1b. Logo-only FLIP to compact corner (.landing-particle-om stays centred CSS; no coupled GSAP). ──
+    (function compactLogoCorner() {
+        var TM = typeof TweenMax !== 'undefined' ? TweenMax : window.__landingTweenMax;
+        var heroMenu = landingRoot.querySelector('.menu');
+        if (!heroMenu) return;
+
+        var LOGO_CORNER_DURATION_S = 1.04; /* 0.8s baseline + ~30 pct slower */
+
+        function heroWordingUnveiled() {
+            try {
+                var cs = window.getComputedStyle(heroMenu);
+                if (cs.display === 'none') return false;
+                if (cs.visibility === 'hidden') return false;
+                return true;
+            } catch (eM) {
+                return false;
+            }
+        }
+
+        var compactQueued = false;
+        function queueCompact() {
+            if (compactQueued) return;
+            compactQueued = true;
+            /* Same frame tick as first paint of hero strip (wording + menu fade start) */
+            requestAnimationFrame(function () {
+                requestAnimationFrame(runCompactFlip);
+            });
+        }
+
+        function runCompactFlip() {
+            var logo = landingRoot.querySelector('.logo');
+            if (!logo || logo.getAttribute('data-cp-logo-compact') === '1') return;
+            var guideLayer = document.getElementById('landing-guide');
+            if (guideLayer && guideLayer.style.display === 'block') return;
+
+            logo.setAttribute('data-cp-logo-compact', '1');
+
+            if (!TM || typeof TM.killTweensOf !== 'function') {
+                logo.classList.add('cp-logo-compact');
+                return;
+            }
+
+            /* Particle engine tweens `.logo`; leftover inline transforms + CSS translate(-50%)
+             * fights GSAP FLIP and reads as a horizontal jog before the corner tween. */
+            TM.killTweensOf(logo);
+            try {
+                TM.set(logo, { clearProps: 'transform' });
+            } catch (_eClr) {}
+
+            /*
+             * One paint after reset: centred layout is purely from CSS (~:not(.cp-logo-compact)).
+             * Then invert and fromTo still in same task so no stray frame sees corner-only geometry.
+             */
+            requestAnimationFrame(function () {
+                var first = logo.getBoundingClientRect();
+
+                logo.classList.add('cp-logo-compact');
+                void logo.offsetHeight;
+                var last = logo.getBoundingClientRect();
+
+                var dx =
+                    first.left +
+                    first.width / 2 -
+                    (last.left + last.width / 2);
+                var dy =
+                    first.top +
+                    first.height / 2 -
+                    (last.top + last.height / 2);
+                var s = Math.max(
+                    0.0001,
+                    Math.min(first.width / last.width, first.height / last.height)
+                );
+
+                TM.fromTo(
+                    logo,
+                    LOGO_CORNER_DURATION_S,
+                    {
+                        x: dx,
+                        y: dy,
+                        scale: s,
+                        transformOrigin: '50% 50%',
+                        immediateRender: true,
+                        force3D: true
+                    },
+                    {
+                        x: 0,
+                        y: 0,
+                        scale: 1,
+                        transformOrigin: '50% 50%',
+                        ease: 'easeInOutQuint',
+                        onComplete: function () {
+                            try {
+                                TM.set(logo, { clearProps: 'transform' });
+                            } catch (eCl) {}
+                        }
+                    }
+                );
+            });
+        }
+
+        var obs = new MutationObserver(function () {
+            if (heroWordingUnveiled()) {
+                queueCompact();
+                obs.disconnect();
+            }
+        });
+        obs.observe(heroMenu, {
+            attributes: true,
+            attributeFilter: ['style', 'class']
+        });
+
+        var tries = 0;
+        var pol = window.setInterval(function () {
+            tries += 1;
+            if (heroWordingUnveiled() || tries >= 130) {
+                window.clearInterval(pol);
+                obs.disconnect();
+                if (heroWordingUnveiled()) queueCompact();
+            }
+        }, 100);
+
+        window.setTimeout(function () {
+            try {
+                window.clearInterval(pol);
+            } catch (eI) {}
+            obs.disconnect();
+            if (heroWordingUnveiled()) queueCompact();
+        }, 12000);
+    })();
 
     // ── 2. OVERRIDE GO BUTTON → SHOW GUIDE ──
     var origGo = landingRoot.querySelector('.go-btn');
@@ -2498,6 +3026,7 @@
         origGo.parentNode.replaceChild(newGo, origGo);
 
         newGo.addEventListener('click', function() {
+            landingRoot.classList.add('cp-landing-guide-open');
             var menu = landingRoot.querySelector('.menu');
             if (menu) {
                 TweenMax.to(menu, 0.6, {
@@ -2518,6 +3047,14 @@
                 { opacity: 0 },
                 { opacity: 1, ease: 'easeInOutCubic' }
             );
+            try {
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage(
+                        { type: 'cp-action', action: 'guide-opened' },
+                        window.location.origin || '*'
+                    );
+                }
+            } catch (_g1) {}
         });
     }
 
@@ -2547,20 +3084,176 @@
 
                     window.dispatchEvent(new Event('resize'));
 
-                    var landingCanvas = landingRoot.querySelector('canvas');
-                    if (landingCanvas) {
-                        var gl = landingCanvas.getContext('webgl')
-                              || landingCanvas.getContext('experimental-webgl');
-                        if (gl) {
-                            var ext = gl.getExtension('WEBGL_lose_context');
-                            if (ext) ext.loseContext();
-                        }
-                    }
                 }
             });
         });
     }
 })();
+  </script>
+  <script>
+  (function () {
+    window.addEventListener('message', function (ev) {
+      try {
+        if (ev.source !== window.parent) return;
+        if (!ev.data || ev.data.type !== 'cp-shell' || ev.data.action !== 'nav-back') return;
+      } catch (e0) {
+        return;
+      }
+      var TM = typeof TweenMax !== 'undefined' ? TweenMax : window.__landingTweenMax;
+      var landingRoot = document.getElementById('landing-root');
+      var guide = document.getElementById('landing-guide');
+      var menu = landingRoot && landingRoot.querySelector('.menu');
+      var portalMain = document.querySelector('.portal-main');
+      if (!landingRoot || !guide) return;
+
+      if (TM) {
+        try {
+          TweenMax.killTweensOf(landingRoot);
+        } catch (_klr) {}
+        try {
+          TweenMax.killTweensOf(guide);
+        } catch (_kg) {}
+        if (menu) {
+          try {
+            TweenMax.killTweensOf(menu);
+          } catch (_km0) {}
+        }
+      }
+
+      var lrHidden = false;
+      try {
+        lrHidden = window.getComputedStyle(landingRoot).display === 'none';
+      } catch (eC) {
+        lrHidden = landingRoot.style.display === 'none';
+      }
+
+      if (lrHidden) {
+        try {
+          document.documentElement.classList.remove('skip-landing');
+        } catch (_sk) {}
+        if (TM) {
+          try {
+            TweenMax.set(landingRoot, { clearProps: 'opacity,transform' });
+          } catch (_clr) {}
+        }
+        landingRoot.style.display = '';
+        landingRoot.style.opacity = '1';
+        if (portalMain) portalMain.classList.add('portal-main--behind-landing');
+        landingRoot.classList.add('cp-landing-guide-open');
+        if (menu) {
+          menu.style.display = 'none';
+          menu.style.opacity = '0';
+          menu.style.visibility = 'hidden';
+        }
+        guide.style.display = 'block';
+        guide.style.opacity = '1';
+        guide.style.visibility = 'visible';
+        var logo = landingRoot.querySelector('.logo');
+        if (logo) {
+          if (TM) {
+            try {
+              TweenMax.killTweensOf(logo);
+            } catch (_klg) {}
+            try {
+              TM.set(logo, { opacity: 1, clearProps: 'transform' });
+            } catch (_l1) {
+              logo.style.opacity = '1';
+            }
+          } else {
+            logo.style.opacity = '1';
+          }
+        }
+        try {
+          if (window.parent !== window) {
+            window.parent.postMessage(
+              { type: 'cp-action', action: 'guide-opened' },
+              window.location.origin || '*'
+            );
+          }
+        } catch (e1) {}
+        try {
+          window.dispatchEvent(new Event('resize'));
+        } catch (_r) {}
+        return;
+      }
+
+      var guideShown = false;
+      try {
+        guideShown = window.getComputedStyle(guide).display !== 'none';
+      } catch (_gs) {
+        guideShown = guide.style.display === 'block';
+      }
+      if (landingRoot.classList.contains('cp-landing-guide-open') && guideShown) {
+        landingRoot.classList.remove('cp-landing-guide-open');
+        if (TM) {
+          try {
+            TweenMax.killTweensOf(guide);
+          } catch (_kg1) {}
+          TweenMax.to(guide, 0.35, {
+            opacity: 0,
+            ease: 'easeInCubic',
+            onComplete: function () {
+              guide.style.display = 'none';
+              guide.style.visibility = 'hidden';
+            }
+          });
+        } else {
+          guide.style.opacity = '0';
+          guide.style.display = 'none';
+          guide.style.visibility = 'hidden';
+        }
+        /* landing.css uses display:none on .menu; clearing inline style leaves it hidden. */
+        if (menu) {
+          if (TM) {
+            try {
+              TweenMax.killTweensOf(menu);
+            } catch (_km) {}
+            try {
+              TweenMax.set(menu, { clearProps: 'transform,opacity' });
+            } catch (_sm) {}
+          }
+          menu.style.display = 'block';
+          menu.style.visibility = 'visible';
+          menu.style.opacity = '0';
+          if (TM) {
+            TweenMax.fromTo(
+              menu,
+              0.45,
+              { opacity: 0, y: -8 },
+              { opacity: 1, y: 0, ease: 'easeOutCubic', delay: 0.05 }
+            );
+          } else {
+            menu.style.opacity = '1';
+          }
+        }
+        var logo2 = landingRoot.querySelector('.logo');
+        if (logo2) {
+          if (TM) {
+            try {
+              TweenMax.killTweensOf(logo2);
+            } catch (_kl) {}
+            try {
+              TweenMax.set(logo2, { clearProps: 'transform' });
+            } catch (_cs) {}
+            TweenMax.to(logo2, 0.4, { opacity: 1, delay: 0.02 });
+          } else {
+            logo2.style.opacity = '1';
+          }
+        }
+        try {
+          if (window.parent !== window) {
+            window.parent.postMessage(
+              { type: 'cp-action', action: 'guide-closed' },
+              window.location.origin || '*'
+            );
+          }
+        } catch (e2) {}
+        try {
+          window.dispatchEvent(new Event('resize'));
+        } catch (_r2) {}
+      }
+    });
+  })();
   </script>
   <script>
 (function () {
@@ -3063,35 +3756,6 @@
         });
     }
 
-    function __cpEnsureUpgradeControl() {
-        if (window.parent === window) return;
-        var el = document.getElementById('cp-shell-upgrade');
-        if (!el) {
-            el = document.createElement('div');
-            el.id = 'cp-shell-upgrade';
-            el.style.cssText = 'margin-top:8px;font-size:12px;line-height:1.4;';
-            var a = document.createElement('a');
-            a.href = '#';
-            a.textContent = 'Create account to unlock \u2192';
-            a.style.cssText = 'color:#7eb8ff;text-decoration:underline;cursor:pointer;';
-            a.addEventListener('click', function (ev) {
-                ev.preventDefault();
-                try {
-                    window.parent.postMessage(
-                        { type: 'cp-action', action: 'signup-prompt' },
-                        '*'
-                    );
-                } catch (e5) {}
-            });
-            el.appendChild(a);
-            var col = document.getElementById('pmFrequencyControlCol');
-            if (col) col.appendChild(el);
-        }
-        var se = __cpSubEffective();
-        el.style.display =
-            !se.isDevMode && se.tier === 'free' ? '' : 'none';
-    }
-
     /**
      * After free-tier gating, HTML defaults and early gate passes may leave preset + balanced.
      * Once subscription unlocks (trial/pro/etc.), restore the intended product defaults.
@@ -3143,7 +3807,6 @@
         }
         __cpApplyUnlockedProductDefaults();
         __cpRestartSessionTimer();
-        __cpEnsureUpgradeControl();
         if (selPreset) {
             __cpLastGatedPresetValue = selPreset.value;
         }

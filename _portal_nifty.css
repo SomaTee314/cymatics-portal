@@ -532,116 +532,225 @@
       z-index: 1;
     }
 
-    /* ── Landing attract screen (State A) — sphere CTA; same language as guide Enter ── */
     /*
-     * Particle Love centers .go-btn inside .menu, but .menu had zero height and -30px
-     * margin — fix by fixing .menu to the viewport center (logo stays absolute on .ui).
+     * Steady intense electric cyan halo on the OM wrapper (no stepped keyframe flashing).
+     * Traveling rim pulse lives in landing-om.svg SMIL (<object> keeps animation active vs <img>).
      */
-    #landing-root .menu {
-      position: fixed !important;
-      left: 50% !important;
-      top: 50% !important;
-      right: auto !important;
-      bottom: auto !important;
-      transform: translate(-50%, -50%) !important;
-      margin-left: 0 !important;
-      margin-top: 0 !important;
-      width: 124px !important;
-      min-width: 124px !important;
-      height: 124px !important;
-      min-height: 124px !important;
+    /* Transparent vector OM centred on particle field (landing screen A); hides with instruction guide */
+    #landing-root .landing-particle-om {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 4;
+      pointer-events: none;
+      -webkit-user-select: none;
+      user-select: none;
+      box-sizing: border-box;
+      line-height: 0;
     }
 
-    @media screen and (max-device-width: 640px) {
-      #landing-root .menu {
-        width: 108px !important;
-        min-width: 108px !important;
-        height: 108px !important;
-        min-height: 108px !important;
+    #landing-root.cp-landing-guide-open .landing-particle-om {
+      visibility: hidden;
+    }
+
+    #landing-root .landing-particle-om-svg {
+      display: block;
+      width: 40mm;
+      height: auto;
+      aspect-ratio: 356 / 367;
+      vertical-align: top;
+      border: 0;
+      outline: none;
+      pointer-events: none;
+      -webkit-user-drag: none;
+      filter:
+        saturate(1.5)
+        contrast(1.12)
+        brightness(1.1)
+        drop-shadow(0 0 2px rgba(248, 252, 255, 1))
+        drop-shadow(0 0 11px rgba(0, 250, 255, 1))
+        drop-shadow(0 0 26px rgba(0, 195, 255, 1))
+        drop-shadow(0 0 56px rgba(0, 120, 255, 0.9))
+        drop-shadow(0 0 94px rgba(40, 0, 236, 0.38))
+        drop-shadow(0 -1px 6px rgba(160, 255, 255, 0.5));
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #landing-root .landing-particle-om-svg {
+        filter:
+          saturate(1.42)
+          contrast(1.1)
+          brightness(1.06)
+          drop-shadow(0 0 2px rgba(248, 252, 255, 1))
+          drop-shadow(0 0 10px rgba(0, 248, 255, 1))
+          drop-shadow(0 0 24px rgba(0, 188, 255, 1))
+          drop-shadow(0 0 50px rgba(0, 110, 255, 0.85))
+          drop-shadow(0 -1px 5px rgba(160, 255, 255, 0.45));
       }
     }
 
-    #landing-root .menu > .go-btn {
-      width: 124px;
-      height: 124px;
-      margin-left: -62px;
-      margin-top: -62px;
+    /*
+     * Hero Cymatics Portal wordmark (before .cp-logo-compact FLIP): centred above the OM
+     * (~40mm + neon bloom); particle GSAP vertical-centre bypassed in particle-landing.
+     */
+    #landing-root .logo:not(.cp-logo-compact) {
+      position: fixed !important;
+      left: 50% !important;
+      right: auto !important;
+      top: max(
+        calc(env(safe-area-inset-top, 0px) + 28px),
+        calc(min(50dvh, 50vh) - 34mm - 104px)
+      ) !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      width: max-content !important;
+      max-width: min(560px, 94vw);
+      transform: translate3d(-50%, 0, 0) !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: center !important;
+      text-align: center !important;
+      pointer-events: auto !important;
     }
 
-    #landing-root .menu > .go-btn .go-btn-bg {
-      transform: none;
-      border-radius: 50%;
-      background: radial-gradient(
-        circle at 32% 28%,
-        rgba(120, 200, 220, 0.35) 0%,
-        #1a2330 42%,
-        #0a0e14 100%
-      );
-      box-shadow:
-        0 6px 28px rgba(0, 0, 0, 0.55),
-        inset 0 -4px 12px rgba(0, 0, 0, 0.45),
-        inset 0 2px 14px rgba(255, 255, 255, 0.1),
-        0 0 0 2px rgba(85, 248, 255, 0.55);
+    #landing-root .logo:not(.cp-logo-compact) .logo-title {
+      text-align: center !important;
     }
 
-    #landing-root .menu > .go-btn .go-btn-bg-spinner {
-      border-radius: 50%;
+    /*
+     * Compact “icon”: true top-left after FLIP tween (landing_bridge_js + TweenMax).
+     */
+    #landing-root .logo.cp-logo-compact {
+      position: fixed !important;
+      left: max(10px, calc(max(28px, 5vw) - 0.75cm)) !important;
+      right: auto !important;
+      top: max(calc(env(safe-area-inset-top, 0px) + 10px), 14px, 2.5vmin) !important;
+      bottom: auto !important;
+      margin: 0 !important;
+      transform-origin: center center !important;
+      width: auto !important;
+      max-width: min(420px, 92vw) !important;
+      min-height: 0 !important;
+      padding: 10px 22.5px !important;
+      display: inline-flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: center !important;
+      text-align: center !important;
+      background: rgba(5, 10, 18, 0.58);
+      border: 1px solid rgba(100, 220, 255, 0.35);
+      border-radius: 999px;
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.4);
+      pointer-events: auto !important;
+      z-index: 30;
+      opacity: 1 !important;
+      box-sizing: border-box !important;
+    }
+
+    #landing-root .logo.cp-logo-compact .logo-title {
+      font-family: 'Courier New', Courier, monospace !important;
+      font-size: clamp(11.25px, 1.525vw, 13.75px) !important;
+      font-style: normal !important;
+      line-height: 1.18 !important;
+      letter-spacing: 0.14em !important;
+      font-weight: 700 !important;
+      white-space: nowrap;
       overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      text-shadow: 0 1.25px 3.75px rgba(0, 0, 0, 0.85);
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.95);
     }
 
-    #landing-root .menu > .go-btn .go-btn-bg-inner {
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      border: none;
-      border-radius: 50%;
-      transform: none;
-      transform-origin: center;
-      background: rgba(85, 248, 255, 0.22);
-      opacity: 0;
-      transition: opacity 0.22s ease;
-      box-sizing: border-box;
-    }
+    /* ── Enter Portal: capsule chip (paired sizing with #landing-root .logo.cp-logo-compact) ── */
 
-    #landing-root .menu > .go-btn:hover .go-btn-bg-inner {
-      transform: none;
-      opacity: 1;
-    }
-
-    #landing-root .menu > .go-btn .go-btn-text {
-      display: flex;
+    #landing-root .menu .go-btn {
+      position: relative;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      line-height: 1.2;
-      font-size: 13px;
-      font-style: normal;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      padding: 0 12px;
+      left: auto;
+      top: auto;
+      margin: 0;
+      width: auto;
+      height: auto;
+      min-height: 0;
+      flex-shrink: 0;
+      padding: 10px 22.5px;
+      cursor: pointer;
+      background: rgba(5, 10, 18, 0.58);
+      border: 1px solid rgba(100, 220, 255, 0.35);
+      border-radius: 999px;
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.4);
       box-sizing: border-box;
-      color: #fffef5;
-      text-shadow:
-        0 0 1px rgba(0, 0, 0, 1),
-        0 2px 6px rgba(0, 0, 0, 0.9);
-      z-index: 2;
-      text-align: center;
+      transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     }
 
-    #landing-root .menu > .go-btn:hover .go-btn-text {
+    #landing-root .menu .go-btn:hover {
+      background: rgba(8, 16, 28, 0.72);
+      border-color: rgba(130, 235, 255, 0.5);
+      box-shadow: 0 13px 40px rgba(0, 0, 0, 0.46);
+    }
+
+    #landing-root .menu .go-btn .go-btn-bg {
+      display: none !important;
+    }
+
+    #landing-root .menu .go-btn .go-btn-text {
+      position: relative;
+      left: auto;
+      top: auto;
+      width: auto;
+      height: auto;
+      display: inline-flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      line-height: 1.18;
+      padding: 0;
+      font-size: clamp(11.25px, 1.525vw, 13.75px) !important;
+      font-style: normal;
+      font-family: 'Courier New', Courier, monospace;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      box-sizing: border-box;
+      color: rgba(255, 255, 255, 0.95);
+      text-shadow: 0 1.25px 3.75px rgba(0, 0, 0, 0.85);
+      z-index: 2;
+      text-align: center;
+      pointer-events: none;
+      max-width: min(92vw, 400px);
+      white-space: nowrap;
+    }
+
+    #landing-root .menu .go-btn:hover .go-btn-text {
       color: #ffffff;
     }
 
     @media screen and (max-device-width: 640px) {
-      #landing-root .menu > .go-btn {
-        width: 108px;
-        height: 108px;
-        margin-left: -54px;
-        margin-top: -54px;
+      #landing-root .logo.cp-logo-compact {
+        left: max(8px, calc(max(18px, 4vw) - 0.75cm)) !important;
+        padding: 8.75px 17.5px !important;
       }
-      #landing-root .menu > .go-btn .go-btn-text {
-        font-size: 12px;
-        padding: 0 8px;
+      #landing-root .logo.cp-logo-compact .logo-title {
+        font-size: clamp(10px, 3.25vw, 12.5px) !important;
+        letter-spacing: 0.12em !important;
+      }
+      #landing-root .menu .go-btn {
+        padding: 8.75px 17.5px;
+      }
+      #landing-root .menu .go-btn .go-btn-text {
+        font-size: clamp(10px, 3.25vw, 12.5px) !important;
+        letter-spacing: 0.12em;
       }
     }
 
@@ -649,7 +758,8 @@
      * Hide "Choose visual" label + demo select — only Cymatics is used.
      * Markup must stay in DOM (particle-love queries .titles-container / #pm-demo-select).
      */
-    #landing-root .menu .titles-container {
+    #landing-root .menu .titles-container,
+    #landing-root .titles-container {
       position: absolute !important;
       width: 1px !important;
       height: 1px !important;
@@ -838,83 +948,74 @@
       );
       pointer-events: none;
     }
-    .guide-enter-wrap #enter-portal-btn,
-    .guide-enter-wrap .guide-enter-hint {
+    .guide-enter-wrap #enter-portal-btn {
       pointer-events: auto;
     }
 
     /*
-     * Enter CTA — override particle-love .go-btn (absolute 50%/50% diamond).
-     * Sphere, in-flow, sticky strip so it does not cover body copy.
+     * Guide Enter — same capsule chip as hero CTA / compact Cymatics title
      */
     #landing-guide #enter-portal-btn {
       position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       left: auto;
       top: auto;
       margin: 0;
-      width: 96px;
-      height: 96px;
+      width: auto;
+      height: auto;
+      min-height: 0;
       flex-shrink: 0;
+      padding: 10px 22.5px;
+      cursor: pointer;
+      background: rgba(5, 10, 18, 0.58);
+      border: 1px solid rgba(100, 220, 255, 0.35);
+      border-radius: 999px;
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.4);
+      box-sizing: border-box;
+      transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    #landing-guide #enter-portal-btn:hover {
+      background: rgba(8, 16, 28, 0.72);
+      border-color: rgba(130, 235, 255, 0.5);
+      box-shadow: 0 13px 40px rgba(0, 0, 0, 0.46);
     }
 
     #landing-guide #enter-portal-btn .go-btn-bg {
-      transform: none;
-      border-radius: 50%;
-      background: radial-gradient(
-        circle at 32% 28%,
-        rgba(120, 200, 220, 0.35) 0%,
-        #1a2330 42%,
-        #0a0e14 100%
-      );
-      box-shadow:
-        0 6px 28px rgba(0, 0, 0, 0.55),
-        inset 0 -4px 12px rgba(0, 0, 0, 0.45),
-        inset 0 2px 14px rgba(255, 255, 255, 0.1),
-        0 0 0 2px rgba(85, 248, 255, 0.55);
-    }
-
-    #landing-guide #enter-portal-btn .go-btn-bg-spinner {
-      border-radius: 50%;
-      overflow: hidden;
-    }
-
-    #landing-guide #enter-portal-btn .go-btn-bg-inner {
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      border: none;
-      border-radius: 50%;
-      transform: none;
-      transform-origin: center;
-      background: rgba(85, 248, 255, 0.22);
-      opacity: 0;
-      transition: opacity 0.22s ease;
-      box-sizing: border-box;
-    }
-
-    #landing-guide #enter-portal-btn:hover .go-btn-bg-inner {
-      transform: none;
-      opacity: 1;
+      display: none !important;
     }
 
     #landing-guide #enter-portal-btn .go-btn-text {
-      display: flex;
+      position: relative;
+      left: auto;
+      top: auto;
+      width: auto;
+      height: auto;
+      display: inline-flex;
+      flex-direction: row;
       align-items: center;
       justify-content: center;
-      line-height: 1.2;
-      font-size: 13px;
+      gap: 0;
+      line-height: 1.18;
+      padding: 0;
+      font-size: clamp(11.25px, 1.525vw, 13.75px);
       font-style: normal;
-      letter-spacing: 0.08em;
+      font-family: 'Courier New', Courier, monospace;
+      font-weight: 700;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
-      padding: 0 12px;
       box-sizing: border-box;
       text-align: center;
-      color: #fffef5;
-      text-shadow:
-        0 0 1px rgba(0, 0, 0, 1),
-        0 2px 6px rgba(0, 0, 0, 0.9);
+      color: rgba(255, 255, 255, 0.95);
+      text-shadow: 0 1.25px 3.75px rgba(0, 0, 0, 0.85);
       z-index: 2;
+      pointer-events: none;
+      max-width: min(92vw, 400px);
+      white-space: nowrap;
     }
 
     #landing-guide #enter-portal-btn:hover .go-btn-text {
@@ -923,24 +1024,14 @@
 
     @media screen and (max-device-width: 640px) {
       #landing-guide #enter-portal-btn {
-        width: 84px;
-        height: 84px;
+        padding: 8.75px 17.5px;
       }
       #landing-guide #enter-portal-btn .go-btn-text {
-        font-size: 12px;
-        padding: 0 8px;
+        font-size: clamp(10px, 3.25vw, 12.5px);
+        letter-spacing: 0.12em;
       }
     }
 
-    .guide-enter-hint {
-      font-size: 15px;
-      font-style: normal;
-      opacity: 0.88;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: rgba(255, 248, 224, 0.92);
-      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
-    }
     .track-transport {
       border: 1px solid rgba(255,248,224,0.18);
       border-radius: 8px;

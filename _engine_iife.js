@@ -478,35 +478,6 @@
         });
     }
 
-    function __cpEnsureUpgradeControl() {
-        if (window.parent === window) return;
-        var el = document.getElementById('cp-shell-upgrade');
-        if (!el) {
-            el = document.createElement('div');
-            el.id = 'cp-shell-upgrade';
-            el.style.cssText = 'margin-top:8px;font-size:12px;line-height:1.4;';
-            var a = document.createElement('a');
-            a.href = '#';
-            a.textContent = 'Create account to unlock \u2192';
-            a.style.cssText = 'color:#7eb8ff;text-decoration:underline;cursor:pointer;';
-            a.addEventListener('click', function (ev) {
-                ev.preventDefault();
-                try {
-                    window.parent.postMessage(
-                        { type: 'cp-action', action: 'signup-prompt' },
-                        '*'
-                    );
-                } catch (e5) {}
-            });
-            el.appendChild(a);
-            var col = document.getElementById('pmFrequencyControlCol');
-            if (col) col.appendChild(el);
-        }
-        var se = __cpSubEffective();
-        el.style.display =
-            !se.isDevMode && se.tier === 'free' ? '' : 'none';
-    }
-
     /**
      * After free-tier gating, HTML defaults and early gate passes may leave preset + balanced.
      * Once subscription unlocks (trial/pro/etc.), restore the intended product defaults.
@@ -558,7 +529,6 @@
         }
         __cpApplyUnlockedProductDefaults();
         __cpRestartSessionTimer();
-        __cpEnsureUpgradeControl();
         if (selPreset) {
             __cpLastGatedPresetValue = selPreset.value;
         }

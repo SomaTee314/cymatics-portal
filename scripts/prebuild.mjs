@@ -28,6 +28,10 @@ if (sync.status !== 0) {
   process.exit(sync.status ?? 1);
 }
 
+const vf = spawnSync(process.execPath, ['scripts/verify-particle-landing.mjs'], { stdio: 'inherit' });
+if (vf.status !== 0) {
+  process.exit(vf.status ?? 1);
+}
 /* On Vercel **cloud** builds only: root index is generated then copied to public/; the leftover
    file can confuse routing in rare cases. Do not use bare `VERCEL` — a local shell may set it
    after `vercel` CLI and would delete index.html before commit. */

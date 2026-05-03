@@ -11,6 +11,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
 import { AccountMenu } from '@/components/shell/AccountMenu';
+import { SHELL_CHROME_FRAME } from '@/components/shell/shellChrome';
 import { SessionTimer } from '@/components/subscription/SessionTimer';
 import {
   hasFeature,
@@ -25,6 +26,50 @@ import { isSubscriptionPaused } from '@/lib/subscription-pause';
 import { SignUpPromptModal } from '@/components/shell/SignUpPromptModal';
 
 const SUB_MSG = 'cp-subscription';
+
+const LOOPBACK_ALIASES = new Set([
+  'localhost',
+  '127.0.0.1',
+  '[::1]',
+  '::1',
+]);
+
+/**
+ * Parent may be opened as http://localhost:3000 while the iframe resolves to http://127.0.0.1:3000
+ * (or [::1]): those are distinct postMessage origins but the same tab — accept when scheme/port match loopback.
+ */
+function samePortalOrigin(senderOrigin: string, topOrigin: string): boolean {
+  if (senderOrigin === topOrigin) return true;
+  try {
+    const a = new URL(senderOrigin);
+    const b = new URL(topOrigin);
+    if (a.protocol !== b.protocol) return false;
+    const pa =
+      a.port ||
+      (a.protocol === 'https:' ? '443' : a.protocol === 'http:' ? '80' : '');
+    const pb =
+      b.port ||
+      (b.protocol === 'https:' ? '443' : b.protocol === 'http:' ? '80' : '');
+    if (pa !== pb) return false;
+    const ha = a.hostname.toLowerCase();
+    const hb = b.hostname.toLowerCase();
+    if (LOOPBACK_ALIASES.has(ha) && LOOPBACK_ALIASES.has(hb)) return true;
+    return ha === hb;
+  } catch {
+    return false;
+  }
+}
+
+/** Allow perf ingest relay when dev or browse host is loopback (matches /api/debug-ingest loopback write policy). */
+function shouldRelayLandingPerfDebug(): boolean {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname;
+  const loopback =
+    host === 'localhost' ||
+    host === '127.0.0.1' ||
+    host === '[::1]';
+  return process.env.NODE_ENV === 'development' || loopback;
+}
 
 type SubscriptionMessage = {
   type: typeof SUB_MSG;
@@ -110,14 +155,7 @@ CymaticsFrame.displayName = 'CymaticsFrame';
 /** Stable across SSR and client (random keys cause React #418 hydration errors on the iframe). */
 const CYMATICS_IFRAME_KEY = 'cymatics-frame';
 
-function readPortalReachedFromStorage(): boolean {
-  if (typeof window === 'undefined') return false;
-  try {
-    return window.localStorage.getItem('cp_reached_portal') === '1';
-  } catch {
-    return false;
-  }
-}
+type ShellLandingPhase = 'hero' | 'guide' | 'portal';
 
 export function CymaticsShell() {
   const router = useRouter();
@@ -133,6 +171,7 @@ export function CymaticsShell() {
   } = useUser();
   const subscriptionPaused = isSubscriptionPaused();
   const [signUpModalOpen, setSignUpModalOpen] = useState(false);
+  const [shellPhase, setShellPhase] = useState<ShellLandingPhase>('hero');
 
   const postSubscriptionToIframe = useCallback(
     (force?: boolean) => {
@@ -206,10 +245,65 @@ export function CymaticsShell() {
 
   useEffect(() => {
     const onMessage = (ev: MessageEvent) => {
+      /* Same-origin cymatics iframe only — check before source identity (sources can mismatch ref edge cases). */
+      if (!samePortalOrigin(ev.origin, window.location.origin)) return;
+      /* Landing perf probes: relay to /api/debug-ingest (writes debug-7e891a.log in dev). */
+      const perf = ev.data as {
+        type?: string;
+        sessionId?: string;
+        envelope?: Record<string, unknown>;
+      } | null;
+      if (
+        perf &&
+        perf.type === 'cp-landing-perf' &&
+        perf.sessionId === '7e891a' &&
+        perf.envelope &&
+        typeof perf.envelope === 'object'
+      ) {
+        if (shouldRelayLandingPerfDebug()) {
+          const body = JSON.stringify(perf.envelope);
+          void fetch('/api/debug-ingest', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Debug-Session-Id': '7e891a',
+            },
+            credentials: 'same-origin',
+            keepalive: true,
+            body,
+          })
+            .then(async function (res) {
+              if (res.ok) return;
+              var t = '';
+              try {
+                t = await res.text();
+              } catch (_) {}
+              console.warn('[DEBUG-7e891a-relay-http]', res.status, t);
+            })
+            .catch(function (e) {
+              console.warn('[DEBUG-7e891a-relay-fail]', e && String(e.message));
+            });
+        }
+        return;
+      }
+
       if (ev.source !== iframeRef.current?.contentWindow) return;
-      if (ev.origin !== window.location.origin) return;
       const d = ev.data as { type?: string; action?: string } | null;
       if (!d || d.type !== 'cp-action') return;
+      if (d.action === 'guide-opened') {
+        setShellPhase('guide');
+        setReachedPortal(false);
+        try {
+          window.localStorage.removeItem('cp_reached_portal');
+        } catch {
+          /* ignore */
+        }
+        return;
+      }
+      if (d.action === 'guide-closed') {
+        setShellPhase('hero');
+        return;
+      }
       if (d.action === 'portal-reached') {
         try {
           window.localStorage.setItem('cp_reached_portal', '1');
@@ -217,6 +311,7 @@ export function CymaticsShell() {
           /* ignore */
         }
         setReachedPortal(true);
+        setShellPhase('portal');
         return;
       }
       if (d.action === 'signup-prompt' || d.action === 'upgrade-clicked') {
@@ -245,14 +340,50 @@ export function CymaticsShell() {
     return () => window.removeEventListener('message', onMessage);
   }, [router, subscriptionPaused, isAuthenticated, ctxDev]);
 
-  useEffect(() => {
-    if (readPortalReachedFromStorage()) setReachedPortal(true);
+  const postShellNavBack = useCallback(() => {
+    const win = iframeRef.current?.contentWindow;
+    if (!win) return;
+    try {
+      win.postMessage(
+        { type: 'cp-shell', action: 'nav-back' },
+        window.location.origin
+      );
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   return (
     <div className="relative min-h-screen w-full bg-[#030508]">
       <SessionTimer />
-      <AccountMenu showAnonymousSignup={reachedPortal} />
+      <div className={SHELL_CHROME_FRAME}>
+        {(shellPhase === 'guide' || shellPhase === 'portal') && (
+          <button
+            type="button"
+            onClick={postShellNavBack}
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-white/15 bg-black/80 text-white shadow-lg transition-colors hover:bg-black/90"
+            aria-label="Back"
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+        )}
+        <AccountMenu
+          showAnonymousSignup={reachedPortal}
+          chromeInline
+        />
+      </div>
       <SignUpPromptModal
         open={signUpModalOpen}
         onClose={() => setSignUpModalOpen(false)}

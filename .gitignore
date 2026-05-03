@@ -21,4 +21,5 @@ __pycache__/
 *.pyc
 *.zip
 tmp_snip.txt
+public/debug-7e891a.ndjson
 tsconfig.tsbuildinfo

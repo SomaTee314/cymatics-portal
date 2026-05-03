@@ -27,15 +27,13 @@ The Chakra Yogi experiment in the Particle Source project already demonstrates t
 
 ```javascript
 // ── AUTO-SKIP QUALITY GATE ──
-// Programmatically click "Medium" after the engine finishes init.
-// The engine's quality handler (module 53, function l) hides the selector,
-// sets texture resolution, and triggers the attract-screen reveal animation.
+// Programmatically click "Low" after the engine finishes init (attract performance).
+// The engine's quality handler hides the selector and sets texture resolution.
 (function() {
     var qualityBtns = document.querySelectorAll('#landing-root .quality-btn');
-    if (qualityBtns.length >= 2) {
-        // Use a short delay to ensure the engine's init has bound the click handlers
+    if (qualityBtns.length >= 1) {
         setTimeout(function() {
-            qualityBtns[1].click(); // Index 1 = "Medium"
+            qualityBtns[0].click(); // Index 0 = "Low"
         }, 100);
     }
 })();
@@ -61,14 +59,18 @@ This way:
 - The user never sees the Low/Medium/High screen
 - The particle attract screen with the Go button appears immediately
 
-### Why "Medium"?
+### Why "Low" (not Medium)?
 
-Medium gives a good balance of visual fidelity and performance:
-- `particlesMotionTextureWidth/Height` = 256 (65K particles)
-- Motion blur enabled at 0.5 scale
-- `particle.size` = 2.5
+**Low** is selected for the Cymatics Portal **attract screen** to reduce GPU load from the motion particle sim and post-process (smaller motion textures and lighter defaults than Medium/Medium’s ~65K-particle feel). The overlay is a short-lived background; the main portal cymatics experience after **Enter Portal** is independent.
 
-This is the landing background only — the main Cymatics Portal still uses its own 111,111 particle count independently.
+Medium (index 1) was the earlier default and looks slightly richer but can feel laggy on laptops and phones inside a parent page or iframe. **Do not switch back to Medium without checking FPS** on representative hardware.
+
+If you need a quality bump for a demo build, change **`qualityBtns[0]`** to **`qualityBtns[1]`** in the bridge script (`index.html` / `_build_portal.py`) and re-run the portal build.
+
+**Reference (Medium, for comparison):**
+
+- `particlesMotionTextureWidth/Height` ≈ 256 (on the order of tens of thousands of particles in the stock engine)
+- Motion blur enabled at reduced scale
 
 ---
 
@@ -108,10 +110,11 @@ Replace the entire bridge `<script>` block in `_build_portal.py` with this conso
     if (!landingRoot) return; // skip-landing or missing
 
     // ── 1. AUTO-SKIP QUALITY GATE ──
+    /* Index 0 = Low — smaller motion texture; prioritises attract FPS (see LANDING_PAGE_FIXES.md). */
     var qualityBtns = landingRoot.querySelectorAll('.quality-btn');
-    if (qualityBtns.length >= 2) {
+    if (qualityBtns.length >= 1) {
         setTimeout(function() {
-            qualityBtns[1].click(); // "Medium"
+            qualityBtns[0].click(); // Low
         }, 100);
     }
 
@@ -199,8 +202,8 @@ Apply the fixes from LANDING_PAGE_FIXES.md:
 1. In _build_portal.py, hide the quality selector with CSS (opacity: 0, pointer-events: none) 
    on #landing-root .quality-selector and #landing-root .quality-title
 
-2. In the landing bridge script, add the auto-click on the Medium quality button 
-   (qualityBtns[1].click() after 100ms setTimeout) BEFORE the Go-button override
+2. In the landing bridge script, auto-click the **Low** quality button
+   (`qualityBtns[0].click()` after 100ms `setTimeout`) BEFORE the Go-button override
 
 3. Replace the entire bridge script block with the consolidated version from the fixes doc
 

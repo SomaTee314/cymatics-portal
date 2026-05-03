@@ -99,70 +99,7 @@ def patch_particle_js(js: str) -> str:
     )
     js2 = js.replace('assetPath:"./"', f"assetPath:{repl_obj}")
     js2 = js2.replace('assetPath="./"', f"assetPath={repl_assign}")
-    # Smoother phased entrance for .menu + Enter Portal (.go-btn): avoid scale-from-near-zero + easeOutBack pop.
-    _v_old = (
-        'function v(){F.style.display="block",M.set(k[0],{x:136,force3D:!0,opacity:0}),'
-        'M.to(k[0],.8,{x:0,force3D:!0,opacity:1,ease:"easeInOutQuint"}),'
-        'M.set(k[1],{x:-136,force3D:!0,opacity:0}),'
-        'M.to(k[1],.8,{x:0,force3D:!0,opacity:1,ease:"easeInOutQuint"}),'
-        'M.to(k[1],.8,{x:0,force3D:!0,opacity:1,ease:"easeInOutQuint"}),'
-        'M.set(Y,{scale:.001,force3D:!0,opacity:0}),M.to(Y,.5,{opacity:1}),'
-        'M.to(Y,.8,{scale:1,force3D:!0,ease:"easeOutBack"})}'
-    )
-    # Enter Portal: start sooner (delay 0 on button), ease title/dropdown rows slightly; gentler from-y.
-    _v_new = (
-        'function v(){F.style.display="block",M.set(F,{opacity:0}),'
-        'M.to(F,1.1,{opacity:1,ease:"easeOutSine"}),'
-        'M.set(k[0],{x:56,force3D:!0,opacity:0}),'
-        'M.to(k[0],1.2,{delay:.04,x:0,force3D:!0,opacity:1,ease:"easeOutCubic"}),'
-        'M.set(k[1],{x:-56,force3D:!0,opacity:0}),'
-        'M.to(k[1],1.2,{delay:.04,x:0,force3D:!0,opacity:1,ease:"easeOutCubic"}),'
-        'M.fromTo(Y,1.05,{opacity:0,scale:.9,y:14,force3D:!0},'
-        '{delay:0,opacity:1,scale:1,y:0,force3D:!0,ease:"easeOutCubic"})}'
-    )
-    if _v_old not in js2:
-        raise SystemExit("patch_particle_js: expected landing v() body not found (source changed?)")
-    js2 = js2.replace(_v_old, _v_new, 1)
-    # Logo (W) + camera: longer, gentler eases so "Cymatics Portal" / scene settle feels less snappy.
-    _y_tween_old = (
-        "M.to(W,.5,{opacity:1}),M.to(T.camera.position,1,{x:Q.x,y:Q.y,z:Q.z,ease:"
-        '"easeOutBack"})'
-    )
-    _y_tween_new = (
-        "M.to(W,.95,{opacity:1,ease:"
-        '"easeOutSine"}),M.to(T.camera.position,1.5,{x:Q.x,y:Q.y,z:Q.z,ease:"easeInOutCubic"})'
-    )
-    if _y_tween_old not in js2:
-        raise SystemExit("patch_particle_js: y() logo/camera tweens not found (source changed?)")
-    js2 = js2.replace(_y_tween_old, _y_tween_new, 1)
-    _y_blur_old = (
-        "M.to(I,1,{ratio:0,blurRadius:2.5,amount:1,ease:"
-        '"easeOutQuint",onComplete:function(){C.style.pointerEvents="auto",F.style.pointerEvents="auto"}})}'
-    )
-    _y_blur_new = (
-        "M.to(I,1.45,{ratio:0,blurRadius:2.5,amount:1,ease:"
-        '"easeOutQuint",onComplete:function(){C.style.pointerEvents="auto",F.style.pointerEvents="auto"}})}'
-    )
-    if _y_blur_old not in js2:
-        raise SystemExit("patch_particle_js: y() motion-blur onComplete not found (source changed?)")
-    js2 = js2.replace(_y_blur_old, _y_blur_new, 1)
-    # Landing particle field: stabilize timestep (raw delta made speed nonlinear and spiked on hitches).
-    _c_old = (
-        "function c(e,t){if(!T.skipRendering){e=e||0,T.deltaRatio=e/.016,t=t||Date.now();"
-        "var n=T.speed+(1-T.initialAmimation)*e*100;e*=n,"
-    )
-    _c_new = (
-        "function c(e,t){if(!T.skipRendering){e=e||0,e=Math.min(e,.048),"
-        "T._sdt=T._sdt==null?e:T._sdt*.872+e*.128,T.deltaRatio=T._sdt/.016,t=t||Date.now();"
-        "var n=T.speed+(1-T.initialAmimation)*T._sdt*100;e=T._sdt*n,"
-    )
-    if _c_old not in js2:
-        raise SystemExit("patch_particle_js: expected c() timestep body not found (source changed?)")
-    js2 = js2.replace(_c_old, _c_new, 1)
-    js2 = js2.replace("T.mouse.lerp(T.tmpMouse,.05)", "T.mouse.lerp(T.tmpMouse,.032)", 1)
-    js2 = js2.replace("antialias:!1,alpha:!0", "antialias:!0,alpha:!0", 1)
-    js2 = js2.replace('n.motionBlurQuality="high"', 'n.motionBlurQuality="best"', 1)
-    # Spectrum: rotate four key colours in HSL (was fixed blue/teal hex) + faster shader lerp to match.
+    # Spectrum: rotate four key colours in HSL (was fixed blue/teal hex).
     _l_old = "function l(e){n.needsResetWorldMatrix"
     _l_new = (
         "function l(e){this._pmHueR=((this._pmHueR||0)+e*1.2)%1;var b=this._pmHueR;"
@@ -175,21 +112,33 @@ def patch_particle_js(js: str) -> str:
     if _l_old not in js2:
         raise SystemExit("patch_particle_js: particle motion l(e) hook not found (source changed?)")
     js2 = js2.replace(_l_old, _l_new, 1)
-    _lerp_old = (
-        "this.uniforms.u_color1.value.lerp(this.color1,e),"
-        "this.uniforms.u_color2.value.lerp(this.color2,e),"
-        "this.uniforms.u_color3.value.lerp(this.color3,e),"
-        "this.uniforms.u_color4.value.lerp(this.color4,e)"
+
+    # Low-tier bootstrap at WebGL init: bridge Low click fires later; avoids 512²+MB hitch until handlers run.
+    # Stock c()/mouse smoothing unchanged.
+    _ptex_old = "particlesMotionTextureWidth=512,n.particlesMotionTextureHeight=512"
+    _ptex_new = "particlesMotionTextureWidth=256,n.particlesMotionTextureHeight=256"
+    if _ptex_old not in js2:
+        raise SystemExit("patch_particle_js: particlesMotionTexture defaults not found (source changed?)")
+    js2 = js2.replace(_ptex_old, _ptex_new, 1)
+    _mb_old = 'n.motionBlur=!0;var o=n.motionBlurQualityMap'
+    _mb_new = 'n.motionBlur=!1;var o=n.motionBlurQualityMap'
+    if _mb_old not in js2:
+        raise SystemExit("patch_particle_js: motionBlur default not found (source changed?)")
+    js2 = js2.replace(_mb_old, _mb_new, 1)
+    _mbq_old = 'n.motionBlurQualityList=r(o),n.motionBlurQuality="high"'
+    _mbq_new = 'n.motionBlurQualityList=r(o),n.motionBlurQuality="low"'
+    if _mbq_old not in js2:
+        raise SystemExit("patch_particle_js: motionBlurQuality default not found (source changed?)")
+    js2 = js2.replace(_mbq_old, _mbq_new, 1)
+    _dpr_hook_old = "h=b.renderer,f=b.scene"
+    _dpr_hook_new = (
+        "h=b.renderer,h.setPixelRatio(Math.min(1.25,"
+        '(typeof window!="undefined"?window.devicePixelRatio:1)||1)),f=b.scene'
     )
-    _lerp_new = (
-        "this.uniforms.u_color1.value.lerp(this.color1,Math.min(1,20*e)),"
-        "this.uniforms.u_color2.value.lerp(this.color2,Math.min(1,20*e)),"
-        "this.uniforms.u_color3.value.lerp(this.color3,Math.min(1,20*e)),"
-        "this.uniforms.u_color4.value.lerp(this.color4,Math.min(1,20*e))"
-    )
-    if _lerp_old not in js2:
-        raise SystemExit("patch_particle_js: u_color lerp block not found (source changed?)")
-    js2 = js2.replace(_lerp_old, _lerp_new, 1)
+    if _dpr_hook_old not in js2:
+        raise SystemExit("patch_particle_js: renderer assign (h=b.renderer) hook not found (source changed?)")
+    js2 = js2.replace(_dpr_hook_old, _dpr_hook_new, 1)
+
     return js2
 
 

@@ -188,22 +188,15 @@ The landing CSS uses global selectors (`html`, `body`, `canvas`, etc.) that will
                 <div class="guide-step">
                     <span class="guide-step-badge">01</span>
                     <div>
-                        <strong>Frequency Control</strong>
-                        <p>Choose your Audio Mode: Upload a track (FFT follows audio), select a Healing Preset, or dial in a Manual tone. Adjust the frequency with the dial or number input.</p>
+                        <strong>Sound &amp; playback</strong>
+                        <p>In the first column, choose an <strong>Audio Mode</strong>: <strong>Upload Track</strong> (pick an <strong>Audio file</strong>), <strong>Healing Presets</strong>, or <strong>Manual tone</strong>. Set <strong>Frequency</strong> when that mode uses it. Use <strong>Play</strong>, <strong>Pause</strong>, and <strong>Stop</strong>; adjust <strong>Volume</strong>. For an uploaded track, scrub the timeline and use the time readout.</p>
                     </div>
                 </div>
                 <div class="guide-step">
                     <span class="guide-step-badge">02</span>
                     <div>
-                        <strong>Visual Control</strong>
-                        <p>Set particle count (default 111,111), choose a Pattern Intensity (Balanced, Mandelbrot, or Julia), and toggle colour modes. Fine-tune under Advanced Visual Controls (press H to show/hide).</p>
-                    </div>
-                </div>
-                <div class="guide-step">
-                    <span class="guide-step-badge">03</span>
-                    <div>
-                        <strong>Start Audio</strong>
-                        <p>Press the Start Audio button to begin. In track mode, use the playback controls to play, pause, and scrub. The visuals react to your audio in real time.</p>
+                        <strong>Advanced visuals</strong>
+                        <p>In the second column, pick an <strong>Audio-Visualiser Portal</strong> (<strong>Balanced</strong>, <strong>Mandelbrot</strong>, or <strong>Julia</strong>) and set <strong>Particle count</strong>. Press <strong>H</strong> for <strong>Advanced Visual Controls</strong>; drag the panel by its header or tap ↺ to reset position.</p>
                     </div>
                 </div>
             </div>

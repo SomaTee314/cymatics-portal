@@ -5,7 +5,26 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useUser } from '@/context/UserContext';
 import type { UserTier } from '@/lib/tiers';
 
-const SHELL_Z = 'z-[96]';
+function MenuHamburger({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width="16"
+      height="12"
+      viewBox="0 0 20 14"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path
+        d="M1.5 2h17M1.5 7h17M1.5 12h17"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
 
 function tierDisplay(
   storedTier: UserTier | undefined,
@@ -53,18 +72,17 @@ function truncateEmail(email: string, max = 28) {
 }
 
 type AccountMenuProps = {
-  /** Anonymous “Sign up” is hidden until the iframe reaches the main portal (3rd step). */
+  /** Anonymous “Sign up” is hidden until the iframe reaches the main portal (step 3). */
   showAnonymousSignup?: boolean;
+  /** Parent supplies fixed positioning wrapper; this component is `relative` only. */
+  chromeInline?: boolean;
 };
 
-export function AccountMenu({ showAnonymousSignup = true }: AccountMenuProps) {
-  const {
-    isLoading,
-    user,
-    effectiveTier,
-    isTrialActive,
-    signOut,
-  } = useUser();
+export function AccountMenu({
+  showAnonymousSignup = true,
+  chromeInline = false,
+}: AccountMenuProps) {
+  const { isLoading, user, effectiveTier, isTrialActive, signOut } = useUser();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -96,26 +114,27 @@ export function AccountMenu({ showAnonymousSignup = true }: AccountMenuProps) {
     return null;
   }
 
+  const wrapClass = chromeInline ? 'relative' : '';
+
   if (!user) {
     if (!showAnonymousSignup) {
       return null;
     }
     return (
-      <div className={`fixed top-4 right-4 ${SHELL_Z}`}>
+      <div className={wrapClass}>
         <Link
           href="/signup"
           prefetch={false}
-          className="inline-flex rounded-full border border-white/10 bg-black/75 px-4 py-1.5 text-sm text-white/70 transition-colors hover:bg-black/85 hover:text-white/90"
+          className="inline-flex max-w-[min(10rem,calc((100vw-min(95vw,1400px))/2-4px))] whitespace-normal rounded-md border border-white/10 bg-black/80 px-1.5 py-0.5 text-center text-[10px] font-medium leading-tight text-white/75 shadow-lg backdrop-blur-sm transition-colors hover:bg-black/90 hover:text-white/90"
           aria-label="Sign up for free access"
         >
-          Sign up for free access
+          Sign up
         </Link>
       </div>
     );
   }
 
   const email = user.email ?? '';
-  const letter = (email[0] ?? '?').toUpperCase();
   const { label, className } = tierDisplay(
     user.tier,
     effectiveTier,
@@ -123,16 +142,16 @@ export function AccountMenu({ showAnonymousSignup = true }: AccountMenuProps) {
   );
 
   return (
-    <div ref={rootRef} className={`fixed top-4 right-4 ${SHELL_Z}`}>
+    <div ref={rootRef} className={wrapClass}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex size-10 items-center justify-center rounded-full border border-white/15 bg-black/80 text-sm font-medium text-white shadow-lg transition-colors hover:bg-black/90"
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-white/15 bg-black/80 text-white shadow-lg transition-colors hover:bg-black/90"
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="Account menu"
       >
-        {letter}
+        <MenuHamburger className="shrink-0 opacity-95" />
       </button>
       {open ? (
         <div
@@ -140,7 +159,10 @@ export function AccountMenu({ showAnonymousSignup = true }: AccountMenuProps) {
           className="absolute right-0 mt-2 w-64 origin-top-right rounded-xl border border-white/10 bg-zinc-950/98 p-3 shadow-2xl"
           onMouseDown={(e) => e.stopPropagation()}
         >
-          <p className="truncate px-0.5 text-xs text-white/40" title={email || undefined}>
+          <p
+            className="truncate px-0.5 text-xs text-white/40"
+            title={email || undefined}
+          >
             {email ? truncateEmail(email) : '—'}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -151,18 +173,10 @@ export function AccountMenu({ showAnonymousSignup = true }: AccountMenuProps) {
             </span>
           </div>
           <div className="my-3 border-t border-white/10" />
-          <Link
-            href="/pricing"
-            role="menuitem"
-            className="block rounded-lg px-2 py-2 text-sm text-white/85 transition-colors hover:bg-white/10"
-            onClick={close}
-          >
-            Manage Subscription
-          </Link>
           <button
             type="button"
             role="menuitem"
-            className="mt-0.5 w-full rounded-lg px-2 py-2 text-left text-sm text-white/85 transition-colors hover:bg-white/10"
+            className="w-full rounded-lg px-2 py-2 text-left text-sm text-white/85 transition-colors hover:bg-white/10"
             onClick={() => void onSignOut()}
           >
             Log out

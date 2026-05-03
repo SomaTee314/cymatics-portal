@@ -3,23 +3,39 @@
     <div class="iframe-container"></div>
     <div class="ui">
         <canvas></canvas>
-        <div class="logo" style="opacity:1; transform:translate3d(0,0,0); cursor:pointer; pointer-events:auto;">
+        <div class="landing-particle-om" aria-hidden="true">
+            <object class="landing-particle-om-svg" type="image/svg+xml" data="./landing/img/landing-om.svg" width="356" height="367" tabindex="-1" aria-hidden="true"></object>
+        </div>
+        <div class="logo" style="opacity:1; cursor:pointer; pointer-events:auto;">
             <span class="logo-title">CYMATICS PORTAL</span>
         </div>
         <div class="menu">
+            <div class="landing-hero-stack">
+                <div class="landing-hero-intro">
+                    <h2 class="landing-hero-kicker">
+                        <span class="landing-hero-kicker-line1">Nāda Brahma</span>
+                        <span class="landing-hero-kicker-line2">Sound Made Visible</span>
+                    </h2>
+                    <p class="landing-hero-lead">A contemplative audio-visual instrument where frequency resolves into living geometry. Sweep a tone, summon a Solfeggio, or feed in a track — and watch the spectrum render itself as standing wave, fractal, and sacred form. Tens of thousands of particles, listening in real time.</p>
+                    <p class="landing-hero-note">An invitation to sit with a frequency and remember that listening is itself a practice.</p>
+                    <p class="landing-hero-close">The ancient claim and modern physics agree...form arises from vibration!</p>
+                </div>
+                <div class="landing-hero-cta">
+                    <div class="go-btn">
+                        <div class="go-btn-bg">
+                            <div class="go-btn-bg-spinner">
+                                <div class="go-btn-bg-inner"></div>
+                            </div>
+                        </div>
+                        <div class="go-btn-text cache">Enter Portal</div>
+                    </div>
+                </div>
+            </div>
             <div class="arrow is-left">
                 <div class="arrow-inner">
                     <div class="arrow-part"></div>
                     <div class="arrow-part"></div>
                 </div>
-            </div>
-            <div class="go-btn">
-                <div class="go-btn-bg">
-                    <div class="go-btn-bg-spinner">
-                        <div class="go-btn-bg-inner"></div>
-                    </div>
-                </div>
-                <div class="go-btn-text cache">Enter Portal</div>
             </div>
             <div class="arrow is-right">
                 <div class="arrow-inner">
@@ -27,11 +43,11 @@
                     <div class="arrow-part"></div>
                 </div>
             </div>
-            <div class="titles-container">
-                <label class="pm-demo-label" for="pm-demo-select">Choose visual</label>
-                <select id="pm-demo-select" class="pm-demo-select" aria-label="Choose visual"></select>
-                <div class="titles-move-container" aria-hidden="true"></div>
-            </div>
+        </div>
+        <div class="titles-container" aria-hidden="true">
+            <label class="pm-demo-label" for="pm-demo-select">Choose visual</label>
+            <select id="pm-demo-select" class="pm-demo-select" aria-label="Choose visual"></select>
+            <div class="titles-move-container" aria-hidden="true"></div>
         </div>
     </div>
     <div class="quality-selector" style="display:block; pointer-events:auto;">
@@ -86,26 +102,19 @@
 
             <div class="guide-instructions">
                 <h2>How to Use</h2>
-                <ol class="guide-steps" aria-label="Quick start steps">
+                <ol class="guide-steps" aria-label="Sound and visuals">
                 <li class="guide-step">
                     <span class="guide-step-badge" aria-hidden="true">01</span>
                     <div class="guide-step-body">
                         <h3 class="guide-step-title">Sound &amp; playback</h3>
-                        <p class="guide-step-text">Everything you hear runs from the first control column. Choose a mode (track, preset, or manual tone), set the frequency, and add a file when you are using a track. Use Play, Pause, and Stop, turn Volume to taste, and drag the track-position slider when a file is playing.</p>
+                        <p class="guide-step-text">In the first column, choose an <strong>Audio Mode</strong>: <strong>Upload Track</strong> (choose an <strong>Audio file</strong>), <strong>Healing Presets</strong> (pick a preset), or <strong>Manual tone</strong>. Set <strong>Frequency</strong> with the slider or number box when that mode uses it. Use <strong>Play</strong>, <strong>Pause</strong>, and <strong>Stop</strong>; adjust <strong>Volume</strong>. For an uploaded track, scrub the timeline and watch the time label while it plays.</p>
                     </div>
                 </li>
                 <li class="guide-step">
                     <span class="guide-step-badge" aria-hidden="true">02</span>
                     <div class="guide-step-body">
                         <h3 class="guide-step-title">Advanced visuals</h3>
-                        <p class="guide-step-text">The second column is for the picture. Pick an Audio-Visualiser Portal and a particle count. Under that, open Advanced Visual Controls for colours and deeper tweaks. Press H to show or hide that panel. Drag a panel by its header, or tap ↺ to put it back where it started.</p>
-                    </div>
-                </li>
-                <li class="guide-step">
-                    <span class="guide-step-badge" aria-hidden="true">03</span>
-                    <div class="guide-step-body">
-                        <h3 class="guide-step-title">Start &amp; explore</h3>
-                        <p class="guide-step-text">Press Play: the pattern rides your audio in real time. For fullscreen, use the control on the bar above the visual. Two rail icons appear—Sound &amp; playback and Advanced visuals. Hover to preview, click to pin, × or Escape to close a panel. Escape again leaves fullscreen.</p>
+                        <p class="guide-step-text">In the second column, pick an <strong>Audio-Visualiser Portal</strong> (<strong>Balanced</strong>, <strong>Mandelbrot</strong>, or <strong>Julia</strong>) and set <strong>Particle count</strong> with the slider or number box. Press <strong>H</strong> to show or hide <strong>Advanced Visual Controls</strong>. Drag that window by its header; tap ↺ to snap it back to its default spot.</p>
                     </div>
                 </li>
                 </ol>
@@ -118,9 +127,8 @@
                             <div class="go-btn-bg-inner"></div>
                         </div>
                     </div>
-                    <div class="go-btn-text cache">Enter</div>
+                    <div class="go-btn-text cache">Enter Portal</div>
                 </div>
-                <p class="guide-enter-hint">Enter the Portal</p>
             </div>
         </div>
     </div>

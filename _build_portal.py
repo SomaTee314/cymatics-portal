@@ -1656,6 +1656,120 @@ portal_css += """
     #landing-root .quality-title {
       opacity: 0 !important;
     }
+
+    /* Hero block: user offset −0.75cm X, +1.5cm Y (wording + Enter Portal move together) */
+    #landing-root .menu {
+      position: fixed !important;
+      left: max(28px, 5vw) !important;
+      right: auto !important;
+      top: 50vh !important;
+      bottom: auto !important;
+      transform: translate(-0.75cm, calc(-50% - clamp(12px, 2.2vh, 30px) + 1.5cm)) !important;
+      z-index: 6;
+      box-sizing: border-box !important;
+      margin-left: 0 !important;
+      margin-top: 0 !important;
+      width: min(540px, calc(100vw - max(52px, 10vw))) !important;
+      min-width: 260px;
+      max-width: calc(100vw - max(52px, 10vw));
+      max-height: none !important;
+      height: auto !important;
+      min-height: 0 !important;
+      overflow: visible !important;
+      padding-right: max(12px, 1.5vw);
+    }
+    @media screen and (max-device-width: 640px) {
+      #landing-root .menu {
+        left: max(18px, 4vw) !important;
+        width: calc(100vw - max(36px, 9vw)) !important;
+        transform: translate(-0.75cm, calc(-50% - clamp(10px, 2vh, 26px) + 1.5cm)) !important;
+      }
+    }
+
+    /* Narrow left column: more room for particle hero; intro + CTA share width */
+    #landing-root .landing-hero-stack {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      width: 100%;
+      box-sizing: border-box;
+      --landing-hero-measure: min(38ch, 100%);
+    }
+
+    #landing-root .landing-hero-intro {
+      text-align: left;
+      user-select: text;
+      -webkit-user-select: text;
+      cursor: auto;
+      text-shadow: 0 2px 14px rgba(0,0,0,0.55);
+      width: 100%;
+      max-width: var(--landing-hero-measure);
+      box-sizing: border-box;
+    }
+
+    /* +30% headline type; two-line stack, left-aligned with narrow column */
+    #landing-root .landing-hero-kicker {
+      margin: 0 0 0.75em;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.12em;
+      font-weight: 700;
+      line-height: 1.22;
+      color: rgba(255,255,255,0.97);
+      letter-spacing: 0.03em;
+      text-align: left;
+    }
+
+    #landing-root .landing-hero-kicker-line1,
+    #landing-root .landing-hero-kicker-line2 {
+      font-size: clamp(20.8px, 2.47vw, 27.3px);
+      font-style: normal;
+    }
+
+    #landing-root .landing-hero-kicker-line2 {
+      margin-left: 0;
+      letter-spacing: 0.035em;
+      opacity: 0.94;
+    }
+
+    #landing-root .landing-hero-lead,
+    #landing-root .landing-hero-note {
+      margin: 0 0 1em;
+      font-size: clamp(13px, 1.48vw, 16px);
+      line-height: 1.62;
+      color: rgba(255,255,255,0.88);
+      overflow-wrap: break-word;
+    }
+
+    #landing-root .landing-hero-note {
+      margin-bottom: 0.9em;
+      color: rgba(255,255,255,0.84);
+    }
+
+    #landing-root .landing-hero-close {
+      margin: 0;
+      margin-top: 0.35em;
+      font-size: clamp(13px, 1.45vw, 16px);
+      font-weight: 700;
+      line-height: 1.5;
+      color: rgba(180,215,255,0.95);
+    }
+
+    #landing-root .landing-hero-cta {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      width: 100%;
+      max-width: var(--landing-hero-measure);
+      margin-top: 28px;
+      padding-bottom: 6px;
+      pointer-events: auto;
+      flex-shrink: 0;
+      box-sizing: border-box;
+    }
+
+    /* Sphere CTA + “Choose visual” hide: _portal_nifty.css (#landing-root .menu .go-btn, .titles-container) */
 """
 
 shell_body_pre_scripts = (
@@ -1883,18 +1997,333 @@ landing_bridge_js = r"""
   <script src="./landing/js/particle-landing.js"></script>
   <script>
 (function() {
+    /* Landing perf ingest: disabled by default. Use ?cpDebugPerf=1 to enable (loads extra RAF + POST /api/debug-ingest). */
+    if (/[?&]cpDebugPerf=1(?:&|$)/.test(location.search || '')) (function () {
+        /* Perf NDJSON → parent postMessage + optional same-origin POST /api/debug-ingest. */
+        function _send(loc, hypothesisId, message, data) {
+            var payload = {
+                sessionId: '7e891a',
+                runId: 'baseline',
+                location: loc,
+                hypothesisId: hypothesisId,
+                message: message,
+                data: data || {},
+                timestamp: Date.now()
+            };
+            var body = JSON.stringify(payload);
+            try {
+                if (
+                    window.parent !== window &&
+                    window.location.origin &&
+                    window.location.origin !== 'null'
+                ) {
+                    window.parent.postMessage(
+                        {
+                            type: 'cp-landing-perf',
+                            sessionId: '7e891a',
+                            envelope: payload
+                        },
+                        window.location.origin
+                    );
+                }
+            } catch (_pm) {}
+            // Same-origin fallback when Cymatics runs under `next dev` (writes workspace debug-7e891a.log via /api/debug-ingest).
+            var _nwUrl = null;
+            try {
+                var _p = window.location && window.location.protocol;
+                if (_p === 'http:' || _p === 'https:') {
+                    _nwUrl = window.location.origin + '/api/debug-ingest';
+                }
+            } catch (_u) {}
+            if (_nwUrl) {
+                fetch(_nwUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Debug-Session-Id': '7e891a'
+                    },
+                    body: body,
+                    credentials: 'same-origin',
+                    keepalive: true
+                })
+                    .then(function (res) {
+                        if (res.ok) return;
+                        return res.text().then(function (txt) {
+                            try {
+                                console.warn(
+                                    '[DEBUG-7e891a-ingest-http]',
+                                    res.status,
+                                    txt.slice(0, 200)
+                                );
+                            } catch (_) {}
+                        });
+                    })
+                    .catch(function (err) {
+                    try {
+                        console.warn(
+                            '[DEBUG-7e891a-local-ingest-fail]',
+                            err && String(err.message)
+                        );
+                    } catch (_) {}
+                });
+            }
+            // Verbose NDJSON mirror (DevTools Verbose/Debug level hides `debug` unless enabled).
+            try {
+                console.debug('[DEBUG-7e891a]', body);
+            } catch (_) {}
+        }
+        try {
+            _send('_build_portal:landing_bridge', 'H0', 'bridge_early', {
+                skipLanding: document.documentElement.classList.contains('skip-landing'),
+                hasLandingRoot: !!document.getElementById('landing-root'),
+                inIframe: window.parent !== window
+            });
+        } catch (_) {}
+        setTimeout(function () {
+            try {
+                var root = document.getElementById('landing-root');
+                var qs = root && root.querySelector('.quality-selector');
+                var cs = qs ? window.getComputedStyle(qs) : null;
+                _send(
+                    '_build_portal:landing_bridge',
+                    'H1',
+                    'post_quality_gate_dom',
+                    {
+                        qBtnCount: document.querySelectorAll('#landing-root .quality-btn').length,
+                        qsDisplay: cs && cs.display,
+                        qsVisibility: cs && cs.visibility,
+                        qsOpacity: cs && cs.opacity,
+                        qsPointerEvents: cs && cs.pointerEvents
+                    }
+                );
+            } catch (eQ) {
+                _send('_build_portal:landing_bridge', 'H1', 'post_quality_gate_err', {
+                    err: String(eQ && eQ.message)
+                });
+            }
+        }, 360);
+        setTimeout(function () {
+            try {
+                var root = document.getElementById('landing-root');
+                var cv = root && root.querySelector('canvas');
+                var vv = typeof window.visualViewport !== 'undefined' ? window.visualViewport : null;
+                var dpr = window.devicePixelRatio || 1;
+                var cw = cv ? cv.clientWidth : 0;
+                var ch = cv ? cv.clientHeight : 0;
+                var bw = cv ? cv.width : 0;
+                var bh = cv ? cv.height : 0;
+                var expW = cw * dpr;
+                var expH = ch * dpr;
+                var n = 0;
+                var tPrev = performance.now();
+                var maxDt = 0;
+                var sumDt = 0;
+                function rafTick() {
+                    var tNow = performance.now();
+                    var dt = tNow - tPrev;
+                    maxDt = Math.max(maxDt, dt);
+                    sumDt += dt;
+                    tPrev = tNow;
+                    n += 1;
+                    if (n < 41) requestAnimationFrame(rafTick);
+                    else {
+                        var avg = sumDt / 40;
+                        _send('_build_portal:landing_bridge', 'H2', 'canvas_rafsample', {
+                            dpr: dpr,
+                            canvasClientW: cw,
+                            canvasClientH: ch,
+                            canvasBufferW: bw,
+                            canvasBufferH: bh,
+                            bufferOverClientWdpr:
+                                cw > 0 ? bw / Math.max(expW, 1) : null,
+                            bufferOverClientHdpr:
+                                ch > 0 ? bh / Math.max(expH, 1) : null,
+                            vw: vv ? vv.width : null,
+                            vh: vv ? vv.height : null,
+                            innerW: window.innerWidth,
+                            innerH: window.innerHeight,
+                            uaShort:
+                                navigator.userAgent && navigator.userAgent.slice(0, 96),
+                            cores: navigator.hardwareConcurrency || null
+                        });
+                        _send('_build_portal:landing_bridge', 'H3', 'raf_spacing', {
+                            rafIntervals: 40,
+                            avgMs: avg,
+                            maxMs: maxDt,
+                            approxFpsMedian: avg > 0 ? 1000 / avg : null
+                        });
+                    }
+                }
+                requestAnimationFrame(rafTick);
+            } catch (eS) {
+                _send('_build_portal:landing_bridge', 'H2+H3', 'canvas_raf_err', {
+                    err: String(eS && eS.message)
+                });
+            }
+        }, 420);
+        try {
+            _send('_build_portal:landing_bridge', 'H5', 'landing_env', {
+                hasVisualViewport:
+                    typeof window.visualViewport !== 'undefined' &&
+                    !!window.visualViewport,
+                prefersReducedMotion: (function () {
+                    try {
+                        return window.matchMedia(
+                            '(prefers-reduced-motion: reduce)'
+                        ).matches;
+                    } catch (eM) {
+                        return null;
+                    }
+                })()
+            });
+        } catch (eE) {}
+    })();
+
     if (document.documentElement.classList.contains('skip-landing')) return;
 
     var landingRoot = document.getElementById('landing-root');
     if (!landingRoot) return;
 
     // ── 1. AUTO-SKIP QUALITY GATE ──
+    /* Index 0 = Low (LANDING_PAGE_FIXES.md). Deferred click so async preload can attach handlers. */
     var qualityBtns = landingRoot.querySelectorAll('.quality-btn');
-    if (qualityBtns.length >= 2) {
-        setTimeout(function() {
-            qualityBtns[1].click(); // "Medium"
+    if (qualityBtns.length >= 1) {
+        window.setTimeout(function () {
+            try {
+                qualityBtns[0].click(); // Low
+            } catch (_eQ) {}
         }, 100);
     }
+
+    // ── 1b. Logo-only FLIP to compact corner (.landing-particle-om stays centred CSS; no coupled GSAP). ──
+    (function compactLogoCorner() {
+        var TM = typeof TweenMax !== 'undefined' ? TweenMax : window.__landingTweenMax;
+        var heroMenu = landingRoot.querySelector('.menu');
+        if (!heroMenu) return;
+
+        var LOGO_CORNER_DURATION_S = 1.04; /* 0.8s baseline + ~30 pct slower */
+
+        function heroWordingUnveiled() {
+            try {
+                var cs = window.getComputedStyle(heroMenu);
+                if (cs.display === 'none') return false;
+                if (cs.visibility === 'hidden') return false;
+                return true;
+            } catch (eM) {
+                return false;
+            }
+        }
+
+        var compactQueued = false;
+        function queueCompact() {
+            if (compactQueued) return;
+            compactQueued = true;
+            /* Same frame tick as first paint of hero strip (wording + menu fade start) */
+            requestAnimationFrame(function () {
+                requestAnimationFrame(runCompactFlip);
+            });
+        }
+
+        function runCompactFlip() {
+            var logo = landingRoot.querySelector('.logo');
+            if (!logo || logo.getAttribute('data-cp-logo-compact') === '1') return;
+            var guideLayer = document.getElementById('landing-guide');
+            if (guideLayer && guideLayer.style.display === 'block') return;
+
+            logo.setAttribute('data-cp-logo-compact', '1');
+
+            if (!TM || typeof TM.killTweensOf !== 'function') {
+                logo.classList.add('cp-logo-compact');
+                return;
+            }
+
+            /* Particle engine tweens `.logo`; leftover inline transforms + CSS translate(-50%)
+             * fights GSAP FLIP and reads as a horizontal jog before the corner tween. */
+            TM.killTweensOf(logo);
+            try {
+                TM.set(logo, { clearProps: 'transform' });
+            } catch (_eClr) {}
+
+            /*
+             * One paint after reset: centred layout is purely from CSS (~:not(.cp-logo-compact)).
+             * Then invert and fromTo still in same task so no stray frame sees corner-only geometry.
+             */
+            requestAnimationFrame(function () {
+                var first = logo.getBoundingClientRect();
+
+                logo.classList.add('cp-logo-compact');
+                void logo.offsetHeight;
+                var last = logo.getBoundingClientRect();
+
+                var dx =
+                    first.left +
+                    first.width / 2 -
+                    (last.left + last.width / 2);
+                var dy =
+                    first.top +
+                    first.height / 2 -
+                    (last.top + last.height / 2);
+                var s = Math.max(
+                    0.0001,
+                    Math.min(first.width / last.width, first.height / last.height)
+                );
+
+                TM.fromTo(
+                    logo,
+                    LOGO_CORNER_DURATION_S,
+                    {
+                        x: dx,
+                        y: dy,
+                        scale: s,
+                        transformOrigin: '50% 50%',
+                        immediateRender: true,
+                        force3D: true
+                    },
+                    {
+                        x: 0,
+                        y: 0,
+                        scale: 1,
+                        transformOrigin: '50% 50%',
+                        ease: 'easeInOutQuint',
+                        onComplete: function () {
+                            try {
+                                TM.set(logo, { clearProps: 'transform' });
+                            } catch (eCl) {}
+                        }
+                    }
+                );
+            });
+        }
+
+        var obs = new MutationObserver(function () {
+            if (heroWordingUnveiled()) {
+                queueCompact();
+                obs.disconnect();
+            }
+        });
+        obs.observe(heroMenu, {
+            attributes: true,
+            attributeFilter: ['style', 'class']
+        });
+
+        var tries = 0;
+        var pol = window.setInterval(function () {
+            tries += 1;
+            if (heroWordingUnveiled() || tries >= 130) {
+                window.clearInterval(pol);
+                obs.disconnect();
+                if (heroWordingUnveiled()) queueCompact();
+            }
+        }, 100);
+
+        window.setTimeout(function () {
+            try {
+                window.clearInterval(pol);
+            } catch (eI) {}
+            obs.disconnect();
+            if (heroWordingUnveiled()) queueCompact();
+        }, 12000);
+    })();
 
     // ── 2. OVERRIDE GO BUTTON → SHOW GUIDE ──
     var origGo = landingRoot.querySelector('.go-btn');
@@ -1905,6 +2334,7 @@ landing_bridge_js = r"""
         origGo.parentNode.replaceChild(newGo, origGo);
 
         newGo.addEventListener('click', function() {
+            landingRoot.classList.add('cp-landing-guide-open');
             var menu = landingRoot.querySelector('.menu');
             if (menu) {
                 TweenMax.to(menu, 0.6, {
@@ -1925,6 +2355,14 @@ landing_bridge_js = r"""
                 { opacity: 0 },
                 { opacity: 1, ease: 'easeInOutCubic' }
             );
+            try {
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage(
+                        { type: 'cp-action', action: 'guide-opened' },
+                        window.location.origin || '*'
+                    );
+                }
+            } catch (_g1) {}
         });
     }
 
@@ -1954,20 +2392,176 @@ landing_bridge_js = r"""
 
                     window.dispatchEvent(new Event('resize'));
 
-                    var landingCanvas = landingRoot.querySelector('canvas');
-                    if (landingCanvas) {
-                        var gl = landingCanvas.getContext('webgl')
-                              || landingCanvas.getContext('experimental-webgl');
-                        if (gl) {
-                            var ext = gl.getExtension('WEBGL_lose_context');
-                            if (ext) ext.loseContext();
-                        }
-                    }
                 }
             });
         });
     }
 })();
+  </script>
+  <script>
+  (function () {
+    window.addEventListener('message', function (ev) {
+      try {
+        if (ev.source !== window.parent) return;
+        if (!ev.data || ev.data.type !== 'cp-shell' || ev.data.action !== 'nav-back') return;
+      } catch (e0) {
+        return;
+      }
+      var TM = typeof TweenMax !== 'undefined' ? TweenMax : window.__landingTweenMax;
+      var landingRoot = document.getElementById('landing-root');
+      var guide = document.getElementById('landing-guide');
+      var menu = landingRoot && landingRoot.querySelector('.menu');
+      var portalMain = document.querySelector('.portal-main');
+      if (!landingRoot || !guide) return;
+
+      if (TM) {
+        try {
+          TweenMax.killTweensOf(landingRoot);
+        } catch (_klr) {}
+        try {
+          TweenMax.killTweensOf(guide);
+        } catch (_kg) {}
+        if (menu) {
+          try {
+            TweenMax.killTweensOf(menu);
+          } catch (_km0) {}
+        }
+      }
+
+      var lrHidden = false;
+      try {
+        lrHidden = window.getComputedStyle(landingRoot).display === 'none';
+      } catch (eC) {
+        lrHidden = landingRoot.style.display === 'none';
+      }
+
+      if (lrHidden) {
+        try {
+          document.documentElement.classList.remove('skip-landing');
+        } catch (_sk) {}
+        if (TM) {
+          try {
+            TweenMax.set(landingRoot, { clearProps: 'opacity,transform' });
+          } catch (_clr) {}
+        }
+        landingRoot.style.display = '';
+        landingRoot.style.opacity = '1';
+        if (portalMain) portalMain.classList.add('portal-main--behind-landing');
+        landingRoot.classList.add('cp-landing-guide-open');
+        if (menu) {
+          menu.style.display = 'none';
+          menu.style.opacity = '0';
+          menu.style.visibility = 'hidden';
+        }
+        guide.style.display = 'block';
+        guide.style.opacity = '1';
+        guide.style.visibility = 'visible';
+        var logo = landingRoot.querySelector('.logo');
+        if (logo) {
+          if (TM) {
+            try {
+              TweenMax.killTweensOf(logo);
+            } catch (_klg) {}
+            try {
+              TM.set(logo, { opacity: 1, clearProps: 'transform' });
+            } catch (_l1) {
+              logo.style.opacity = '1';
+            }
+          } else {
+            logo.style.opacity = '1';
+          }
+        }
+        try {
+          if (window.parent !== window) {
+            window.parent.postMessage(
+              { type: 'cp-action', action: 'guide-opened' },
+              window.location.origin || '*'
+            );
+          }
+        } catch (e1) {}
+        try {
+          window.dispatchEvent(new Event('resize'));
+        } catch (_r) {}
+        return;
+      }
+
+      var guideShown = false;
+      try {
+        guideShown = window.getComputedStyle(guide).display !== 'none';
+      } catch (_gs) {
+        guideShown = guide.style.display === 'block';
+      }
+      if (landingRoot.classList.contains('cp-landing-guide-open') && guideShown) {
+        landingRoot.classList.remove('cp-landing-guide-open');
+        if (TM) {
+          try {
+            TweenMax.killTweensOf(guide);
+          } catch (_kg1) {}
+          TweenMax.to(guide, 0.35, {
+            opacity: 0,
+            ease: 'easeInCubic',
+            onComplete: function () {
+              guide.style.display = 'none';
+              guide.style.visibility = 'hidden';
+            }
+          });
+        } else {
+          guide.style.opacity = '0';
+          guide.style.display = 'none';
+          guide.style.visibility = 'hidden';
+        }
+        /* landing.css uses display:none on .menu; clearing inline style leaves it hidden. */
+        if (menu) {
+          if (TM) {
+            try {
+              TweenMax.killTweensOf(menu);
+            } catch (_km) {}
+            try {
+              TweenMax.set(menu, { clearProps: 'transform,opacity' });
+            } catch (_sm) {}
+          }
+          menu.style.display = 'block';
+          menu.style.visibility = 'visible';
+          menu.style.opacity = '0';
+          if (TM) {
+            TweenMax.fromTo(
+              menu,
+              0.45,
+              { opacity: 0, y: -8 },
+              { opacity: 1, y: 0, ease: 'easeOutCubic', delay: 0.05 }
+            );
+          } else {
+            menu.style.opacity = '1';
+          }
+        }
+        var logo2 = landingRoot.querySelector('.logo');
+        if (logo2) {
+          if (TM) {
+            try {
+              TweenMax.killTweensOf(logo2);
+            } catch (_kl) {}
+            try {
+              TweenMax.set(logo2, { clearProps: 'transform' });
+            } catch (_cs) {}
+            TweenMax.to(logo2, 0.4, { opacity: 1, delay: 0.02 });
+          } else {
+            logo2.style.opacity = '1';
+          }
+        }
+        try {
+          if (window.parent !== window) {
+            window.parent.postMessage(
+              { type: 'cp-action', action: 'guide-closed' },
+              window.location.origin || '*'
+            );
+          }
+        } catch (e2) {}
+        try {
+          window.dispatchEvent(new Event('resize'));
+        } catch (_r2) {}
+      }
+    });
+  })();
   </script>
   <script>
 (function () {
