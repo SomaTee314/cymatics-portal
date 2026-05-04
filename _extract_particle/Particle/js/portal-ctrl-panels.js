@@ -1,6 +1,7 @@
 /**
  * Draggable / minimisable shells for portal control columns (Sound & playback, Advanced visuals).
- * Starts embedded in the grid; first header drag promotes to position:fixed at same rect (disabled ≤768px).
+ * Starts embedded in the grid; expanding the panel (non-narrow) or first header drag promotes to position:fixed
+ * at the same rect so controls do not scroll away; reset docks back (disabled ≤768px).
  * options.startMinimized — if true, body hidden until user expands (optional per column).
  */
 (function (global) {
@@ -32,6 +33,10 @@
             'border:1px solid rgba(255,248,224,0.35);border-radius:6px;background:rgba(255,248,224,0.08);',
             'color:var(--cream);cursor:pointer;font-size:15px;line-height:1}',
             '.pm-portal-ctrl-reset:hover{background:rgba(255,248,224,0.14)}',
+            '.pm-portal-ctrl-fs-close{flex-shrink:0;min-width:30px;height:26px;padding:0 8px;',
+            'border:1px solid rgba(255,248,224,0.35);border-radius:6px;background:rgba(255,248,224,0.08);',
+            'color:var(--cream);cursor:pointer;font-size:17px;line-height:1}',
+            '.pm-portal-ctrl-fs-close:hover{background:rgba(255,80,80,0.22);border-color:rgba(255,120,120,0.55);color:#fff}',
             '.pm-portal-ctrl-body{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;padding:16px 18px;',
             '-webkit-overflow-scrolling:touch}',
             '@media (max-width:768px){',
@@ -85,6 +90,13 @@
         resetBtn.title = 'Reset to default position';
         resetBtn.innerHTML = '\u21ba';
 
+        var fsCloseBtn = document.createElement('button');
+        fsCloseBtn.type = 'button';
+        fsCloseBtn.className = 'pm-portal-ctrl-fs-close';
+        fsCloseBtn.setAttribute('aria-label', 'Close flyout panel');
+        fsCloseBtn.title = 'Close panel';
+        fsCloseBtn.innerHTML = '\u00d7';
+
         var minBtn = document.createElement('button');
         minBtn.type = 'button';
         minBtn.className = 'pm-portal-ctrl-min';
@@ -95,6 +107,7 @@
         header.appendChild(dragHint);
         header.appendChild(titleEl);
         header.appendChild(resetBtn);
+        header.appendChild(fsCloseBtn);
         header.appendChild(minBtn);
 
         var body = document.createElement('div');
@@ -128,10 +141,24 @@
             minBtn.textContent = minimized ? '+' : '\u2212';
             minBtn.setAttribute('aria-label', minimized ? 'Expand panel' : 'Minimize panel');
             minBtn.title = minimized ? 'Expand' : 'Minimize / expand';
+            if (!minimized && shell.parentNode === hostEl && !isNarrowPortalLayout()) {
+                promoteShellToFixed();
+            }
         });
 
         resetBtn.addEventListener('click', resetShellToDefaultPosition);
         resetBtn.addEventListener('mousedown', function (e) {
+            e.stopPropagation();
+        });
+
+        fsCloseBtn.addEventListener('click', function (ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            if (typeof global.__pmFsCloseFlyoutContaining === 'function') {
+                global.__pmFsCloseFlyoutContaining(shell);
+            }
+        });
+        fsCloseBtn.addEventListener('mousedown', function (e) {
             e.stopPropagation();
         });
 
@@ -149,6 +176,27 @@
             return document.body;
         }
 
+        function clampFloatingShellToViewport() {
+            if (shell.style.position !== 'fixed') return;
+            var r = shell.getBoundingClientRect();
+            var vw = window.innerWidth || document.documentElement.clientWidth || 0;
+            var vh = window.innerHeight || document.documentElement.clientHeight || 0;
+            var m = 8;
+            var w = r.width || 280;
+            var h = Math.max(r.height || 0, 80);
+            var left = parseFloat(shell.style.left);
+            var top = parseFloat(shell.style.top);
+            if (isNaN(left)) left = r.left;
+            if (isNaN(top)) top = r.top;
+            var maxLeft = Math.max(m, vw - w - m);
+            left = Math.min(Math.max(left, m), maxLeft);
+            var visibleH = Math.min(h, Math.max(vh - 2 * m, m));
+            var maxTop = Math.max(m, vh - m - visibleH);
+            top = Math.min(Math.max(top, m), maxTop);
+            shell.style.left = Math.round(left) + 'px';
+            shell.style.top = Math.round(top) + 'px';
+        }
+
         function promoteShellToFixed() {
             var floatParent = getDragFloatParent();
             if (shell.parentNode === floatParent && shell.style.position === 'fixed') return;
@@ -163,6 +211,7 @@
             shell.style.maxWidth = '';
             shell.style.boxSizing = 'border-box';
             shell.style.zIndex = String(z);
+            clampFloatingShellToViewport();
         }
 
         function resetShellToDefaultPosition(ev) {
@@ -206,6 +255,7 @@
             shell.classList.remove('pm-portal-ctrl-dragging');
             window.removeEventListener('mousemove', onMove);
             window.removeEventListener('mouseup', onUp);
+            clampFloatingShellToViewport();
         }
 
         function snapIfNarrowLayout() {
@@ -221,6 +271,7 @@
             if (isNarrowPortalLayout()) return;
             if (e.target === minBtn || minBtn.contains(e.target)) return;
             if (e.target === resetBtn || resetBtn.contains(e.target)) return;
+            if (e.target === fsCloseBtn || fsCloseBtn.contains(e.target)) return;
             promoteShellToFixed();
             dragging = true;
             shell.classList.add('pm-portal-ctrl-dragging');

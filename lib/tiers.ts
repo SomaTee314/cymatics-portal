@@ -30,8 +30,8 @@ export function getAllowedPresetIndices(tier: UserTier): number[] | null {
 
 export const FREE_SOLFEGGIO: string[] = ['432', '528'];
 /**
- * Iframe `aggressionSel` values for the free (and anonymous) tier: Julia-only preview;
- * Balanced, Mandelbrot, mic, custom Hz, and extra presets require sign-up / upgrade.
+ * Visual modes shown before email signup (anonymous / iframe preview).
+ * After sign-up, free accounts use {@link TIER_FEATURES.free.visualModes} (`all`).
  */
 export const FREE_VISUAL_MODES: string[] = ['fractalJulia'];
 
@@ -39,7 +39,7 @@ export const TIER_FEATURES: Record<UserTier, TierFeatures> = {
   free: {
     maxPresets: 3,
     solfeggioFrequencies: FREE_SOLFEGGIO,
-    visualModes: FREE_VISUAL_MODES,
+    visualModes: 'all',
     sessionMinutes: 15,
     exportWatermark: true,
     micInput: false,
@@ -194,8 +194,12 @@ export function hasFeature(
 
 export function isVisualModeAvailable(
   tier: UserTier,
-  modeId: string
+  modeId: string,
+  options?: { authenticated?: boolean }
 ): boolean {
+  if (options?.authenticated === false) {
+    return FREE_VISUAL_MODES.includes(modeId);
+  }
   const modes = TIER_FEATURES[tier].visualModes;
   if (modes === 'all') return true;
   return modes.includes(modeId);

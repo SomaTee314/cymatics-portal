@@ -69,9 +69,18 @@ function LoginForm() {
     setBusy(true);
     try {
       const { session } = await signIn(trimmed, password);
-      await refreshProfile(session);
+      if (!session?.user) {
+        setErr('No session returned. Try again.');
+        return;
+      }
+      /* Cap wait on profiles row — full tier loads in background if needed */
+      await Promise.race([
+        refreshProfile(session),
+        new Promise<void>((r) => setTimeout(r, 4000)),
+      ]);
       router.replace(nextPath || '/');
       router.refresh();
+      void refreshProfile(session);
     } catch (e) {
       const msg =
         e instanceof Error ? e.message : 'Sign-in failed. Try again.';

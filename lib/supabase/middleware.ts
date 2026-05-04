@@ -5,6 +5,10 @@ import { NextResponse, type NextRequest } from 'next/server';
 /**
  * Refreshes the Supabase session on each request so SSR and the route handler
  * (e.g. /auth/callback) see a consistent cookie story on Vercel.
+ *
+ * Use `getUser()` (not `getSession`) here: per Supabase SSR guidance, `getUser`
+ * triggers token refresh and cookie writes; `getSession` alone can leave the
+ * server session out of sync after password sign-in, breaking `router.refresh`.
  */
 export async function updateSession(request: NextRequest) {
   const supabaseResponse = NextResponse.next({ request });

@@ -7,6 +7,7 @@ import {
   useState,
   useCallback,
   useMemo,
+  useRef,
   type ReactNode,
 } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
@@ -20,6 +21,7 @@ import {
   resolveEffectiveTier,
   getFeaturesForTier,
   trialDaysRemaining,
+  FREE_VISUAL_MODES,
   type UserTier,
   type TierFeatures,
 } from '@/lib/tiers';
@@ -73,47 +75,83 @@ export function UserProvider({ children }: { children: ReactNode }) {
   /** Mock profile only in local `next dev` — production builds always use Supabase session. */
   const useMockDevProfile = devMode && process.env.NODE_ENV === 'development';
   const [supabase] = useState(() => createClient());
+  /** De-dupe profile loads when login + `onAuthStateChange` fire together. */
+  const fetchProfileInflight = useRef(
+    new Map<string, Promise<UserProfile | null>>()
+  );
 
   const fetchProfile = useCallback(
     async (userId: string) => {
-      const load = () =>
-        supabase.from('profiles').select('*').eq('id', userId).single();
+      const inflight = fetchProfileInflight.current;
+      const existing = inflight.get(userId);
+      if (existing) return existing;
 
-      let { data, error } = await load();
+      const work = (async (): Promise<UserProfile | null> => {
+        /** Never block sign-in forever if Postgres/PostgREST is slow or hung. */
+        const PROFILE_QUERY_HARD_MS = 12000;
 
-      /* Trigger may commit slightly after auth.users insert; avoid treating as missing. */
-      if (error?.code === 'PGRST116') {
-        for (let i = 0; i < 3; i++) {
-          await new Promise((r) => setTimeout(r, 350));
-          const retry = await load();
-          data = retry.data;
-          error = retry.error;
-          if (!error || error.code !== 'PGRST116') break;
-        }
-      }
+        const loadAttempt = async () => {
+          const load = () =>
+            supabase.from('profiles').select('*').eq('id', userId).single();
 
-      if (error) {
-        console.error('[UserContext] fetchProfile failed', {
-          userId,
-          code: error.code,
-          message: error.message,
-          hint: 'Check profiles row exists (auth trigger) and RLS.',
-        });
-        return null;
-      }
-      if (!data) {
-        console.error('[UserContext] fetchProfile: no row for user', { userId });
-        return null;
-      }
+          let { data, error } = await load();
 
-      return {
-        id: data.id,
-        email: data.email,
-        tier: data.tier as UserTier,
-        trialStartedAt: data.trial_started_at,
-        trialExpiresAt: data.trial_expires_at,
-        subscriptionStatus: data.subscription_status,
-      } satisfies UserProfile;
+          /* Trigger may commit slightly after auth.users insert; short staggered retries. */
+          if (error?.code === 'PGRST116') {
+            const delaysMs = [60, 100, 150, 200, 250];
+            for (const ms of delaysMs) {
+              await new Promise((r) => setTimeout(r, ms));
+              const retry = await load();
+              data = retry.data;
+              error = retry.error;
+              if (!error || error.code !== 'PGRST116') break;
+            }
+          }
+
+          if (error) {
+            console.error('[UserContext] fetchProfile failed', {
+              userId,
+              code: error.code,
+              message: error.message,
+              hint: 'Check profiles row exists (auth trigger) and RLS.',
+            });
+            return null;
+          }
+          if (!data) {
+            console.error('[UserContext] fetchProfile: no row for user', { userId });
+            return null;
+          }
+
+          return {
+            id: data.id,
+            email: data.email,
+            tier: data.tier as UserTier,
+            trialStartedAt: data.trial_started_at,
+            trialExpiresAt: data.trial_expires_at,
+            subscriptionStatus: data.subscription_status,
+          } satisfies UserProfile;
+        };
+
+        const raced = await Promise.race([
+          loadAttempt(),
+          new Promise<UserProfile | null>((resolve) => {
+            window.setTimeout(() => {
+              console.warn('[UserContext] fetchProfile timed out', {
+                userId,
+                ms: PROFILE_QUERY_HARD_MS,
+              });
+              resolve(null);
+            }, PROFILE_QUERY_HARD_MS);
+          }),
+        ]);
+        return raced;
+      })();
+
+      inflight.set(userId, work);
+      void work.finally(() => {
+        if (inflight.get(userId) === work) inflight.delete(userId);
+      });
+      return work;
     },
     [supabase]
   );
@@ -207,7 +245,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
     ? resolveEffectiveTier(user.tier, user.trialExpiresAt)
     : 'free';
 
-  const features = getFeaturesForTier(effectiveTier);
+  const features = useMemo((): TierFeatures => {
+    const base = getFeaturesForTier(effectiveTier);
+    if (!user && !useMockDevProfile) {
+      return { ...base, visualModes: [...FREE_VISUAL_MODES] };
+    }
+    return base;
+  }, [user, effectiveTier, useMockDevProfile]);
   const trialDaysLeft = user ? trialDaysRemaining(user.trialExpiresAt) : 0;
   const isTrialActive = user?.tier === 'trial' && trialDaysLeft > 0;
   const isTrialExpired = user?.tier === 'trial' && trialDaysLeft === 0;

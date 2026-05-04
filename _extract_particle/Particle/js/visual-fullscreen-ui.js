@@ -7,6 +7,7 @@
     var dockEl = null;
     var asideFreq = null;
     var asideAudio = null;
+    var asideWh = null;
     var btnToggle = null;
 
     function containsNode(parent, node) {
@@ -58,28 +59,17 @@
             '.visual-fs-slot--pinned .visual-fs-panel{max-height:min(88vh,900px);}',
             '.visual-fs-slot--open .visual-fs-panel{',
             'opacity:1;pointer-events:auto;transform:translate(0,-50%);}',
-            '.visual-fs-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;',
-            'flex-shrink:0;position:sticky;top:0;z-index:3;margin:-2px -4px 8px -2px;padding:8px 10px;',
-            'background:rgba(4,6,12,0.95);border-bottom:1px solid rgba(255,248,224,0.14);',
-            'border-radius:10px 10px 0 0;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);}',
-            '.visual-fs-panel-title{font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;',
-            'opacity:0.88;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
-            'button.visual-fs-close{box-sizing:border-box;flex-shrink:0;width:36px;height:36px;padding:0;margin:0;',
-            'border-radius:10px;border:1px solid rgba(255,248,224,0.4);background:rgba(255,248,224,0.12);',
-            'color:var(--cream);font-size:22px;line-height:1;font-weight:400;cursor:pointer;display:flex;',
-            'align-items:center;justify-content:center;transition:background .15s,border-color .15s,transform .12s;}',
-            'button.visual-fs-close:hover,button.visual-fs-close:focus-visible{background:rgba(255,80,80,0.25);',
-            'border-color:rgba(255,120,120,0.65);color:#fff;outline:none;transform:scale(1.05);}',
-            'button.visual-fs-close:focus-visible{box-shadow:0 0 0 2px rgba(255,120,120,0.4);}',
             '.visual-fs-panel .pm-portal-ctrl-shell{max-height:min(85vh,880px)!important;width:100%!important;}',
             '.visual-fs-panel .pm-dat-gui-shell{max-height:min(85vh,880px)!important;width:100%!important;}',
             '.visual-fs-panel .pm-dat-gui-body{max-height:min(72vh,700px)!important;}',
+            '.pm-dat-gui-fs-close,.pm-portal-ctrl-fs-close{display:none!important}',
+            '.visual-fs-panel .pm-dat-gui-fs-close,.visual-fs-panel .pm-portal-ctrl-fs-close{display:flex!important;',
+            'align-items:center;justify-content:center}',
             'button.visual-fs-toggle{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;',
             'width:36px;height:30px;padding:0;margin:0 0 0 8px;border-radius:8px;',
             'border:1px solid rgba(255,248,224,0.35);background:rgba(255,248,224,0.08);color:var(--cream);cursor:pointer;}',
             'button.visual-fs-toggle:hover{background:rgba(255,248,224,0.15);}',
             '@supports not (gap:12px){.visual-fs-rail>*+*{margin-top:12px;}}',
-            '@supports not (gap:10px){.visual-fs-panel-head>*+*{margin-left:10px;}}',
             '.status-bar{gap:8px;flex-wrap:wrap;}'
         ].join('');
         document.head.appendChild(s);
@@ -131,6 +121,30 @@
         return document.querySelector('.pm-dat-gui-shell[data-pm-dock-home="advancedControlsHost"]')
             || document.querySelector('#advancedControlsHost .pm-dat-gui-shell')
             || document.querySelector('.pm-dat-gui-shell');
+    }
+
+    function getWormholeAdvShell() {
+        return document.querySelector('.pm-dat-gui-shell[data-pm-dock-home="wormholeControlsHost"]')
+            || document.querySelector('#wormholeControlsHost .pm-dat-gui-shell')
+            || null;
+    }
+
+    /** Move wormhole dat.GUI into fullscreen flyout (detaches from column 02 while FS). */
+    function mountWormholeGuiToFsAside() {
+        if (!portalIsFs() || !asideWh) return;
+        var sh = getWormholeAdvShell();
+        if (!sh) return;
+        asideWh.appendChild(sh);
+        resetDatGuiShellForFlyout(sh);
+    }
+
+    function restoreWhGuiToHost() {
+        var host = document.getElementById('wormholeControlsHost');
+        var sh = getWormholeAdvShell();
+        if (host && sh) {
+            host.appendChild(sh);
+            resetDatGuiShellForFlyout(sh);
+        }
     }
 
     function resetDatGuiShellForFlyout(shell) {
@@ -271,6 +285,8 @@
             syncOpenClass();
         }
 
+        slot.__pmCloseFlyout = closeFlyoutPanel;
+
         if (closeBtn) {
             closeBtn.addEventListener('click', closeFlyoutPanel);
             closeBtn.addEventListener('mousedown', function (e) {
@@ -320,45 +336,36 @@
             btn.type = 'button';
             btn.className = 'visual-fs-icon';
             btn.setAttribute('aria-label', label);
-            btn.setAttribute('title', label + ' — hover to preview, click rail icon to pin; use × on panel to close');
+            btn.setAttribute('title', label + ' — hover to preview, click rail icon to pin; use × in panel header to close');
             btn.setAttribute('aria-expanded', 'false');
             btn.setAttribute('data-pm-pinned', 'false');
             btn.innerHTML = iconSvg;
             var aside = document.createElement('aside');
             aside.className = 'visual-fs-panel';
             aside.setAttribute('aria-label', label);
-            var head = document.createElement('div');
-            head.className = 'visual-fs-panel-head';
-            var titleEl = document.createElement('span');
-            titleEl.className = 'visual-fs-panel-title';
-            titleEl.textContent = label;
-            var closeBtn = document.createElement('button');
-            closeBtn.type = 'button';
-            closeBtn.className = 'visual-fs-close';
-            closeBtn.setAttribute('aria-label', 'Close ' + label);
-            closeBtn.title = 'Close panel';
-            closeBtn.innerHTML = '\u00d7';
-            head.appendChild(titleEl);
-            head.appendChild(closeBtn);
-            aside.appendChild(head);
             slot.appendChild(btn);
             slot.appendChild(aside);
-            return { slot: slot, aside: aside, btn: btn, closeBtn: closeBtn };
+            return { slot: slot, aside: aside, btn: btn };
         }
 
         var iconSound = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02A4.5 4.5 0 0 0 21 12a4.5 4.5 0 0 0-2-3.74v2.09c.62.63 1 1.49 1 2.65zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77 0-4.28-2.99-7.86-7-8.77z"/></svg>';
         var iconAdv = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M3 17h2v-2H3v2zm0-10h2V7H3v2zm4 14h2v-4H7v4zM7 5v4h2V5H7zm4 14h10v-2H11v2zm0-14v2h10V5H11z"/></svg>';
+        var iconWh = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 2C8 6 4 10 4 14a8 8 0 1 0 16 0c0-4-4-8-8-12zm0 18a6 6 0 0 1-6-6c0-2.8 2.5-6 6-10 3.5 4 6 7.2 6 10a6 6 0 0 1-6 6z"/></svg>';
 
         var f = makeSlot('pmFrequencyControlCol', 'Sound & playback', iconSound);
         asideFreq = f.aside;
         var a = makeSlot('pmAudioEngineCol', 'Advanced visuals', iconAdv);
         asideAudio = a.aside;
+        var wh = makeSlot('', 'Wormhole controls', iconWh);
+        asideWh = wh.aside;
 
-        wireFlyoutSlot(f.slot, f.aside, f.btn, f.closeBtn);
-        wireFlyoutSlot(a.slot, a.aside, a.btn, a.closeBtn);
+        wireFlyoutSlot(f.slot, f.aside, f.btn, null);
+        wireFlyoutSlot(a.slot, a.aside, a.btn, null);
+        wireFlyoutSlot(wh.slot, wh.aside, wh.btn, null);
 
         rail.appendChild(f.slot);
         rail.appendChild(a.slot);
+        rail.appendChild(wh.slot);
         dockEl.appendChild(rail);
         portal.appendChild(dockEl);
     }
@@ -377,6 +384,7 @@
         moveShellInto(asideFreq, 'pmFrequencyControlCol');
         moveShellInto(asideAudio, 'pmAudioEngineCol');
         mountAdvancedGuiToFsSidebar();
+        mountWormholeGuiToFsAside();
         window.setTimeout(function () {
             window.dispatchEvent(new Event('resize'));
         }, 80);
@@ -386,6 +394,7 @@
         resetAllFlyoutSlots();
         restoreShellsToGrid();
         restoreAdvToHost();
+        restoreWhGuiToHost();
         window.setTimeout(function () {
             window.dispatchEvent(new Event('resize'));
         }, 80);
@@ -472,7 +481,18 @@
 
     function initVisualFullscreenUI() {
         injectStyles();
+        global.__pmFsCloseFlyoutContaining = function (node) {
+            if (!node || typeof node.closest !== 'function') return;
+            var aside = node.closest('.visual-fs-panel');
+            if (!aside) return;
+            var slot = aside.parentElement;
+            if (!slot || !slot.classList.contains('visual-fs-slot')) return;
+            if (typeof slot.__pmCloseFlyout === 'function') {
+                slot.__pmCloseFlyout(null);
+            }
+        };
         global.__pmFsMountAdvancedGui = mountAdvancedGuiToFsSidebar;
+        global.__pmFsMountWormholeGui = mountWormholeGuiToFsAside;
         global.__pmFsMountCtrlPanelToSidebar = mountCtrlPanelToFsSidebar;
         var pc = document.getElementById('portal-container');
         btnToggle = document.getElementById('btnVisualFullscreen');

@@ -3,9 +3,10 @@
  * Call attachMovableDatGui(gui, options) after building all folders/controllers.
  *
  * options: { title, parent, initialTop, initialLeft, initialRight, zIndex }
- * If parent is an HTMLElement, the shell starts embedded in layout; dragging promotes it to
- * a fixed panel at the same on-screen position. Without parent, it is fixed to the viewport.
- * startMinimized: false to expand body on load; default is collapsed (header + footer only).
+ * If parent is an HTMLElement, the shell starts embedded in layout; expanding the panel (non-narrow)
+ * or dragging the header promotes it to position:fixed at the same on-screen position so it does not scroll away.
+ * Use Reset position to dock back into the layout. Without parent, it is fixed to the viewport.
+ * startMinimized: false to expand body on load; default is collapsed (header + title bar only).
  * gui.__pmDatGuiToggleVisibility() — hide/show entire shell (for H hotkey)
  */
 (function (global) {
@@ -29,14 +30,15 @@
             '.pm-dat-gui-body{background:#1a1a1a;flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;',
             '-webkit-overflow-scrolling:touch}',
             '.pm-dat-gui-body .dg{position:relative!important;margin-right:0!important}',
-            '.pm-dat-gui-footer{flex-shrink:0;display:flex;justify-content:flex-end;align-items:center;',
-            'padding:6px 10px;background:#222;border-top:1px solid #0d0d0d}',
-            '.pm-dat-gui-min{min-width:36px;height:26px;padding:0 10px;border:1px solid #555;',
+            '.pm-dat-gui-min{flex-shrink:0;min-width:30px;height:26px;padding:0 8px;border:1px solid #555;',
             'border-radius:3px;background:#3a3a3a;color:#f0f0f0;cursor:pointer;font-size:15px;line-height:1}',
             '.pm-dat-gui-min:hover{background:#4a4a4a}',
             '.pm-dat-gui-reset-pos{flex-shrink:0;min-width:30px;height:26px;padding:0 8px;border:1px solid #555;',
             'border-radius:3px;background:#3a3a3a;color:#f0f0f0;cursor:pointer;font-size:15px;line-height:1}',
             '.pm-dat-gui-reset-pos:hover{background:#4a4a4a}',
+            '.pm-dat-gui-fs-close{flex-shrink:0;min-width:30px;height:26px;padding:0 8px;border:1px solid #555;',
+            'border-radius:3px;background:#3a3a3a;color:#f0f0f0;cursor:pointer;font-size:17px;line-height:1}',
+            '.pm-dat-gui-fs-close:hover{background:rgba(180,56,56,0.45);border-color:#a85555;color:#fff}',
             '.pm-dat-gui-shell--embedded{max-height:min(52vh,440px)}',
             '@media (max-width:768px){',
             '.pm-dat-gui-header{cursor:default;-webkit-user-select:auto;user-select:auto;touch-action:manipulation}',
@@ -87,9 +89,24 @@
         resetBtn.setAttribute('aria-label', 'Reset panel position');
         resetBtn.title = 'Reset to default position';
         resetBtn.innerHTML = '\u21ba';
+        var fsCloseBtn = document.createElement('button');
+        fsCloseBtn.type = 'button';
+        fsCloseBtn.className = 'pm-dat-gui-fs-close';
+        fsCloseBtn.setAttribute('aria-label', 'Close flyout panel');
+        fsCloseBtn.title = 'Close panel';
+        fsCloseBtn.innerHTML = '\u00d7';
+        var minBtn = document.createElement('button');
+        minBtn.type = 'button';
+        minBtn.className = 'pm-dat-gui-min';
+        minBtn.setAttribute('aria-label', 'Minimize panel');
+        minBtn.textContent = '\u2212';
+        minBtn.title = 'Minimize / expand';
+
         header.appendChild(dragHint);
         header.appendChild(titleEl);
         header.appendChild(resetBtn);
+        header.appendChild(fsCloseBtn);
+        header.appendChild(minBtn);
 
         var body = document.createElement('div');
         body.className = 'pm-dat-gui-body';
@@ -97,19 +114,8 @@
         var dgClose = gui.__closeButton || (el.querySelector && el.querySelector('.close-button'));
         if (dgClose) dgClose.style.display = 'none';
 
-        var footer = document.createElement('div');
-        footer.className = 'pm-dat-gui-footer';
-        var minBtn = document.createElement('button');
-        minBtn.type = 'button';
-        minBtn.className = 'pm-dat-gui-min';
-        minBtn.setAttribute('aria-label', 'Minimize panel');
-        minBtn.textContent = '\u2212';
-        minBtn.title = 'Minimize / expand';
-        footer.appendChild(minBtn);
-
         shell.appendChild(header);
         shell.appendChild(body);
-        shell.appendChild(footer);
 
         var dockHomeId = embedParent && embedParent.id ? embedParent.id : 'advancedControlsHost';
         shell.setAttribute('data-pm-dock-home', dockHomeId);
@@ -166,10 +172,24 @@
             minBtn.textContent = minimized ? '+' : '\u2212';
             minBtn.setAttribute('aria-label', minimized ? 'Expand panel' : 'Minimize panel');
             minBtn.title = minimized ? 'Expand' : 'Minimize / expand';
+            if (!minimized && embedParent && shell.parentNode === embedParent && !isNarrowPortalLayout()) {
+                promoteShellToFixed();
+            }
         });
 
         resetBtn.addEventListener('click', resetShellToDefaultPosition);
         resetBtn.addEventListener('mousedown', function (e) {
+            e.stopPropagation();
+        });
+
+        fsCloseBtn.addEventListener('click', function (ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            if (typeof global.__pmFsCloseFlyoutContaining === 'function') {
+                global.__pmFsCloseFlyoutContaining(shell);
+            }
+        });
+        fsCloseBtn.addEventListener('mousedown', function (e) {
             e.stopPropagation();
         });
 
@@ -188,6 +208,27 @@
             return document.body;
         }
 
+        function clampFloatingShellToViewport() {
+            if (shell.style.position !== 'fixed') return;
+            var r = shell.getBoundingClientRect();
+            var vw = window.innerWidth || document.documentElement.clientWidth || 0;
+            var vh = window.innerHeight || document.documentElement.clientHeight || 0;
+            var m = 8;
+            var w = r.width || 280;
+            var h = Math.max(r.height || 0, 80);
+            var left = parseFloat(shell.style.left);
+            var top = parseFloat(shell.style.top);
+            if (isNaN(left)) left = r.left;
+            if (isNaN(top)) top = r.top;
+            var maxLeft = Math.max(m, vw - w - m);
+            left = Math.min(Math.max(left, m), maxLeft);
+            var visibleH = Math.min(h, Math.max(vh - 2 * m, m));
+            var maxTop = Math.max(m, vh - m - visibleH);
+            top = Math.min(Math.max(top, m), maxTop);
+            shell.style.left = Math.round(left) + 'px';
+            shell.style.top = Math.round(top) + 'px';
+        }
+
         function promoteShellToFixed() {
             var floatParent = getDragFloatParent();
             if (shell.parentNode === floatParent && shell.style.position === 'fixed') return;
@@ -202,6 +243,7 @@
             shell.style.maxWidth = 'min(92vw, 520px)';
             shell.style.boxSizing = 'border-box';
             shell.style.zIndex = String(z);
+            clampFloatingShellToViewport();
         }
 
         function resetShellToDefaultPosition(ev) {
@@ -223,6 +265,9 @@
             shell.style.zIndex = options.zIndex != null ? String(options.zIndex) : '';
             if (typeof global.__pmFsMountAdvancedGui === 'function') {
                 global.__pmFsMountAdvancedGui();
+            }
+            if (typeof global.__pmFsMountWormholeGui === 'function') {
+                global.__pmFsMountWormholeGui();
             }
         }
 
@@ -247,6 +292,7 @@
             shell.classList.remove('pm-dat-gui-dragging');
             window.removeEventListener('mousemove', onMove);
             window.removeEventListener('mouseup', onUp);
+            clampFloatingShellToViewport();
         }
 
         function snapIfNarrowLayout() {
@@ -262,6 +308,7 @@
             if (isNarrowPortalLayout()) return;
             if (e.target === minBtn || minBtn.contains(e.target)) return;
             if (e.target === resetBtn || resetBtn.contains(e.target)) return;
+            if (e.target === fsCloseBtn || fsCloseBtn.contains(e.target)) return;
             promoteShellToFixed();
             dragging = true;
             shell.classList.add('pm-dat-gui-dragging');

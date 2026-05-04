@@ -26,7 +26,9 @@ export function VisualModeGate({
     );
   }
 
-  const available = isVisualModeAvailable(effectiveTier, modeId);
+  const available = isVisualModeAvailable(effectiveTier, modeId, {
+    authenticated: isAuthenticated,
+  });
 
   if (available) {
     return (

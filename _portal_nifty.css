@@ -490,6 +490,11 @@
     .advanced-controls-host {
       min-height: 0;
     }
+    .advanced-controls-host--wormhole {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,248,224,0.08);
+    }
     .advanced-controls-host .dg.main {
       width: 100% !important;
       box-sizing: border-box;

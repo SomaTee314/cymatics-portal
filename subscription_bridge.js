@@ -65,7 +65,9 @@
         var allowFractalVisuals =
             ag == null
                 ? true
-                : ag.indexOf('fractalMB') >= 0 || ag.indexOf('fractalJulia') >= 0;
+                : ag.indexOf('fractalMB') >= 0 ||
+                    ag.indexOf('fractalJulia') >= 0 ||
+                    ag.indexOf('juliaWormhole') >= 0;
         return {
             tier: d.tier || 'free',
             isDevMode: false,
@@ -149,12 +151,44 @@
         return allow[0];
     }
 
+    /** Map aggressionSel values onto tier allow-list ids (all `juliaWH_*` presets unlock with `juliaWormhole`). */
+    function __cpNormalizeAggressionTierKey(key) {
+        if (
+            key === 'juliaWormhole' ||
+            (typeof key === 'string' && key.indexOf('juliaWH_') === 0)
+        ) {
+            return 'juliaWormhole';
+        }
+        return key;
+    }
+
+    /** Legacy option removed from HTML — map to rabbit preset key. */
+    function __cpMigrateAggressionPortalSelect() {
+        if (!aggressionSel || aggressionSel.value !== 'fractalJuliaDouady') return;
+        var i;
+        for (i = 0; i < aggressionSel.options.length; i++) {
+            if (aggressionSel.options[i].value === 'juliaWH_rabbit') {
+                aggressionSel.value = 'juliaWH_rabbit';
+                return;
+            }
+        }
+        aggressionSel.value = 'juliaWormhole';
+    }
+
+    function __cpAggressionValueAllowed(optionValue, allowList) {
+        if (!allowList || !allowList.length) return true;
+        if (allowList.indexOf(optionValue) >= 0) return true;
+        var tierKey = __cpNormalizeAggressionTierKey(optionValue);
+        return allowList.indexOf(tierKey) >= 0;
+    }
+
     window.__cpIsAggressionAllowed = function (key) {
         var se = __cpSubEffective();
         if (se.isDevMode) return true;
         var a = se.allowedAggressionValues;
         if (a == null) return true;
-        return a.indexOf(key) >= 0;
+        var k = __cpNormalizeAggressionTierKey(key);
+        return a.indexOf(k) >= 0;
     };
     window.__cpFirstAllowedAggressionValue = function () {
         var se = __cpSubEffective();
@@ -218,7 +252,7 @@
         } else {
             for (i = 0; i < aggressionSel.options.length; i++) {
                 var opt = aggressionSel.options[i];
-                var ok = allow.indexOf(opt.value) >= 0;
+                var ok = __cpAggressionValueAllowed(opt.value, allow);
                 opt.disabled = false;
                 var base = __cpAggroBaseLabel(opt);
                 if (!ok) {
@@ -233,7 +267,7 @@
         if (
             allow &&
             allow.length &&
-            allow.indexOf(aggressionSel.value) < 0
+            !__cpAggressionValueAllowed(aggressionSel.value, allow)
         ) {
             aggressionSel.value = __cpFirstAllowedAggressionInList(allow);
             try {
@@ -329,14 +363,14 @@
                 return;
             }
             var v = aggressionSel.value;
-            if (allow.indexOf(v) >= 0) {
+            if (__cpAggressionValueAllowed(v, allow)) {
                 __cpLastGatedAggressionValue = v;
                 return;
             }
             __cpIgnoreAggroChange = true;
             var back =
                 __cpLastGatedAggressionValue &&
-                allow.indexOf(__cpLastGatedAggressionValue) >= 0
+                __cpAggressionValueAllowed(__cpLastGatedAggressionValue, allow)
                     ? __cpLastGatedAggressionValue
                     : __cpFirstAllowedAggressionInList(allow);
             aggressionSel.value = back;
@@ -422,7 +456,10 @@
                 /* no-op */
             }
         }
-        if (aggressionSel.value !== 'fractalJulia') {
+        if (
+            aggressionSel.value !== 'fractalJulia' &&
+            __cpNormalizeAggressionTierKey(aggressionSel.value) !== 'juliaWormhole'
+        ) {
             aggressionSel.value = 'fractalJulia';
             try {
                 aggressionSel.dispatchEvent(new Event('change', { bubbles: true }));
@@ -433,6 +470,7 @@
     }
 
     window.__cpApplySubscriptionGates = function () {
+        __cpMigrateAggressionPortalSelect();
         var prevAggression = aggressionSel ? aggressionSel.value : null;
         __cpApplyPresetOptionsGate();
         __cpApplyAggressionSelectGate();
@@ -460,7 +498,7 @@
             var sea = __cpSubEffective().allowedAggressionValues;
             if (
                 sea == null ||
-                sea.indexOf(aggressionSel.value) >= 0
+                __cpAggressionValueAllowed(aggressionSel.value, sea)
             ) {
                 __cpLastGatedAggressionValue = aggressionSel.value;
             } else {

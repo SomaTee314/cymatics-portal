@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import _landing_assets
+import wormhole_iife_patch
 
 _SEO_TITLE = "Cymatics Portal — Sound Made Visible"
 _SEO_META_DESCRIPTION = (
@@ -767,6 +768,9 @@ agg_new = (
     "            beatPunch: 1.15, bandMotion: 0.95, transientRipple: 0.62\n"
     "        }\n"
     "    };\n\n"
+    "    /** Param c anchor for Julia escape backdrop (wandering mode). */\n"
+    "    var fractalBackdropJuliaBaseCr = -0.355;\n"
+    "    var fractalBackdropJuliaBaseCi = 0.595;\n\n"
     "    function applyAggressionPreset(key) {\n"
     "        if (key === 'fractalMB') {\n"
     "            if (typeof __cpIsAggressionAllowed === 'function' && !__cpIsAggressionAllowed('fractalMB')) {\n"
@@ -779,6 +783,31 @@ agg_new = (
     "            refreshDatGuiDisplay(gui);\n"
     "            return;\n"
     "        }\n"
+    "        var __whPu =\n"
+    "            typeof JULIA_WH_PORTAL_PRESETS !== 'undefined'\n"
+    "                ? JULIA_WH_PORTAL_PRESETS[key]\n"
+    "                : null;\n"
+    "        if (__whPu) {\n"
+    "            if (\n"
+    "                typeof __cpIsAggressionAllowed === 'function' &&\n"
+    "                !__cpIsAggressionAllowed(key)\n"
+    "            ) {\n"
+    "                var _cpFbWhP =\n"
+    "                    typeof __cpFirstAllowedAggressionValue === 'function'\n"
+    "                        ? __cpFirstAllowedAggressionValue()\n"
+    "                        : 'balanced';\n"
+    "                if (aggressionSel) aggressionSel.value = _cpFbWhP;\n"
+    "                applyAggressionPreset(_cpFbWhP);\n"
+    "                return;\n"
+    "            }\n"
+    "            wormholeControls.juliaCx = __whPu.cx;\n"
+    "            wormholeControls.juliaCy = __whPu.cy;\n"
+    "            wormholeControls.juliaFrameZoom = __whPu.frameZoom;\n"
+    "            setVisualMode('juliaWormhole');\n"
+    "            refreshDatGuiDisplay(gui);\n"
+    "            if (wormholeGui) refreshDatGuiDisplay(wormholeGui);\n"
+    "            return;\n"
+    "        }\n"
     "        if (key === 'fractalJulia') {\n"
     "            if (typeof __cpIsAggressionAllowed === 'function' && !__cpIsAggressionAllowed('fractalJulia')) {\n"
     "                var _cpFbJu = typeof __cpFirstAllowedAggressionValue === 'function' ? __cpFirstAllowedAggressionValue() : 'balanced';\n"
@@ -786,6 +815,8 @@ agg_new = (
     "                applyAggressionPreset(_cpFbJu);\n"
     "                return;\n"
     "            }\n"
+    "            fractalBackdropJuliaBaseCr = -0.355;\n"
+    "            fractalBackdropJuliaBaseCi = 0.595;\n"
     "            setVisualMode('fractalJulia');\n"
     "            refreshDatGuiDisplay(gui);\n"
     "            return;\n"
@@ -832,6 +863,9 @@ sgui_key = (
 sgui_key_new = (
     "    setupGui();\n"
     "    if (aggressionSel) {\n"
+    "        if (typeof __cpMigrateAggressionPortalSelect === 'function') {\n"
+    "            __cpMigrateAggressionPortalSelect();\n"
+    "        }\n"
     "        aggressionSel.addEventListener('change', function () {\n"
     "            applyAggressionPreset(aggressionSel.value);\n"
     "        });\n"
@@ -1407,8 +1441,8 @@ _anim_new = (
     "                            fractalJuliaOrbitPh2 * 1.02 + hz01x * 3.95 + fractalJuliaRmsDrift * 1.6\n"
     "                        ) *\n"
     "                        (0.022 + fractalJuliaRmsDrift * 0.07);\n"
-    "                    var jBaseCr = -0.7269;\n"
-    "                    var jBaseCi = 0.1889;\n"
+    "                    var jBaseCr = fractalBackdropJuliaBaseCr;\n"
+    "                    var jBaseCi = fractalBackdropJuliaBaseCi;\n"
     "                    var jDiscMaxEff = Math.min(\n"
     "                        0.172,\n"
     "                        0.122 + fractalJuliaSmTr * 0.044 + jLvlDrive * 0.021\n"
@@ -1577,6 +1611,8 @@ iife2 = iife2.replace(
     "readout.textContent = 'Playback blocked—click Start or Play again.';",
     "readout.textContent = 'Playback blocked—click Play again.';",
 )
+
+iife2 = wormhole_iife_patch.apply_julia_wormhole_iife_patch(iife2, root)
 
 (root / "_engine_iife.js").write_text(iife2, encoding="utf-8")
 
@@ -1889,10 +1925,19 @@ shell_body_pre_scripts = (
           <h3><span class="num">02</span> Advanced visuals</h3>
           <div class="ctrl-row">
             <label for="aggressionSel">Audio-Visualiser Portals</label>
-            <select id="aggressionSel" title="Balanced cymatics, Mandelbrot, or Julia escape-time view">
+            <select id="aggressionSel" title="Classic cymatics, Mandelbrot or Julia escape-time, or Julia wormhole tunnel with named fractal presets">
               <option value="balanced">Balanced — classic cymatics</option>
               <option value="fractalMB">Mandelbrot — escape-time</option>
-              <option value="fractalJulia" selected>Julia — escape-time</option>
+              <option value="fractalJulia" selected>Julia — escape-time (wandering c)</option>
+              <option value="juliaWH_rabbit">Douady Rabbit</option>
+              <option value="juliaWH_dendrite">Dendrite</option>
+              <option value="juliaWH_sanMarco">San Marco</option>
+              <option value="juliaWH_siegel">Siegel Disc</option>
+              <option value="juliaWH_recursive">Deep Recursive</option>
+              <option value="juliaWH_spiral">Spiral</option>
+              <option value="juliaWH_airplane">Airplane</option>
+              <option value="juliaWH_cauliflower">Cauliflower</option>
+              <option value="juliaWormhole">Julia wormhole — tunnel</option>
             </select>
           </div>
           <div class="ctrl-row">
@@ -1904,6 +1949,7 @@ shell_body_pre_scripts = (
           </div>
           <div class="advanced-controls-anchor">
             <div id="advancedControlsHost" class="advanced-controls-host"></div>
+            <div id="wormholeControlsHost" class="advanced-controls-host advanced-controls-host--wormhole"></div>
           </div>
         </div>
         <div class="ctrl-col initiate-sequence-col">
@@ -2413,6 +2459,12 @@ landing_bridge_js = r"""
       var menu = landingRoot && landingRoot.querySelector('.menu');
       var portalMain = document.querySelector('.portal-main');
       if (!landingRoot || !guide) return;
+
+      try {
+        if (typeof window.__pmVisualFullscreenExit === 'function') {
+          window.__pmVisualFullscreenExit();
+        }
+      } catch (_cpFsExit) {}
 
       if (TM) {
         try {

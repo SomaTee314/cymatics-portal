@@ -14,6 +14,7 @@ import { AccountMenu } from '@/components/shell/AccountMenu';
 import { SHELL_CHROME_FRAME } from '@/components/shell/shellChrome';
 import { SessionTimer } from '@/components/subscription/SessionTimer';
 import {
+  FREE_VISUAL_MODES,
   hasFeature,
   isVisualModeAvailable,
   getAllowedPresetIndices,
@@ -101,12 +102,14 @@ function buildSubscriptionMessage(
   const dev = lockAnonymous
     ? false
     : isDevMode() || ctxDev;
-  const features = tierFeaturesToMessage(tier);
+  const baseFeatures = tierFeaturesToMessage(tier);
+  const features = lockAnonymous
+    ? { ...baseFeatures, visualModes: [...FREE_VISUAL_MODES] }
+    : baseFeatures;
   const allowedPresetIndices = dev ? null : getAllowedPresetIndices(tier);
-  const allowedAggressionValues = getAllowedAggressionValuesForMessage(
-    tier,
-    dev
-  );
+  const allowedAggressionValues = lockAnonymous
+    ? [...FREE_VISUAL_MODES]
+    : getAllowedAggressionValuesForMessage(tier, dev);
   return {
     type: SUB_MSG,
     tier,
@@ -118,7 +121,8 @@ function buildSubscriptionMessage(
     allowFractalVisuals:
       dev ||
       isVisualModeAvailable(tier, 'fractalMB') ||
-      isVisualModeAvailable(tier, 'fractalJulia'),
+      isVisualModeAvailable(tier, 'fractalJulia') ||
+      isVisualModeAvailable(tier, 'juliaWormhole'),
     allowMic: dev || hasFeature(tier, 'micInput'),
     allowCustomHz: dev || hasFeature(tier, 'customFrequencyInput'),
     exportWatermark: dev ? false : features.exportWatermark,
