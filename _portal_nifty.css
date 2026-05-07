@@ -500,6 +500,40 @@
       box-sizing: border-box;
     }
 
+    /*
+     * Wormhole shell: allow tall colour pop-overs to extend past rounded shell (avoids bottom clip).
+     */
+    #wormholeControlsHost .pm-dat-gui-shell {
+      overflow-x: visible;
+      overflow-y: visible;
+    }
+
+    /*
+     * Wormhole dat.GUI is tall + colour widgets pop below rows; generous bottom padding avoids
+     * last pickers clipping inside scroll host / overflow:hidden shell.
+     */
+    #wormholeControlsHost .pm-dat-gui-shell.pm-dat-gui-shell--embedded .pm-dat-gui-body {
+      padding-bottom: min(48vh, 540px);
+      scroll-padding-bottom: max(140px, env(safe-area-inset-bottom));
+    }
+
+    /* dat.GUI addColor popup: enlarge HSV surfaces (stock lib uses fixed 100px internals). */
+    .dg.cr.color {
+      overflow: visible;
+    }
+
+    .dg.cr.color .selector {
+      transform: scale(2.1);
+      transform-origin: top left;
+      z-index: 10100 !important;
+    }
+
+    @media (max-width: 768px) {
+      .dg.cr.color .selector {
+        transform: scale(1.55);
+      }
+    }
+
     /* Above .noise (z-index 9999); landing must sit on top of the portal shell */
     #landing-root {
       z-index: 10050;

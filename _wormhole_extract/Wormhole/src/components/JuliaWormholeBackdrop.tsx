@@ -24,6 +24,29 @@ const PALETTE = [
   new THREE.Color('#f5ff61'),
 ];
 
+/** Match portal `_wormhole_build_fragment.js` — near camera uses lower uZoom than deep tunnel. */
+const WORMHOLE_RING_NEAR_ZOOM_MUL = 0.93;
+
+function wormholeRingZoomForIndex(ringIndex: number, frameZoom: number): number {
+  const fz = Number.isFinite(frameZoom) && frameZoom > 0 ? Math.max(frameZoom, 0.6) : 1.5;
+  const g = ringIndex * 0.618033988749895;
+  const fr = g - Math.floor(g);
+  return fz * (1.0 + fr * 0.065);
+}
+
+function wormholeRingZoomWithProximity(
+  ringIndex: number,
+  frameZoom: number,
+  tunnelLen: number,
+  relZ: number,
+): number {
+  const base = wormholeRingZoomForIndex(ringIndex, frameZoom);
+  const denom = tunnelLen > 1e-6 ? tunnelLen : 1;
+  const distFactor = THREE.MathUtils.clamp(-relZ / denom, 0, 1);
+  const proxMul = WORMHOLE_RING_NEAR_ZOOM_MUL * (1.0 - distFactor) + distFactor;
+  return base * proxMul;
+}
+
 /**
  * Full-viewport Three.js wormhole — Interstellar-style infinite flythrough.
  *
@@ -49,6 +72,7 @@ export function JuliaWormholeBackdrop(): ReactElement {
 
     const initial = tunnelStore.getState();
     const TUNNEL_LENGTH = initial.ringCount * initial.ringSpacing;
+    const RING_THETA_SEGS = 384;
     const particleCount = initial.particleCount;
 
     const renderer = new THREE.WebGLRenderer({
@@ -93,6 +117,9 @@ export function JuliaWormholeBackdrop(): ReactElement {
           uDiscRadius: { value: initial.discRadius },
           uMode: { value: mode },
           uFractalEvolutionSpeed: { value: initial.fractalEvolutionSpeed },
+          uRingRefR: { value: initial.ringRadius },
+          uAnnInnerN: { value: 0.81 },
+          uAnnOuterN: { value: 1.0 },
         },
       });
 
@@ -128,9 +155,20 @@ export function JuliaWormholeBackdrop(): ReactElement {
     const rings: THREE.Mesh[] = [];
     const ringMats: THREE.ShaderMaterial[] = [];
     for (let i = 0; i < initial.ringCount; i++) {
-      const mat = makeMat(i, 0, 1.4 + (i % 5) * 0.12, 1.0);
+      const relInit = -i * initial.ringSpacing + initial.depth;
+      const mat = makeMat(
+        i,
+        0,
+        wormholeRingZoomWithProximity(i, initial.juliaFrameZoom, TUNNEL_LENGTH, relInit),
+        1.0,
+      );
       ringMats.push(mat);
-      const geo = new THREE.RingGeometry(initial.ringRadius * 0.81, initial.ringRadius, 80, 1);
+      const geo = new THREE.RingGeometry(
+        initial.ringRadius * 0.81,
+        initial.ringRadius,
+        RING_THETA_SEGS,
+        1,
+      );
       const mesh = new THREE.Mesh(geo, mat);
       mesh.position.z = -i * initial.ringSpacing;
       mesh.rotation.z = (i * 0.41) % (Math.PI * 2);
@@ -290,12 +328,22 @@ export function JuliaWormholeBackdrop(): ReactElement {
         ring.rotation.z += spinRate * dt;
       }
 
-      for (const m of ringMats) {
+      for (let ri = 0; ri < ringMats.length; ri++) {
+        const ring = rings[ri];
+        const m = ringMats[ri]!;
+        const rz = ring ? ring.position.z + s.depth : 0;
         m.uniforms.uTime.value = time;
         m.uniforms.uDepth.value = s.depth;
         m.uniforms.uFractalEvolutionSpeed.value = s.fractalEvolutionSpeed;
         m.uniforms.uCenter.value.set(s.juliaCx, s.juliaCy);
         m.uniforms.uDiscRadius.value = s.discRadius;
+        m.uniforms.uRingRefR.value = s.ringRadius;
+        m.uniforms.uZoom.value = wormholeRingZoomWithProximity(
+          ri,
+          s.juliaFrameZoom,
+          TUNNEL_LENGTH,
+          rz,
+        );
       }
       skyMat.uniforms.uTime.value = time * 0.4;
       skyMat.uniforms.uDepth.value = s.depth * 0.05;

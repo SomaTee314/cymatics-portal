@@ -61,7 +61,7 @@
             'opacity:1;pointer-events:auto;transform:translate(0,-50%);}',
             '.visual-fs-panel .pm-portal-ctrl-shell{max-height:min(85vh,880px)!important;width:100%!important;}',
             '.visual-fs-panel .pm-dat-gui-shell{max-height:min(85vh,880px)!important;width:100%!important;}',
-            '.visual-fs-panel .pm-dat-gui-body{max-height:min(72vh,700px)!important;}',
+            '.visual-fs-panel .pm-dat-gui-body{max-height:min(90vh,900px)!important;padding-bottom:max(48px, env(safe-area-inset-bottom), 80px)!important}',
             '.pm-dat-gui-fs-close,.pm-portal-ctrl-fs-close{display:none!important}',
             '.visual-fs-panel .pm-dat-gui-fs-close,.visual-fs-panel .pm-portal-ctrl-fs-close{display:flex!important;',
             'align-items:center;justify-content:center}',

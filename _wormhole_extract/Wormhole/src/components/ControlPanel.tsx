@@ -16,14 +16,14 @@ import { tunnelStore, type TunnelState } from '@/tunnel/tunnelStore';
  */
 
 const JULIA_PRESETS = [
-  { id: 'rabbit', label: 'Douady Rabbit', cx: -0.7269, cy: 0.1889, frameZoom: 1.5 },
-  { id: 'dendrite', label: 'Dendrite', cx: 0, cy: 1, frameZoom: 1.5 },
-  { id: 'sanMarco', label: 'San Marco', cx: -0.75, cy: 0, frameZoom: 1.5 },
+  { id: 'rabbit', label: 'Fractal Vortex', cx: -0.7269, cy: 0.1889, frameZoom: 1.5 },
+  { id: 'dendrite', label: 'Cosmic Magenta', cx: 0, cy: 1, frameZoom: 1.5 },
+  { id: 'sanMarco', label: 'Radiant Helios', cx: -0.75, cy: 0, frameZoom: 1.5 },
   { id: 'siegel', label: 'Siegel Disk', cx: -0.391, cy: -0.587, frameZoom: 1.5 },
-  { id: 'recursive', label: 'Deep Recursive', cx: -0.8, cy: 0.156, frameZoom: 1.5 },
-  { id: 'spiral', label: 'Spiral', cx: -0.4, cy: 0.6, frameZoom: 1.5 },
-  { id: 'airplane', label: 'Airplane', cx: -1.755, cy: 0, frameZoom: 1.5 },
-  { id: 'cauliflower', label: 'Cauliflower', cx: 0.285, cy: 0.01, frameZoom: 1.5 },
+  { id: 'recursive', label: 'Solar Amber', cx: -0.8, cy: 0.156, frameZoom: 1.5 },
+  { id: 'spiral', label: 'Red Dragon', cx: -0.4, cy: 0.6, frameZoom: 1.5 },
+  { id: 'airplane', label: 'Gradient Pulse', cx: -1.755, cy: 0, frameZoom: 1.5 },
+  { id: 'cauliflower', label: 'Green Tree Frog', cx: 0.285, cy: 0.01, frameZoom: 1.5 },
 ] as const;
 
 function useStoreValue<T>(selector: (s: TunnelState) => T): T {

@@ -551,6 +551,40 @@
       box-sizing: border-box;
     }
 
+    /*
+     * Wormhole shell: allow tall colour pop-overs to extend past rounded shell (avoids bottom clip).
+     */
+    #wormholeControlsHost .pm-dat-gui-shell {
+      overflow-x: visible;
+      overflow-y: visible;
+    }
+
+    /*
+     * Wormhole dat.GUI is tall + colour widgets pop below rows; generous bottom padding avoids
+     * last pickers clipping inside scroll host / overflow:hidden shell.
+     */
+    #wormholeControlsHost .pm-dat-gui-shell.pm-dat-gui-shell--embedded .pm-dat-gui-body {
+      padding-bottom: min(48vh, 540px);
+      scroll-padding-bottom: max(140px, env(safe-area-inset-bottom));
+    }
+
+    /* dat.GUI addColor popup: enlarge HSV surfaces (stock lib uses fixed 100px internals). */
+    .dg.cr.color {
+      overflow: visible;
+    }
+
+    .dg.cr.color .selector {
+      transform: scale(2.1);
+      transform-origin: top left;
+      z-index: 10100 !important;
+    }
+
+    @media (max-width: 768px) {
+      .dg.cr.color .selector {
+        transform: scale(1.55);
+      }
+    }
+
     /* Above .noise (z-index 9999); landing must sit on top of the portal shell */
     #landing-root {
       z-index: 10050;
@@ -1405,7 +1439,7 @@
                     <span class="guide-step-badge" aria-hidden="true">02</span>
                     <div class="guide-step-body">
                         <h3 class="guide-step-title">Advanced visuals</h3>
-                        <p class="guide-step-text">In the second column, pick an <strong>Audio-Visualiser Portal</strong> (<strong>Balanced</strong>, <strong>Mandelbrot</strong>, or <strong>Julia</strong>) and set <strong>Particle count</strong> with the slider or number box. Press <strong>H</strong> to show or hide <strong>Advanced Visual Controls</strong>. Drag that window by its header; tap ↺ to snap it back to its default spot.</p>
+                        <p class="guide-step-text">In the second column, pick an <strong>Audio-Visualiser Portal</strong> (<strong>Particle cymatics</strong>, <strong>Mandelbrot fractal</strong>, or <strong>Julia fractal</strong>) and set <strong>Particle count</strong> with the slider or number box. Press <strong>H</strong> to show or hide <strong>Advanced Visual Controls</strong>. Drag that window by its header; tap ↺ to snap it back to its default spot.</p>
                     </div>
                 </li>
                 </ol>
@@ -1536,19 +1570,19 @@
           <h3><span class="num">02</span> Advanced visuals</h3>
           <div class="ctrl-row">
             <label for="aggressionSel">Audio-Visualiser Portals</label>
-            <select id="aggressionSel" title="Classic cymatics, Mandelbrot or Julia escape-time, or Julia wormhole tunnel with named fractal presets">
-              <option value="balanced">Balanced — classic cymatics</option>
-              <option value="fractalMB">Mandelbrot — escape-time</option>
-              <option value="fractalJulia" selected>Julia — escape-time (wandering c)</option>
-              <option value="juliaWH_rabbit">Douady Rabbit</option>
-              <option value="juliaWH_dendrite">Dendrite</option>
-              <option value="juliaWH_sanMarco">San Marco</option>
+            <select id="aggressionSel" title="Particle cymatics, Mandelbrot or Julia fractal, plus tunnel visual presets">
+              <option value="balanced">Particle cymatics</option>
+              <option value="fractalMB">Mandelbrot fractal</option>
+              <option value="fractalJulia" selected>Julia fractal</option>
+              <option value="juliaWH_rabbit">Fractal Vortex</option>
+              <option value="juliaWH_dendrite">Cosmic Magenta</option>
+              <option value="juliaWH_sanMarco">Radiant Helios</option>
               <option value="juliaWH_siegel">Siegel Disc</option>
-              <option value="juliaWH_recursive">Deep Recursive</option>
-              <option value="juliaWH_spiral">Spiral</option>
-              <option value="juliaWH_airplane">Airplane</option>
-              <option value="juliaWH_cauliflower">Cauliflower</option>
-              <option value="juliaWormhole">Julia wormhole — tunnel</option>
+              <option value="juliaWH_recursive">Solar Amber</option>
+              <option value="juliaWH_spiral">Red Dragon</option>
+              <option value="juliaWH_airplane">Gradient Pulse</option>
+              <option value="juliaWH_cauliflower">Green Tree Frog</option>
+              <option value="juliaWormhole">Azura Shiva</option>
             </select>
           </div>
           <div class="ctrl-row">
@@ -1658,9 +1692,11 @@
             '.pm-dat-gui-shell.pm-dat-gui-dragging .pm-dat-gui-header{cursor:grabbing}',
             '.pm-dat-gui-drag-hint{opacity:0.5;font-size:12px;line-height:1}',
             '.pm-dat-gui-title{flex:1;font-weight:600;letter-spacing:0.02em}',
-            '.pm-dat-gui-body{background:#1a1a1a;flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;',
-            '-webkit-overflow-scrolling:touch}',
-            '.pm-dat-gui-body .dg{position:relative!important;margin-right:0!important}',
+            '.pm-dat-gui-body{background:#1a1a1a;flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:visible;',
+            '-webkit-overflow-scrolling:touch;padding-bottom:max(48px, env(safe-area-inset-bottom));box-sizing:border-box;scroll-padding-bottom:48px;scrollbar-gutter:stable}',
+            '.pm-dat-gui-body .dg{position:relative!important;margin-right:0!important;height:auto!important;max-height:none!important}',
+            '.dg.cr.color{overflow:visible}',
+            '.dg.cr.color .selector{transform:scale(2.1);transform-origin:top left;z-index:10100!important}',
             '.pm-dat-gui-min{flex-shrink:0;min-width:30px;height:26px;padding:0 8px;border:1px solid #555;',
             'border-radius:3px;background:#3a3a3a;color:#f0f0f0;cursor:pointer;font-size:15px;line-height:1}',
             '.pm-dat-gui-min:hover{background:#4a4a4a}',
@@ -1670,10 +1706,12 @@
             '.pm-dat-gui-fs-close{flex-shrink:0;min-width:30px;height:26px;padding:0 8px;border:1px solid #555;',
             'border-radius:3px;background:#3a3a3a;color:#f0f0f0;cursor:pointer;font-size:17px;line-height:1}',
             '.pm-dat-gui-fs-close:hover{background:rgba(180,56,56,0.45);border-color:#a85555;color:#fff}',
-            '.pm-dat-gui-shell--embedded{max-height:min(52vh,440px)}',
+            '.pm-dat-gui-shell--embedded{max-height:min(76vh,700px)}',
+            '.pm-dat-gui-body .dg.main{max-height:none!important;height:auto!important;overflow:visible!important}',
             '@media (max-width:768px){',
             '.pm-dat-gui-header{cursor:default;-webkit-user-select:auto;user-select:auto;touch-action:manipulation}',
-            '.pm-dat-gui-drag-hint{display:none!important}}'
+            '.pm-dat-gui-drag-hint{display:none!important}',
+            '.dg.cr.color .selector{transform:scale(1.55)}}'
         ].join('');
         document.head.appendChild(s);
     }
@@ -1761,6 +1799,10 @@
             shell.style.maxWidth = '100%';
             shell.style.boxSizing = 'border-box';
             shell.style.zIndex = options.zIndex != null ? String(options.zIndex) : '';
+            if (options.embeddedMaxHeight != null) {
+                var emh = options.embeddedMaxHeight;
+                shell.style.maxHeight = typeof emh === 'number' ? emh + 'px' : String(emh);
+            }
         } else {
             document.body.appendChild(shell);
             shell.style.position = 'fixed';
@@ -1875,6 +1917,7 @@
             shell.style.boxSizing = 'border-box';
             shell.style.zIndex = String(z);
             clampFloatingShellToViewport();
+            shell.style.maxHeight = '';
         }
 
         function resetShellToDefaultPosition(ev) {
@@ -1894,6 +1937,12 @@
             shell.style.maxWidth = '100%';
             shell.style.boxSizing = 'border-box';
             shell.style.zIndex = options.zIndex != null ? String(options.zIndex) : '';
+            if (options.embeddedMaxHeight != null) {
+                var emh2 = options.embeddedMaxHeight;
+                shell.style.maxHeight = typeof emh2 === 'number' ? emh2 + 'px' : String(emh2);
+            } else {
+                shell.style.maxHeight = '';
+            }
             if (typeof global.__pmFsMountAdvancedGui === 'function') {
                 global.__pmFsMountAdvancedGui();
             }
@@ -2334,7 +2383,7 @@
             'opacity:1;pointer-events:auto;transform:translate(0,-50%);}',
             '.visual-fs-panel .pm-portal-ctrl-shell{max-height:min(85vh,880px)!important;width:100%!important;}',
             '.visual-fs-panel .pm-dat-gui-shell{max-height:min(85vh,880px)!important;width:100%!important;}',
-            '.visual-fs-panel .pm-dat-gui-body{max-height:min(72vh,700px)!important;}',
+            '.visual-fs-panel .pm-dat-gui-body{max-height:min(90vh,900px)!important;padding-bottom:max(48px, env(safe-area-inset-bottom), 80px)!important}',
             '.pm-dat-gui-fs-close,.pm-portal-ctrl-fs-close{display:none!important}',
             '.visual-fs-panel .pm-dat-gui-fs-close,.visual-fs-panel .pm-portal-ctrl-fs-close{display:flex!important;',
             'align-items:center;justify-content:center}',
@@ -5162,6 +5211,14 @@
     var wormholeSceneBuilt = false;
     var whDepth = 0;
     var whPrevDepth = 0;
+    var wormholeRingPulseT0 = -1;
+    var wormholeRingPulseStartScale = 1;
+    var wormholeRingPulseLoggedStart = false;
+    var wormholeRingPulsePeakLogCycle = -1;
+    var wormholeRingPulseLastSoloLogT = -1;
+    var WORMHOLE_RING_PULSE_HOLD = 3;
+    var WORMHOLE_RING_PULSE_SHRINK = 11;
+    var WORMHOLE_RING_PULSE_GROW = 11;
     var whVelocitySm = 0;
     var wormholeFramedSkyMat = null;
     var wormholeFramedSky = null;
@@ -5201,15 +5258,28 @@
         helixCount: 3,
         wormParticleCount: 2400,
         fogDensity: 0.02,
-        ringIntensity: 1.0,
-        skyIntensity: 1.05,
-        /** dat.GUI addColor — same pattern as Advanced Visual Controls `palette` (hex strings). */
-        whColorSky: '#ffffff',
-        whColorRing: '#ffffff',
-        whColorHelix: '#ff4da8',
-        whColorOm: '#ffffff',
-        /** Neutral/white → technicolor Julia (Wormhole.zip); saturated chroma → monochrome gradient on sky + ring shaders. */
-        whJuliaFractColor: '#ffffff'
+        ringIntensity: 1.08,
+        skyIntensity: 1.12,
+        /** Annulus pulse: max XY mesh scale (baseline 1; raise for larger annulus on screen). */
+        ringPulsePeakMul: 1.0,
+        /** Annulus pulse: min XY mesh scale at full shrink. */
+        ringPulseEndScale: 0.03,
+        /** Hide sky, helices, Om — only `wormholeRingMeshes` (debug). */
+        debugAnnulusOnly: false,
+        /** Verbose `[WormholeRingPulse]` peakHold / endVerify logs (off by default). */
+        debugRingPulseLogs: false,
+        /** Azura Shiva: subtle same-hue blue ramp across layers (flat #0000ff everywhere reads dull). helixHueSpread stays 0. */
+        whColorSky: '#8888ff',
+        whColorRing: '#0000b8',
+        /** Centre spiral tubes (TubeGeometry helices). */
+        whColorHelix: '#2222ff',
+        /** Second spiral tone; when ≈ A, use `helixHueSpread` only. */
+        whColorHelixB: '#6666ff',
+        /** When A and B match, offset hue by (strandIndex / helixCount) × this. 0 = strand colours follow A→B only (no rainbow). */
+        helixHueSpread: 0,
+        whColorOm: '#5555ff',
+        /** Saturated chroma → monochrome Julia from pick; near-neutral → technicolor IQ palette. */
+        whJuliaFractColor: '#1818ff'
     };
 
     /**
@@ -5227,17 +5297,157 @@
         juliaWH_cauliflower: { cx: 0.285, cy: 0.01, frameZoom: 1.5 }
     };
 
-    /** Readout suffix after `Julia wormhole` (portal dropdown naming; Siegel = Disc per product copy). */
+    /** Readout suffix after `Azura Shiva` base tag (portal dropdown; Siegel = Disc per product copy). */
     var JULIA_WH_PORTAL_READOUT_SUFFIX = {
-        juliaWH_rabbit: ' · Douady Rabbit',
-        juliaWH_dendrite: ' · Dendrite',
-        juliaWH_sanMarco: ' · San Marco',
+        juliaWH_rabbit: ' · Fractal Vortex',
+        juliaWH_dendrite: ' · Cosmic Magenta',
+        juliaWH_sanMarco: ' · Radiant Helios',
         juliaWH_siegel: ' · Siegel Disc',
-        juliaWH_recursive: ' · Deep Recursive',
-        juliaWH_spiral: ' · Spiral',
-        juliaWH_airplane: ' · Airplane',
-        juliaWH_cauliflower: ' · Cauliflower'
+        juliaWH_recursive: ' · Solar Amber',
+        juliaWH_spiral: ' · Red Dragon',
+        juliaWH_airplane: ' · Gradient Pulse',
+        juliaWH_cauliflower: ' · Green Tree Frog'
     };
+
+    /**
+     * Optional per-preset wormholeControls overlay when no in-session snapshot exists,
+     * and for "Reset defaults (zip)" while that preset is selected.
+     */
+    var JULIA_WH_PORTAL_PRESET_TUNING = {
+        juliaWH_spiral: {
+            helixFlareGain: 1,
+            omStreamSpeed: 0.011,
+            whColorHelix: '#ff0000',
+            whColorHelixB: '#ff0000',
+            helixHueSpread: 0,
+            fogDensity: 0.02,
+            whColorSky: '#ff0000',
+            whColorRing: '#ff0000',
+            whColorOm: '#ff0000',
+            whJuliaFractColor: '#fc0000'
+        },
+        juliaWH_sanMarco: {
+            helixFlareGain: 1,
+            omStreamSpeed: 0.011,
+            whColorHelix: '#ffff00',
+            whColorHelixB: '#ffff00',
+            helixHueSpread: 0,
+            fogDensity: 0.02,
+            whColorSky: '#ffff00',
+            whColorRing: '#ffff00',
+            whColorOm: '#ffff00',
+            whJuliaFractColor: '#ffff00'
+        },
+        juliaWH_recursive: {
+            helixFlareGain: 1,
+            omStreamSpeed: 0.011,
+            whColorHelix: '#ff7a00',
+            whColorHelixB: '#ff7a00',
+            helixHueSpread: 0,
+            fogDensity: 0.02,
+            whColorSky: '#ff7a00',
+            whColorRing: '#ff7a00',
+            whColorOm: '#ff7a00',
+            whJuliaFractColor: '#ff7a00'
+        },
+        juliaWH_cauliflower: {
+            helixFlareGain: 1,
+            omStreamSpeed: 0.011,
+            whColorHelix: '#00ff00',
+            whColorHelixB: '#00ff00',
+            helixHueSpread: 0,
+            fogDensity: 0.02,
+            whColorSky: '#00ff00',
+            whColorRing: '#00ff00',
+            whColorOm: '#00ff00',
+            whJuliaFractColor: '#00ff00'
+        },
+        juliaWH_dendrite: {
+            helixFlareGain: 1,
+            omStreamSpeed: 0.011,
+            whColorHelix: '#f200ff',
+            whColorHelixB: '#e200ff',
+            helixHueSpread: 0,
+            fogDensity: 0.02,
+            whColorSky: '#ff00ed',
+            whColorRing: '#ff00ed',
+            whColorOm: '#ff00fc',
+            whJuliaFractColor: '#0002ff'
+        },
+        juliaWH_airplane: {
+            helixFlareGain: 1,
+            omStreamSpeed: 0.011,
+            whColorHelix: '#9eff00',
+            whColorHelixB: '#9eff00',
+            helixHueSpread: 0,
+            fogDensity: 0.02,
+            whColorSky: '#9eff00',
+            whColorRing: '#9eff00',
+            whColorOm: '#9eff00',
+            whJuliaFractColor: '#9eff00'
+        }
+    };
+
+    /** Per `aggressionSel` wormhole entry (`juliaWormhole`, `juliaWH_*`): colours + tunnel tuning stay separate. */
+    var wormholeControlsSnapshots = {};
+    var wormholeControlsBaseline = null;
+    var wormholeLastPortalSelect = null;
+
+    function wormholeIsJuliaTunnelKey(key) {
+        if (!key) return false;
+        if (key === 'juliaWormhole') return true;
+        return Object.prototype.hasOwnProperty.call(JULIA_WH_PORTAL_PRESETS, key);
+    }
+
+    function wormholeEnsureBaseline() {
+        if (!wormholeControlsBaseline) {
+            wormholeControlsBaseline = wormholeCaptureSnapshot();
+        }
+    }
+
+    function wormholeCaptureSnapshot() {
+        var out = {};
+        var k;
+        for (k in wormholeControls) {
+            if (Object.prototype.hasOwnProperty.call(wormholeControls, k)) {
+                out[k] = wormholeControls[k];
+            }
+        }
+        return out;
+    }
+
+    function wormholeApplySnapshot(snap) {
+        if (!snap) return;
+        var k;
+        for (k in snap) {
+            if (Object.prototype.hasOwnProperty.call(wormholeControls, k)) {
+                wormholeControls[k] = snap[k];
+            }
+        }
+    }
+
+    function wormholeOnAggressionPresetBefore(nextKey) {
+        wormholeEnsureBaseline();
+        if (wormholeLastPortalSelect != null && wormholeIsJuliaTunnelKey(wormholeLastPortalSelect)) {
+            wormholeControlsSnapshots[wormholeLastPortalSelect] = wormholeCaptureSnapshot();
+        }
+        if (wormholeIsJuliaTunnelKey(nextKey)) {
+            var stored = wormholeControlsSnapshots[nextKey];
+            if (stored) {
+                wormholeApplySnapshot(stored);
+            } else {
+                wormholeApplySnapshot(wormholeControlsBaseline);
+                var tune =
+                    typeof JULIA_WH_PORTAL_PRESET_TUNING !== 'undefined'
+                        ? JULIA_WH_PORTAL_PRESET_TUNING[nextKey]
+                        : null;
+                if (tune) wormholeApplySnapshot(tune);
+            }
+            wormholeLastPortalSelect = nextKey;
+        } else {
+            wormholeLastPortalSelect = null;
+        }
+    }
 
     function wormholeColorShiftGlsl() {
         return [
@@ -5270,27 +5480,131 @@
     /** Reused when reading wormhole colour pickers (dat.GUI addColor hex). */
     var _wormholePickCol = new THREE.Color();
     var _wormholePickHsl = { h: 0, s: 0, l: 0 };
+    var _helHslB = { h: 0, s: 0, l: 0 };
 
-    function wormholeColorFromPickerHex(hex) {
-        var m = (hex && String(hex).replace(/^#/, '')) || 'ffffff';
-        if (m.length === 3) {
-            m = m.charAt(0) + m.charAt(0) + m.charAt(1) + m.charAt(1) + m.charAt(2) + m.charAt(2);
+    /**
+     * dat.GUI addColor may set properties as hex string, 0xRRGGBB number, or {r,g,b} 0–255.
+     */
+    function wormholeColorFromPickerHex(raw, outColor) {
+        var dest = outColor || _wormholePickCol;
+        if (typeof raw === 'number' && Number.isFinite(raw)) {
+            var ih = raw >>> 0;
+            ih = ih & 0xffffff;
+            dest.setRGB(((ih >> 16) & 255) / 255, ((ih >> 8) & 255) / 255, (ih & 255) / 255);
+            return dest;
         }
-        if (m.length !== 6 || /[^0-9a-f]/i.test(m)) {
-            _wormholePickCol.setRGB(1, 1, 1);
-            return _wormholePickCol;
+        if (raw && typeof raw === 'object' && typeof raw.r === 'number') {
+            var rr = raw.r > 1.01 ? raw.r / 255 : raw.r;
+            var gg = raw.g > 1.01 ? raw.g / 255 : raw.g;
+            var bb = raw.b > 1.01 ? raw.b / 255 : raw.b;
+            dest.setRGB(rr, gg, bb);
+            return dest;
         }
-        _wormholePickCol.setRGB(
-            parseInt(m.slice(0, 2), 16) / 255,
-            parseInt(m.slice(2, 4), 16) / 255,
-            parseInt(m.slice(4, 6), 16) / 255
-        );
-        return _wormholePickCol;
+        var s = raw == null ? '' : String(raw).trim();
+        var hx = s.replace(/^#/, '').replace(/[^0-9a-f]/gi, '');
+        if (!hx.length) {
+            dest.setRGB(1, 1, 1);
+            return dest;
+        }
+        if (hx.length === 8) {
+            hx = hx.slice(2, 8);
+        } else if (hx.length > 6) {
+            hx = hx.slice(0, 6);
+        }
+        if (hx.length === 6) {
+            dest.setRGB(
+                parseInt(hx.slice(0, 2), 16) / 255,
+                parseInt(hx.slice(2, 4), 16) / 255,
+                parseInt(hx.slice(4, 6), 16) / 255
+            );
+            return dest;
+        }
+        if (hx.length === 3) {
+            dest.setRGB(
+                parseInt(hx.charAt(0) + hx.charAt(0), 16) / 255,
+                parseInt(hx.charAt(1) + hx.charAt(1), 16) / 255,
+                parseInt(hx.charAt(2) + hx.charAt(2), 16) / 255
+            );
+            return dest;
+        }
+        dest.setRGB(1, 1, 1);
+        return dest;
     }
 
     var _julFractPickRgb = new THREE.Vector3(1, 1, 1);
+    var _whRingTintRgb = new THREE.Vector3(1, 1, 1);
 
-    /** 1 = legacy technicolor cosine; 0 = monochromatic gradient from pickRgb (chromatic picks only). */
+    var WORMHOLE_GRADIENT_PULSE_PERIOD = 11;
+    var _wormholeGpHue01 = null;
+    var _wormholeGpRgb = new THREE.Color();
+
+    function wormholeRgb01ToSv(r, g, b) {
+        var mx = Math.max(r, Math.max(g, b));
+        var mn = Math.min(r, Math.min(g, b));
+        var v = mx;
+        var s = mx <= 1e-8 ? 0 : (mx - mn) / mx;
+        return { s: s, v: v };
+    }
+
+    function wormholeHue01ToRgbSv1(h01, outColor) {
+        h01 = ((h01 % 1) + 1) % 1;
+        var h = h01 * 6;
+        var i = Math.floor(h);
+        var f = h - i;
+        switch (i % 6) {
+            case 0:
+                outColor.setRGB(1, f, 0);
+                break;
+            case 1:
+                outColor.setRGB(1 - f, 1, 0);
+                break;
+            case 2:
+                outColor.setRGB(0, 1, f);
+                break;
+            case 3:
+                outColor.setRGB(0, 1 - f, 1);
+                break;
+            case 4:
+                outColor.setRGB(f, 0, 1);
+                break;
+            default:
+                outColor.setRGB(1, 0, 1 - f);
+                break;
+        }
+        return outColor;
+    }
+
+    function wormholeGpFractPickIsMaxIntensity() {
+        try {
+            if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                return false;
+            }
+        } catch (_eRm) {}
+        try {
+            if (typeof aggressionSel === 'undefined' || !aggressionSel) return false;
+            if (aggressionSel.value !== 'juliaWH_airplane') return false;
+        } catch (_eA) {
+            return false;
+        }
+        wormholeColorFromPickerHex(wormholeControls.whJuliaFractColor || '#ffffff');
+        var rr = _wormholePickCol.r;
+        var gg = _wormholePickCol.g;
+        var bb = _wormholePickCol.b;
+        var sv = wormholeRgb01ToSv(rr, gg, bb);
+        return sv.s >= 0.94 && sv.v >= 0.94;
+    }
+
+    function wormholeRefreshGradientPulse(timeSec) {
+        _wormholeGpHue01 = null;
+        if (!wormholeGpFractPickIsMaxIntensity()) return;
+        var period = WORMHOLE_GRADIENT_PULSE_PERIOD;
+        if (!(period > 0)) return;
+        if (!isFinite(timeSec)) timeSec = 0;
+        _wormholeGpHue01 = ((timeSec / period % 1) + 1) % 1;
+        wormholeHue01ToRgbSv1(_wormholeGpHue01, _wormholeGpRgb);
+    }
+
+    /** 1 = legacy technicolor cosine (near-neutral picker only); 0 = tint fractal from pickRgb. */
     function wormholeJuliaFractRainbowAmtLoaded() {
         var rr = _wormholePickCol.r;
         var gg = _wormholePickCol.g;
@@ -5298,12 +5612,26 @@
         var mx = Math.max(rr, Math.max(gg, bb));
         var mn = Math.min(rr, Math.min(gg, bb));
         if (mx - mn < 0.035) return 1;
-        var lumRecip = mx > 1e-5 ? mn / mx : 0;
-        if (lumRecip < 0.048 && mn < 0.025 && mx > 0.12) return 1;
         return 0;
     }
 
     function wormholeApplyJuliaFractColourUniforms() {
+        if (_wormholeGpHue01 !== null) {
+            _julFractPickRgb.set(_wormholeGpRgb.r, _wormholeGpRgb.g, _wormholeGpRgb.b);
+            if (wormholeFramedSkyMat && wormholeFramedSkyMat.uniforms.uJuliaPickRgb) {
+                wormholeFramedSkyMat.uniforms.uJuliaPickRgb.value.copy(_julFractPickRgb);
+                wormholeFramedSkyMat.uniforms.uJuliaRainbow.value = 0;
+            }
+            var riGp;
+            for (riGp = 0; riGp < wormholeRingMats.length; riGp++) {
+                var matGp = wormholeRingMats[riGp];
+                if (matGp.uniforms.uJuliaPickRgb) {
+                    matGp.uniforms.uJuliaPickRgb.value.copy(_julFractPickRgb);
+                    matGp.uniforms.uJuliaRainbow.value = 0;
+                }
+            }
+            return;
+        }
         wormholeColorFromPickerHex(wormholeControls.whJuliaFractColor || '#ffffff');
         var rBow = wormholeJuliaFractRainbowAmtLoaded();
         _julFractPickRgb.set(_wormholePickCol.r, _wormholePickCol.g, _wormholePickCol.b);
@@ -5321,13 +5649,100 @@
         }
     }
 
+    function wormholeApplySceneAccentTints() {
+        if (!wormholeSceneBuilt || !wormholeFramedSkyMat || !wormholeFramedSkyMat.uniforms.uSkyTint)
+            return;
+        if (_wormholeGpHue01 !== null) {
+            wormholeFramedSkyMat.uniforms.uSkyTint.value.set(
+                _wormholeGpRgb.r,
+                _wormholeGpRgb.g,
+                _wormholeGpRgb.b
+            );
+            _whRingTintRgb.set(1, 1, 1);
+            var riP;
+            for (riP = 0; riP < wormholeRingMats.length; riP++) {
+                var matP = wormholeRingMats[riP];
+                if (matP.uniforms.uRingTint) {
+                    matP.uniforms.uRingTint.value.copy(_whRingTintRgb);
+                }
+            }
+            return;
+        }
+        wormholeColorFromPickerHex(wormholeControls.whColorSky || '#ffffff');
+        wormholeFramedSkyMat.uniforms.uSkyTint.value.set(
+            _wormholePickCol.r,
+            _wormholePickCol.g,
+            _wormholePickCol.b
+        );
+        wormholeColorFromPickerHex(wormholeControls.whColorRing || '#ffffff');
+        _whRingTintRgb.set(_wormholePickCol.r, _wormholePickCol.g, _wormholePickCol.b);
+        var ri;
+        for (ri = 0; ri < wormholeRingMats.length; ri++) {
+            var mat = wormholeRingMats[ri];
+            if (mat.uniforms.uRingTint) {
+                mat.uniforms.uRingTint.value.copy(_whRingTintRgb);
+            }
+        }
+    }
+
     function wormholeApplyPickerColorsToShaders() {
+        var tGp = 0;
+        if (typeof clock !== 'undefined' && clock && typeof clock.getElapsedTime === 'function') {
+            tGp = clock.getElapsedTime();
+        }
+        wormholeRefreshGradientPulse(tGp);
         wormholeApplyJuliaFractColourUniforms();
+        wormholeApplySceneAccentTints();
     }
 
     function whNormHue01(v) {
         v = ((v % 1) + 1) % 1;
         return v;
+    }
+
+    function wormholeLerpHue01(h0, h1, t) {
+        var dh = ((h1 - h0 + 0.5) % 1) - 0.5;
+        return whNormHue01(h0 + dh * t);
+    }
+
+    /**
+     * Centre spiral tubes: base is always Colour A→B along strand index. Optional `helixHueSpread`
+     * adds a rainbow twist (legacy); keep it at 0 so similar reds stay red instead of drifting to yellow.
+     */
+    function wormholeHelixStrandColor(idx, nh, destColor) {
+        if (_wormholeGpHue01 !== null) {
+            destColor.copy(_wormholeGpRgb);
+            return destColor;
+        }
+        var sCtl = wormholeControls;
+        nh = Math.max(1, nh);
+        wormholeColorFromPickerHex(sCtl.whColorHelix);
+        _wormholePickCol.getHSL(_wormholePickHsl);
+        wormholeColorFromPickerHex(
+            sCtl.whColorHelixB != null ? sCtl.whColorHelixB : sCtl.whColorHelix
+        );
+        _wormholePickCol.getHSL(_helHslB);
+        var hA = _wormholePickHsl.h;
+        var sA = _wormholePickHsl.s;
+        var lA = _wormholePickHsl.l;
+        var hB = _helHslB.h;
+        var sB = _helHslB.s;
+        var lB = _helHslB.l;
+        var tLin = nh <= 1 ? 0 : idx / Math.max(1, nh - 1);
+        var hm = wormholeLerpHue01(hA, hB, tLin);
+        var sm = THREE.Math.clamp(sA + (sB - sA) * tLin, 0, 1);
+        var lm = THREE.Math.clamp(lA + (lB - lA) * tLin, 0, 1);
+        sm = Math.max(0.35, sm);
+        lm = Math.max(0.22, Math.min(0.62, lm));
+        var spread =
+            typeof sCtl.helixHueSpread === 'number' && isFinite(sCtl.helixHueSpread)
+                ? sCtl.helixHueSpread
+                : 0;
+        if (spread > 1e-4) {
+            hm = whNormHue01(hm + (idx / nh) * spread);
+        }
+        destColor.setHSL(hm, sm, lm);
+        return destColor;
     }
 
     var wormholeOmLoadGen = 0;
@@ -5357,12 +5772,93 @@
         }
     }
 
+    /** Ring pulse period (s); cosine max→min→max uses this full length (HOLD+SHRINK+GROW sum). */
+    function wormholeRingPulsePeriod() {
+        return WORMHOLE_RING_PULSE_HOLD + WORMHOLE_RING_PULSE_SHRINK + WORMHOLE_RING_PULSE_GROW;
+    }
+
+    function wormholeRingPulsePeakMulNow() {
+        var m = Number(wormholeControls.ringPulsePeakMul);
+        if (!(m > 0) || !isFinite(m)) return 1;
+        return m;
+    }
+
+    function wormholeRingPulseMinMaxScales() {
+        var mul = wormholeRingPulsePeakMulNow();
+        var maxScale = Math.max(0.02, mul);
+        var endCfg = Number(wormholeControls.ringPulseEndScale);
+        var minScale =
+            endCfg > 0 && isFinite(endCfg)
+                ? endCfg
+                : 0.03;
+        minScale = THREE.Math.clamp(minScale, 0.01, maxScale * 0.92);
+        if (minScale >= maxScale - 1e-4) {
+            minScale = Math.max(0.01, maxScale * 0.5);
+        }
+        var lo = Math.min(minScale, maxScale);
+        var hi = Math.max(minScale, maxScale);
+        return { maxScale: maxScale, minScale: minScale, lo: lo, hi: hi };
+    }
+
+    /** Normalized cycle phase in [0, 1) for ring mesh + ring shader (same clock). */
+    function wormholeRingPulsePsi(ringPulseT) {
+        var period = wormholeRingPulsePeriod();
+        if (!(period > 0) || !isFinite(ringPulseT)) return 0;
+        var ph = ringPulseT - Math.floor(ringPulseT / period) * period;
+        if (ph < 0) ph += period;
+        if (ph >= period) ph = 0;
+        return ph / period;
+    }
+
+    /** One cosine period: maxScale → minScale → maxScale (ties to `wormholeRingPulsePsi`). */
+    function wormholeRingPulseScaleFromPsi(psi, rm) {
+        var mm = wormholeRingPulseMinMaxScales();
+        var maxScale = mm.maxScale;
+        var minScale = mm.minScale;
+        var lo = mm.lo;
+        var hi = mm.hi;
+        if (rm) {
+            return hi;
+        }
+        var psiN = psi - Math.floor(psi);
+        if (psiN < 0) psiN += 1;
+        var c = Math.cos(6.283185307179586 * psiN);
+        var s = maxScale + (minScale - maxScale) * (0.5 - 0.5 * c);
+        return THREE.Math.clamp(s, lo, hi);
+    }
+
+    /** Ring z0 divides by uZoom — keep baseline at or above `juliaFrameZoom` (never the old 1.4 bucket). */
+    function wormholeRingZoomForIndex(ringIndex, frameZoom) {
+        var fz =
+            typeof frameZoom === 'number' && isFinite(frameZoom) ? Math.max(frameZoom, 0.6) : 1.5;
+        var fr = ringIndex * 0.618033988749895;
+        fr = fr - Math.floor(fr);
+        return fz * (1.0 + fr * 0.065);
+    }
+
+    /** Near-camera rings: slightly *lower* uZoom than deep tunnel so |z0| stays large (avoids flat filled Julia interior). */
+    var WORMHOLE_RING_NEAR_ZOOM_MUL = 0.93;
+
+    function wormholeRingZoomWithProximity(ringIndex, frameZoom, tunnelLen, relZ) {
+        var base = wormholeRingZoomForIndex(ringIndex, frameZoom);
+        var denom =
+            typeof tunnelLen === 'number' && isFinite(tunnelLen) && tunnelLen > 1e-6
+                ? tunnelLen
+                : 1;
+        var distFactor = THREE.Math.clamp(-relZ / denom, 0, 1);
+        var proxMul = WORMHOLE_RING_NEAR_ZOOM_MUL * (1.0 - distFactor) + 1.0 * distFactor;
+        return base * proxMul;
+    }
+
     /** Verbatim ring Julia shaders from `juliaWormholeShaders.ts` */
     function wormholeRingVertexGlsl() {
         return [
             'varying vec2 vUv;',
+            'uniform float uRingRefR;',
+            'varying vec2 vLoc;',
             'void main() {',
             '  vUv = uv;',
+            '  vLoc = position.xy / max(uRingRefR, 1e-3);',
             '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
             '}'
         ].join('\n');
@@ -5372,8 +5868,9 @@
         return [
             'precision highp float;',
             'varying vec2 vUv;',
-            'uniform float uTime;',
+            'varying vec2 vLoc;',
             'uniform float uDepth;',
+            'uniform float uRingCyclePhase;',
             'uniform float uIndex;',
             'uniform float uZoom;',
             'uniform float uIntensity;',
@@ -5381,8 +5878,11 @@
             'uniform float uDiscRadius;',
             'uniform float uMode;',
             'uniform float uFractalEvolutionSpeed;',
+            'uniform float uAnnInnerN;',
+            'uniform float uAnnOuterN;',
             'uniform vec3 uJuliaPickRgb;',
             'uniform float uJuliaRainbow;',
+            'uniform vec3 uRingTint;',
             wormholeColorShiftGlsl(),
             'vec3 palette(float t) {',
             '  vec3 a = vec3(0.5);',
@@ -5392,34 +5892,57 @@
             '  return a + b * cos(6.28318530718 * (c * t + d));',
             '}',
             'void main() {',
-            '  vec2 p = (vUv - 0.5) * 2.0;',
-            '  vec2 z0 = p / max(uZoom, 1e-3);',
+            '  float rl = length(vLoc);',
+            '  float denom = max(uAnnOuterN - uAnnInnerN, 0.001);',
+            '  float tRadial = clamp((rl - uAnnInnerN) / denom, 0.0, 1.0);',
+            '  float psi = atan(vLoc.y, vLoc.x);',
+            '  float ringTwist = uIndex * 0.713;',
+            '  float wrapK = 3.0 + mod(uIndex, 4.0);',
+            '  float psiWrap = psi * wrapK + ringTwist + 0.38 * sin(psi * 0.5 + uIndex * 0.17);',
+            '  vec2 dirP = vec2(cos(psiWrap), sin(psiWrap));',
+            '  float magRadial = 1.0 + 0.042 * sin((tRadial + uIndex * 0.03) * 6.28318530718);',
+            '  float mag = mix(0.67, 0.715, tRadial) * magRadial;',
+            '  vec2 z0 = dirP * mag / max(uZoom, 1e-3);',
             '  float dEv = uDepth * uFractalEvolutionSpeed;',
-            '  float ph1 = uTime * 0.13 + uIndex * 0.7 + dEv * 0.15;',
-            '  float ph2 = uTime * 0.17 + uIndex * 1.1 + dEv * 0.13;',
-            '  vec2 c = uCenter + uDiscRadius * vec2(cos(ph1), sin(ph2));',
+            '  float cycleParam = 0.5 - 0.5 * cos(6.28318530718 * uRingCyclePhase);',
+            '  float phCycle = cycleParam * 6.28318530718;',
+            '  float ph1 = phCycle * 0.52 + uIndex * 0.7 + dEv * 0.15;',
+            '  float ph2 = phCycle * 0.68 + uIndex * 1.1 + dEv * 0.13;',
+            '  vec2 jC = uCenter + uDiscRadius * vec2(cos(ph1), sin(ph2));',
             '  const int MAX_ITERS = 96;',
             '  const float B = 64.0;',
+            '  const float INV_TWO_PI = 0.15915494309189535;',
             '  vec2 z = z0;',
             '  float m2 = dot(z, z);',
             '  float n = 0.0;',
             '  for (int i = 0; i < MAX_ITERS; i++) {',
             '    if (m2 > B * B) break;',
-            '    z = vec2(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y) + c;',
+            '    z = vec2(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y) + jC;',
             '    m2 = dot(z, z);',
             '    n += 1.0;',
             '  }',
             '  float sn = n - log2(log2(max(m2, 1.0001))) + 4.0;',
-            '  float tRaw = 0.04 * sn + 0.06 * dEv + uIndex * 0.07;',
+            '  float zAng = atan(z.y, z.x);',
+            '  float tanAng = atan(vLoc.y, vLoc.x);',
+            '  float tLin = clamp(n / float(MAX_ITERS), 0.0, 1.0);',
+            '  float escaped = step(B * B, m2);',
+            '  float interiorW = 1.0 - escaped;',
+            '  float zm = max(m2, 1e-7);',
+            '  float trapOrbit = fract(zAng * INV_TWO_PI * 3.1 + log(zm) * 0.14 + uIndex * 0.09);',
+            '  float trap2 = fract(tanAng * 2.7 + tRadial * 4.1 + uIndex * 0.11);',
+            '  float tRaw = 0.04 * sn + 0.06 * dEv + uIndex * 0.07 + cycleParam * 0.12',
+            '             + 0.062 * zAng * INV_TWO_PI + 0.048 * tanAng * INV_TWO_PI',
+            '             + 0.16 * tLin * interiorW + 0.11 * trapOrbit * interiorW + 0.06 * trap2 * interiorW;',
             '  float paletteT = clamp(fract(tRaw), 0.001, 0.999);',
             '  vec3 pal = palette(paletteT);',
             '  vec3 col = wh_juliaFractColorize(pal, uJuliaPickRgb, uJuliaRainbow);',
-            '  float escaped = step(B * B, m2);',
-            '  col *= mix(0.14, 1.1, escaped);',
+            '  col *= clamp(uRingTint, vec3(1.0 / 255.0), vec3(2.75));',
+            '  float interBright = clamp(0.48 + 0.42 * tLin + 0.28 * trapOrbit + 0.14 * trap2, 0.44, 0.96);',
+            '  col *= mix(interBright, 1.06, escaped);',
             '  col = 1.0 - exp(-col * uIntensity);',
             '  float alpha = 1.0;',
             '  if (uMode < 0.5) {',
-            '    float edgeFade = smoothstep(0.05, 0.35, abs(p.y));',
+            '    float edgeFade = smoothstep(0.0, 0.09, tRadial) * smoothstep(1.0, 0.96, tRadial);',
             '    alpha = edgeFade;',
             '  }',
             '  gl_FragColor = vec4(col, alpha);',
@@ -5457,6 +5980,7 @@
             'uniform float uFractalEvolutionSpeed;',
             'uniform vec3 uJuliaPickRgb;',
             'uniform float uJuliaRainbow;',
+            'uniform vec3 uSkyTint;',
             wormholeColorShiftGlsl(),
             'vec3 palette(float t) {',
             '  vec3 a = vec3(0.5);',
@@ -5524,6 +6048,7 @@
             '  float paletteT = clamp(fract(tRaw), 0.001, 0.999);',
             '  vec3 pal = palette(paletteT);',
             '  vec3 col = wh_juliaFractColorize(pal, uJuliaPickRgb, uJuliaRainbow);',
+            '  col *= clamp(uSkyTint, vec3(1.0 / 255.0), vec3(2.75));',
             '  float nearEdge = (1.0 - tLin) * (1.0 - tLin);',
             '  col *= 1.0 + 0.22 * nearEdge;',
             '  col *= mix(0.04, 1.2, escaped);',
@@ -5533,13 +6058,14 @@
         ].join('\n');
     }
 
-    function wormholeMakeRingMat(ringIndex) {
+    function wormholeMakeRingMat(ringIndex, tunnelLen) {
         var s = wormholeControls;
-        var uZoom = 1.4 + (ringIndex % 5) * 0.12;
+        var relZ = -ringIndex * s.ringSpacing;
+        var uZoom = wormholeRingZoomWithProximity(ringIndex, s.juliaFrameZoom, tunnelLen, relZ);
         return new THREE.ShaderMaterial({
             uniforms: {
-                uTime: { value: 0 },
                 uDepth: { value: 0 },
+                uRingCyclePhase: { value: 0 },
                 uIndex: { value: ringIndex },
                 uZoom: { value: uZoom },
                 uIntensity: { value: s.ringIntensity },
@@ -5547,8 +6073,12 @@
                 uDiscRadius: { value: s.discRadius },
                 uMode: { value: 0 },
                 uFractalEvolutionSpeed: { value: s.fractalEvolutionSpeed },
+                uRingRefR: { value: s.ringRadius },
+                uAnnInnerN: { value: 0.81 },
+                uAnnOuterN: { value: 1.0 },
                 uJuliaPickRgb: { value: new THREE.Vector3(1, 1, 1) },
-                uJuliaRainbow: { value: 1 }
+                uJuliaRainbow: { value: 1 },
+                uRingTint: { value: new THREE.Vector3(1, 1, 1) }
             },
             vertexShader: wormholeRingVertexGlsl(),
             fragmentShader: wormholeRingFragmentGlsl(),
@@ -5580,7 +6110,8 @@
                 uRidgeStrength: { value: s.juliaRidgeStrength },
                 uFractalEvolutionSpeed: { value: s.fractalEvolutionSpeed },
                 uJuliaPickRgb: { value: new THREE.Vector3(1, 1, 1) },
-                uJuliaRainbow: { value: 1 }
+                uJuliaRainbow: { value: 1 },
+                uSkyTint: { value: new THREE.Vector3(1, 1, 1) }
             },
             vertexShader: wormholeFramedSkyVertexGlsl(),
             fragmentShader: wormholeFramedSkyFragmentGlsl(),
@@ -5636,6 +6167,141 @@
         }
         wormholeHelixMeshes = [];
         wormholeSceneBuilt = false;
+        wormholeRingPulseHardReset();
+    }
+
+    function wormholeRingPulseHardReset() {
+        wormholeRingPulseT0 = -1;
+        wormholeRingPulseStartScale = 1;
+        wormholeRingPulseLoggedStart = false;
+        wormholeRingPulsePeakLogCycle = -1;
+        wormholeRingPulseLastSoloLogT = -1;
+    }
+
+    /**
+     * om-neon.png is a navy starfield square plus a centred neon Om. Per-pixel luminance/sat
+     * heuristics still leave faint star clusters visible (additive sprites read as tinted quads).
+     * Threshold into a foreground mask, keep only the largest 8-connected component (the glyph +
+     * its glow), discard all other blobs, then derive alpha inside that mask only.
+     */
+    function wormholeOmTextureTransparencyFromMap(map) {
+        var img = map.image;
+        if (!img || !img.width || !img.height) return map;
+        var w = img.width;
+        var h = img.height;
+        var n = w * h;
+        var canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        var id = ctx.getImageData(0, 0, w, h);
+        var pix = id.data;
+        var lumArr = new Float32Array(n);
+        var satArr = new Float32Array(n);
+        var bw = new Uint8Array(n);
+        var pi;
+        for (pi = 0; pi < n; pi++) {
+            var o = pi * 4;
+            var rn = pix[o] / 255;
+            var gn = pix[o + 1] / 255;
+            var bn = pix[o + 2] / 255;
+            var mx = Math.max(rn, Math.max(gn, bn));
+            var mn = Math.min(rn, Math.min(gn, bn));
+            var lum = rn * 0.299 + gn * 0.587 + bn * 0.114;
+            lumArr[pi] = lum;
+            satArr[pi] = mx - mn;
+            bw[pi] = lum > 0.41 || satArr[pi] > 0.32 ? 1 : 0;
+        }
+        var comp = new Int32Array(n);
+        for (pi = 0; pi < n; pi++) {
+            comp[pi] = bw[pi] ? 0 : -1;
+        }
+        var cid = 0;
+        var compSizes = [];
+        var q = new Int32Array(n);
+        var sy;
+        var sx;
+        for (sy = 0; sy < h; sy++) {
+            for (sx = 0; sx < w; sx++) {
+                var si = sy * w + sx;
+                if (comp[si] !== 0) continue;
+                cid++;
+                var qh = 0;
+                var qt = 0;
+                q[qt++] = si;
+                comp[si] = cid;
+                var cnt = 0;
+                while (qh < qt) {
+                    var ci = q[qh++];
+                    cnt++;
+                    var cy = (ci / w) | 0;
+                    var cx = ci - cy * w;
+                    var oy;
+                    for (oy = -1; oy <= 1; oy++) {
+                        var ny = cy + oy;
+                        if (ny < 0 || ny >= h) continue;
+                        var ox;
+                        for (ox = -1; ox <= 1; ox++) {
+                            if (ox === 0 && oy === 0) continue;
+                            var nx = cx + ox;
+                            if (nx < 0 || nx >= w) continue;
+                            var ni = ny * w + nx;
+                            if (comp[ni] !== 0) continue;
+                            comp[ni] = cid;
+                            q[qt++] = ni;
+                        }
+                    }
+                }
+                compSizes[cid] = cnt;
+            }
+        }
+        var bestCid = 1;
+        var bestSz = compSizes[1] || 0;
+        var c;
+        for (c = 2; c <= cid; c++) {
+            var sc = compSizes[c] || 0;
+            if (sc > bestSz) {
+                bestSz = sc;
+                bestCid = c;
+            }
+        }
+        for (pi = 0; pi < pix.length; pi += 4) {
+            var idx = pi / 4 | 0;
+            var rn2 = pix[pi] / 255;
+            var gn2 = pix[pi + 1] / 255;
+            var bn2 = pix[pi + 2] / 255;
+            var mx2 = Math.max(rn2, Math.max(gn2, bn2));
+            var mn2 = Math.min(rn2, Math.min(gn2, bn2));
+            var lum = lumArr[idx];
+            var sat = mx2 - mn2;
+            var cyanLean = gn2 - Math.max(rn2, bn2);
+            var a = 0;
+            var inGlyph = bw[idx] && comp[idx] === bestCid;
+            if (!inGlyph) {
+                a = 0;
+            } else if (lum < 0.125 && sat < 0.055 && mx2 < 0.4) {
+                a = 0;
+            } else if (lum < 0.068 && mx2 < 0.22) {
+                a = 0;
+            } else {
+                var energy = lum * 0.95 + sat * 2.4 + mx2 * 0.45 + Math.max(0, cyanLean) * 0.85;
+                a = Math.pow(Math.max(0, Math.min(1, (energy - 0.1) / 0.92)), 0.88);
+            }
+            pix[pi + 3] = Math.round(a * 255);
+        }
+        ctx.putImageData(id, 0, 0);
+        var nt = new THREE.CanvasTexture(canvas);
+        nt.needsUpdate = true;
+        nt.minFilter = THREE.LinearFilter;
+        nt.magFilter = THREE.LinearFilter;
+        if (typeof THREE !== 'undefined' && THREE.RGBAFormat != null) {
+            nt.format = THREE.RGBAFormat;
+        }
+        try {
+            map.dispose();
+        } catch (eTx) {}
+        return nt;
     }
 
     function wormholeEnsureOmSprites(tunnelLen, ringRad, pc, loadGen) {
@@ -5672,12 +6338,14 @@
                     map.dispose();
                     return;
                 }
+                map = wormholeOmTextureTransparencyFromMap(map);
                 var aspect = map.image && map.image.height ? map.image.height / map.image.width : 1;
                 var baseW = 0.24;
                 wormholeOmSharedMat = new THREE.SpriteMaterial({
                     map: map,
                     transparent: true,
                     blending: THREE.AdditiveBlending,
+                    alphaTest: 0.015,
                     depthWrite: false,
                     fog: true,
                     color: new THREE.Color().copy(wormholeColorFromPickerHex(wormholeControls.whColorOm))
@@ -5708,6 +6376,7 @@
         var rc = mob ? Math.min(s.ringCount, 24) : s.ringCount;
         var pc = mob ? Math.min(s.wormParticleCount, 650) : s.wormParticleCount;
         var tunnelLen = Math.max(1, rc * s.ringSpacing);
+        var ringThetaSegs = 384;
         var ringRad = s.ringRadius;
         var HELIX_PTS = mob ? 240 : 900;
         var HELIX_TWISTS = 6;
@@ -5729,9 +6398,9 @@
 
         var ri;
         for (ri = 0; ri < rc; ri++) {
-            var ringMat = wormholeMakeRingMat(ri);
+            var ringMat = wormholeMakeRingMat(ri, tunnelLen);
             wormholeRingMats.push(ringMat);
-            var ringGeo = new THREE.RingGeometry(ringRad * 0.81, ringRad, 80, 1);
+            var ringGeo = new THREE.RingGeometry(ringRad * 0.81, ringRad, ringThetaSegs, 1);
             var ringMesh = new THREE.Mesh(ringGeo, ringMat);
             ringMesh.position.z = -ri * s.ringSpacing;
             ringMesh.rotation.z = (ri * 0.41) % (Math.PI * 2);
@@ -5755,15 +6424,7 @@
             var curve = new THREE.CatmullRomCurve3(pts);
             var tubeGeoH = new THREE.TubeGeometry(curve, HELIX_PTS, 0.06, 8, false);
             var nh = Math.max(1, s.helixCount);
-            wormholeColorFromPickerHex(s.whColorHelix);
-            _wormholePickCol.getHSL(_wormholePickHsl);
-            var helixS = Math.max(0.35, _wormholePickHsl.s);
-            var helixL = Math.max(0.22, Math.min(0.62, _wormholePickHsl.l));
-            var colH = new THREE.Color().setHSL(
-                whNormHue01(_wormholePickHsl.h + hc / nh),
-                helixS,
-                helixL
-            );
+            var colH = wormholeHelixStrandColor(hc, nh, new THREE.Color());
             var matH = new THREE.MeshBasicMaterial({
                 color: colH,
                 transparent: true,
@@ -5784,6 +6445,7 @@
         scene.add(wormholeRoot);
         wormholeSceneBuilt = true;
         whPrevDepth = whDepth;
+        wormholeRingPulseHardReset();
     }
 
     function wormholeTickAudio(dt, lvl, tr, snap) {
@@ -5852,6 +6514,17 @@
         var ringRad = wormholeRoot.userData._ringRad || wormholeControls.ringRadius;
         var pc = wormholeRoot.userData._particleCount || 0;
         var s = wormholeControls;
+        var solo = !!s.debugAnnulusOnly;
+        if (wormholeFramedSky) {
+            wormholeFramedSky.visible = !solo;
+        }
+        var hvi;
+        for (hvi = 0; hvi < wormholeHelixMeshes.length; hvi++) {
+            wormholeHelixMeshes[hvi].visible = !solo;
+        }
+        if (wormholeOmGroup) {
+            wormholeOmGroup.visible = !solo;
+        }
 
         wormholeApplyPickerColorsToShaders();
 
@@ -5863,6 +6536,72 @@
             (!Number.isFinite(dDepth) || Math.abs(dDepth) > OM_MAX_DEPTH_DELTA
                 ? whVelocitySm * dt
                 : dDepth) * OM_DEPTH_TO_Z * s.omStreamSpeed;
+
+        if (wormholeRingPulseT0 < 0) {
+            wormholeRingPulseT0 = time > 0 ? time : 1e-6;
+        }
+        var ringPulseT = time - wormholeRingPulseT0;
+        if (
+            wormholeRingMeshes.length &&
+            !rm &&
+            !wormholeRingPulseLoggedStart
+        ) {
+            var ring0 = wormholeRingMeshes[0];
+            var rawS = ring0.scale.x;
+            wormholeRingPulseStartScale =
+                rawS > 1e-5 && isFinite(rawS) ? rawS : 1;
+            if (s.debugRingPulseLogs || s.debugAnnulusOnly) {
+                var mm0 = wormholeRingPulseMinMaxScales();
+                console.log('[WormholeRingPulse] startPoint', {
+                    meshScale: wormholeRingPulseStartScale,
+                    maxScale: mm0.maxScale,
+                    minScale: mm0.minScale,
+                    ringRadius: ringRad,
+                    positionZ: ring0.position.z
+                });
+            }
+            wormholeRingPulseLoggedStart = true;
+        }
+        var pulsePeriod = wormholeRingPulsePeriod();
+        var psi = wormholeRingPulsePsi(ringPulseT);
+        var ringPulseS = wormholeRingPulseScaleFromPsi(psi, wormholeIsReducedMotion());
+        if (!isFinite(ringPulseS) || ringPulseS <= 0) {
+            ringPulseS = wormholeRingPulseMinMaxScales().hi;
+        }
+        var pulseCycleIdx = Math.floor(ringPulseT / pulsePeriod);
+        if (
+            s.debugRingPulseLogs &&
+            pulseCycleIdx < 3 &&
+            psi < 0.02 &&
+            wormholeRingPulsePeakLogCycle !== pulseCycleIdx &&
+            wormholeRingPulseLoggedStart
+        ) {
+            console.log('[WormholeRingPulse] cyclePeak', {
+                cycle: pulseCycleIdx,
+                ringPulseS: ringPulseS,
+                psi: psi,
+                whDepth: whDepth,
+                peakMul: s.ringPulsePeakMul
+            });
+            wormholeRingPulsePeakLogCycle = pulseCycleIdx;
+        }
+        if (
+            s.debugRingPulseLogs &&
+            solo &&
+            wormholeRingMeshes.length &&
+            (wormholeRingPulseLastSoloLogT < 0 || time - wormholeRingPulseLastSoloLogT >= 0.5)
+        ) {
+            var mmS = wormholeRingPulseMinMaxScales();
+            console.log('[WormholeRingPulse] solo', {
+                ringPulseS: ringPulseS,
+                psi: psi,
+                maxScale: mmS.maxScale,
+                minScale: mmS.minScale,
+                whDepth: whDepth,
+                ringUDepth: 0
+            });
+            wormholeRingPulseLastSoloLogT = time;
+        }
 
         if (wormholeFramedSkyMat) {
             wormholeFramedSkyMat.uniforms.uTime.value = rm ? 0 : time * 0.4;
@@ -5885,10 +6624,12 @@
             }
         }
 
+        /** Fixed tunnel slice for rings: do not add `whDepth` to `relZ` (same as debug annulus). XY pulse only; avoids Z-wrap / modulo pops that read as rings spawning off-axis. Sky, helices, Om, audio still use full `whDepth`. */
+        var whRing = 0;
         var ri;
         for (ri = 0; ri < wormholeRingMeshes.length; ri++) {
             var ring = wormholeRingMeshes[ri];
-            var relZ = ring.position.z + whDepth;
+            var relZ = ring.position.z + whRing;
             if (relZ > 5) ring.position.z -= tunnelLen;
             else if (relZ < -tunnelLen + 5) ring.position.z += tunnelLen;
             if (!rm) {
@@ -5897,19 +6638,28 @@
                     ring.userData.spin * (0.6 + distFactor * 1.8) + whVelocitySm * 0.04;
                 ring.rotation.z += spinRate * dt;
             }
+            ring.scale.set(ringPulseS, ringPulseS, 1);
         }
 
         for (ri = 0; ri < wormholeRingMats.length; ri++) {
             var m = wormholeRingMats[ri];
-            m.uniforms.uTime.value = rm ? 0 : time;
-            m.uniforms.uDepth.value = whDepth;
+            m.uniforms.uRingCyclePhase.value = rm ? 0 : psi;
+            m.uniforms.uDepth.value = 0;
             m.uniforms.uCenter.value.set(s.juliaCx, s.juliaCy);
             m.uniforms.uDiscRadius.value = s.discRadius;
             m.uniforms.uIntensity.value = s.ringIntensity;
             m.uniforms.uFractalEvolutionSpeed.value = s.fractalEvolutionSpeed;
+            m.uniforms.uRingRefR.value = s.ringRadius;
+            m.uniforms.uAnnInnerN.value = 0.81;
+            m.uniforms.uAnnOuterN.value = 1.0;
             m.uniforms.uIndex.value = ri;
-            var uZm = 1.4 + (ri % 5) * 0.12;
-            m.uniforms.uZoom.value = uZm;
+            var rz = wormholeRingMeshes[ri].position.z + whRing;
+            m.uniforms.uZoom.value = wormholeRingZoomWithProximity(
+                ri,
+                s.juliaFrameZoom,
+                tunnelLen,
+                rz
+            );
         }
 
         var hi;
@@ -5922,17 +6672,18 @@
             var flare = Math.min(Math.abs(whVelocitySm) * s.helixFlareGain, 2.5);
             var hm = h.material;
             var nh2 = wormholeHelixMeshes.length || 1;
-            wormholeColorFromPickerHex(s.whColorHelix);
-            _wormholePickCol.getHSL(_wormholePickHsl);
-            var hxS = Math.max(0.35, _wormholePickHsl.s);
-            var hxL = Math.max(0.22, Math.min(0.62, _wormholePickHsl.l));
-            h.userData.baseColor.setHSL(whNormHue01(_wormholePickHsl.h + hi / nh2), hxS, hxL);
+            wormholeHelixStrandColor(hi, nh2, h.userData.baseColor);
             hm.color.copy(h.userData.baseColor).multiplyScalar(1 + flare);
             hm.opacity = Math.min(0.85 + flare * 0.15, 1.0);
+            h.scale.set(1, 1, 1);
         }
 
         if (wormholeOmSharedMat && wormholeOmSharedMat.color) {
-            wormholeOmSharedMat.color.copy(wormholeColorFromPickerHex(s.whColorOm));
+            if (_wormholeGpHue01 !== null) {
+                wormholeOmSharedMat.color.copy(_wormholeGpRgb);
+            } else {
+                wormholeOmSharedMat.color.copy(wormholeColorFromPickerHex(s.whColorOm));
+            }
         }
 
         var dzOm = dzOmBase;
@@ -6271,12 +7022,29 @@
             mode = 'points';
         }
         var prevMode = visualMode;
+        if (prevMode !== mode) {
+            if (clock && typeof clock.start === 'function') {
+                clock.start();
+            }
+            whDepth = 0;
+            whPrevDepth = 0;
+            whVelocitySm = 0;
+        }
         visualMode = mode;
         if (!pointsObj) return;
         disposeSplatFullMesh();
         if (prevMode === 'juliaWormhole' && visualMode !== 'juliaWormhole') {
             wormholeRestoreSceneFog();
             if (wormholeRoot) wormholeRoot.visible = false;
+            wormholeRingPulseT0 = -1;
+            wormholeRingPulseStartScale = 1;
+            wormholeRingPulseLoggedStart = false;
+            wormholeRingPulsePeakLogCycle = -1;
+            wormholeRingPulseLastSoloLogT = -1;
+            if (typeof wormholeControls !== 'undefined') {
+                wormholeControls.debugAnnulusOnly = false;
+                wormholeControls.debugRingPulseLogs = false;
+            }
         }
         if (visualMode === 'splatFull') {
             if (fractalBackdropRig) fractalBackdropRig.visible = false;
@@ -6296,7 +7064,11 @@
             pointsMat = pointsClassicMat;
             if (visualMode === 'juliaWormhole') {
                 wormholeEnsureScene();
-                if (wormholeRoot) wormholeRoot.visible = true;
+                if (wormholeRoot) {
+                    wormholeRoot.visible = true;
+                    wormholeRingPulseT0 = -1;
+                    wormholeRingPulsePeakLogCycle = -1;
+                }
             } else if (wormholeRoot) {
                 wormholeRoot.visible = false;
             }
@@ -6511,8 +7283,16 @@
             wormholeControls.juliaCy = __whPu.cy;
             wormholeControls.juliaFrameZoom = __whPu.frameZoom;
             setVisualMode('juliaWormhole');
+            if (
+                typeof wormholeSceneBuilt !== 'undefined' &&
+                wormholeSceneBuilt &&
+                typeof wormholeApplyPickerColorsToShaders === 'function'
+            ) {
+                wormholeApplyPickerColorsToShaders();
+            }
+            if (typeof wormholeSyncFogFromControls === 'function') wormholeSyncFogFromControls();
             refreshDatGuiDisplay(gui);
-            if (wormholeGui) refreshDatGuiDisplay(wormholeGui);
+            wormholeRefreshWormholeGui();
             return;
         }
         if (key === 'fractalJulia') {
@@ -6539,8 +7319,16 @@
                 return;
             }
             setVisualMode('juliaWormhole');
+            if (
+                typeof wormholeSceneBuilt !== 'undefined' &&
+                wormholeSceneBuilt &&
+                typeof wormholeApplyPickerColorsToShaders === 'function'
+            ) {
+                wormholeApplyPickerColorsToShaders();
+            }
+            if (typeof wormholeSyncFogFromControls === 'function') wormholeSyncFogFromControls();
             refreshDatGuiDisplay(gui);
-            if (wormholeGui) refreshDatGuiDisplay(wormholeGui);
+            wormholeRefreshWormholeGui();
             return;
         }
         setVisualMode('points');
@@ -6554,6 +7342,23 @@
         refreshDatGuiDisplay(gui);
     }
 
+    (function wormholePatchApplyAggressionSnapshotWrap() {
+        if (typeof applyAggressionPreset !== 'function') return;
+        var wormholeAggWrapDepth = 0;
+        var wormholeOrigApplyAggressionPreset = applyAggressionPreset;
+        applyAggressionPreset = function (key) {
+            if (wormholeAggWrapDepth === 0 && typeof wormholeOnAggressionPresetBefore === 'function') {
+                wormholeOnAggressionPresetBefore(key);
+            }
+            wormholeAggWrapDepth++;
+            try {
+                return wormholeOrigApplyAggressionPreset(key);
+            } finally {
+                wormholeAggWrapDepth--;
+            }
+        };
+    })();
+
     function wormholeRebuildScene() {
         var vis = visualMode === 'juliaWormhole';
         wormholeDisposeBuilt();
@@ -6561,7 +7366,25 @@
             wormholeEnsureScene();
             if (wormholeRoot) wormholeRoot.visible = true;
         }
-        if (wormholeGui) refreshDatGuiDisplay(wormholeGui);
+        wormholeRefreshWormholeGui();
+    }
+
+    function wormholeRefreshWormholeGui() {
+        if (!wormholeGui || typeof refreshDatGuiDisplay !== 'function') return;
+        refreshDatGuiDisplay(wormholeGui);
+        if (typeof wormholeGui.updateDisplay === 'function') {
+            try {
+                wormholeGui.updateDisplay();
+            } catch (eWrg) {}
+        }
+        requestAnimationFrame(function () {
+            refreshDatGuiDisplay(wormholeGui);
+            if (typeof wormholeGui.updateDisplay === 'function') {
+                try {
+                    wormholeGui.updateDisplay();
+                } catch (eWrg2) {}
+            }
+        });
     }
 
     function setupWormholeGui() {
@@ -6601,10 +7424,27 @@
         var wr = wormholeGui.addFolder('Ring shader');
         wr.add(wormholeControls, 'ringIntensity', 0.35, 2).name('ring intensity');
         wr.open();
+        var wrp = wormholeGui.addFolder('Ring mesh pulse');
+        wrp.add(wormholeControls, 'ringPulsePeakMul', 1, 2).step(0.02).name('peak scale ×');
+        wrp.add(wormholeControls, 'ringPulseEndScale', 0.01, 0.2).step(0.002).name('min scale');
+        wrp.add(wormholeControls, 'debugAnnulusOnly').name('debug annulus only');
+        wrp.add(wormholeControls, 'debugRingPulseLogs').name('pulse console logs');
+        wrp.open();
         var wm = wormholeGui.addFolder('Motion accents');
         wm.add(wormholeControls, 'helixFlareGain', 0, 2.5).name('helix flare gain');
         wm.add(wormholeControls, 'omStreamSpeed', 0, 0.2).name('Om stream × depth');
         wm.open();
+        var wspir = wormholeGui.addFolder('Centre spirals');
+        try {
+            wspir.addColor(wormholeControls, 'whColorHelix').name('Colour A');
+            wspir.addColor(wormholeControls, 'whColorHelixB').name('Colour B');
+            wspir.add(wormholeControls, 'helixHueSpread', 0, 2).step(0.05).name('rainbow twist (0 = off)');
+        } catch (eSpir) {
+            wspir.add(wormholeControls, 'whColorHelix').name('spiral A hex');
+            wspir.add(wormholeControls, 'whColorHelixB').name('spiral B hex');
+            wspir.add(wormholeControls, 'helixHueSpread', 0, 2).step(0.05).name('rainbow twist');
+        }
+        wspir.open();
         var wgFog = wormholeGui.addFolder('Atmosphere');
         wgFog.add(wormholeControls, 'fogDensity', 0.004, 0.06).onChange(function () {
             wormholeSyncFogFromControls();
@@ -6614,12 +7454,10 @@
         try {
             wc.addColor(wormholeControls, 'whColorSky').name('framed sky');
             wc.addColor(wormholeControls, 'whColorRing').name('tunnel rings');
-            wc.addColor(wormholeControls, 'whColorHelix').name('helix tubes');
             wc.addColor(wormholeControls, 'whColorOm').name('Om sprites');
         } catch (eWC) {
             wc.add(wormholeControls, 'whColorSky').name('sky hex');
             wc.add(wormholeControls, 'whColorRing').name('rings hex');
-            wc.add(wormholeControls, 'whColorHelix').name('helix hex');
             wc.add(wormholeControls, 'whColorOm').name('Om hex');
         }
         wc.open();
@@ -6658,17 +7496,151 @@
                 wormholeControls.helixCount = 3;
                 wormholeControls.wormParticleCount = 2400;
                 wormholeControls.fogDensity = 0.02;
-                wormholeControls.ringIntensity = 1.0;
-                wormholeControls.skyIntensity = 1.05;
-                wormholeControls.whColorSky = '#ffffff';
-                wormholeControls.whColorRing = '#ffffff';
-                wormholeControls.whColorHelix = '#ff4da8';
-                wormholeControls.whColorOm = '#ffffff';
-                wormholeControls.whJuliaFractColor = '#ffffff';
+                wormholeControls.ringIntensity = 1.08;
+                wormholeControls.ringPulsePeakMul = 1.0;
+                wormholeControls.ringPulseEndScale = 0.03;
+                wormholeControls.debugAnnulusOnly = false;
+                wormholeControls.debugRingPulseLogs = false;
+                wormholeControls.skyIntensity = 1.12;
+                wormholeControls.whColorSky = '#8888ff';
+                wormholeControls.whColorRing = '#0000b8';
+                wormholeControls.whColorHelix = '#2222ff';
+                wormholeControls.whColorHelixB = '#6666ff';
+                wormholeControls.helixHueSpread = 0;
+                wormholeControls.whColorOm = '#5555ff';
+                wormholeControls.whJuliaFractColor = '#1818ff';
+                if (
+                    typeof aggressionSel !== 'undefined' &&
+                    aggressionSel &&
+                    aggressionSel.value === 'juliaWH_spiral'
+                ) {
+                    var rdP =
+                        typeof JULIA_WH_PORTAL_PRESETS !== 'undefined'
+                            ? JULIA_WH_PORTAL_PRESETS.juliaWH_spiral
+                            : null;
+                    if (rdP) {
+                        wormholeControls.juliaCx = rdP.cx;
+                        wormholeControls.juliaCy = rdP.cy;
+                        wormholeControls.juliaFrameZoom = rdP.frameZoom;
+                    }
+                    var rdT =
+                        typeof JULIA_WH_PORTAL_PRESET_TUNING !== 'undefined'
+                            ? JULIA_WH_PORTAL_PRESET_TUNING.juliaWH_spiral
+                            : null;
+                    if (rdT) wormholeApplySnapshot(rdT);
+                }
+                if (
+                    typeof aggressionSel !== 'undefined' &&
+                    aggressionSel &&
+                    aggressionSel.value === 'juliaWH_sanMarco'
+                ) {
+                    var rhP =
+                        typeof JULIA_WH_PORTAL_PRESETS !== 'undefined'
+                            ? JULIA_WH_PORTAL_PRESETS.juliaWH_sanMarco
+                            : null;
+                    if (rhP) {
+                        wormholeControls.juliaCx = rhP.cx;
+                        wormholeControls.juliaCy = rhP.cy;
+                        wormholeControls.juliaFrameZoom = rhP.frameZoom;
+                    }
+                    var rhT =
+                        typeof JULIA_WH_PORTAL_PRESET_TUNING !== 'undefined'
+                            ? JULIA_WH_PORTAL_PRESET_TUNING.juliaWH_sanMarco
+                            : null;
+                    if (rhT) wormholeApplySnapshot(rhT);
+                }
+                if (
+                    typeof aggressionSel !== 'undefined' &&
+                    aggressionSel &&
+                    aggressionSel.value === 'juliaWH_recursive'
+                ) {
+                    var saP =
+                        typeof JULIA_WH_PORTAL_PRESETS !== 'undefined'
+                            ? JULIA_WH_PORTAL_PRESETS.juliaWH_recursive
+                            : null;
+                    if (saP) {
+                        wormholeControls.juliaCx = saP.cx;
+                        wormholeControls.juliaCy = saP.cy;
+                        wormholeControls.juliaFrameZoom = saP.frameZoom;
+                    }
+                    var saT =
+                        typeof JULIA_WH_PORTAL_PRESET_TUNING !== 'undefined'
+                            ? JULIA_WH_PORTAL_PRESET_TUNING.juliaWH_recursive
+                            : null;
+                    if (saT) wormholeApplySnapshot(saT);
+                }
+                if (
+                    typeof aggressionSel !== 'undefined' &&
+                    aggressionSel &&
+                    aggressionSel.value === 'juliaWH_cauliflower'
+                ) {
+                    var gtfP =
+                        typeof JULIA_WH_PORTAL_PRESETS !== 'undefined'
+                            ? JULIA_WH_PORTAL_PRESETS.juliaWH_cauliflower
+                            : null;
+                    if (gtfP) {
+                        wormholeControls.juliaCx = gtfP.cx;
+                        wormholeControls.juliaCy = gtfP.cy;
+                        wormholeControls.juliaFrameZoom = gtfP.frameZoom;
+                    }
+                    var gtfT =
+                        typeof JULIA_WH_PORTAL_PRESET_TUNING !== 'undefined'
+                            ? JULIA_WH_PORTAL_PRESET_TUNING.juliaWH_cauliflower
+                            : null;
+                    if (gtfT) wormholeApplySnapshot(gtfT);
+                }
+                if (
+                    typeof aggressionSel !== 'undefined' &&
+                    aggressionSel &&
+                    aggressionSel.value === 'juliaWH_dendrite'
+                ) {
+                    var cmP =
+                        typeof JULIA_WH_PORTAL_PRESETS !== 'undefined'
+                            ? JULIA_WH_PORTAL_PRESETS.juliaWH_dendrite
+                            : null;
+                    if (cmP) {
+                        wormholeControls.juliaCx = cmP.cx;
+                        wormholeControls.juliaCy = cmP.cy;
+                        wormholeControls.juliaFrameZoom = cmP.frameZoom;
+                    }
+                    var cmT =
+                        typeof JULIA_WH_PORTAL_PRESET_TUNING !== 'undefined'
+                            ? JULIA_WH_PORTAL_PRESET_TUNING.juliaWH_dendrite
+                            : null;
+                    if (cmT) wormholeApplySnapshot(cmT);
+                }
+                if (
+                    typeof aggressionSel !== 'undefined' &&
+                    aggressionSel &&
+                    aggressionSel.value === 'juliaWH_airplane'
+                ) {
+                    var gpP =
+                        typeof JULIA_WH_PORTAL_PRESETS !== 'undefined'
+                            ? JULIA_WH_PORTAL_PRESETS.juliaWH_airplane
+                            : null;
+                    if (gpP) {
+                        wormholeControls.juliaCx = gpP.cx;
+                        wormholeControls.juliaCy = gpP.cy;
+                        wormholeControls.juliaFrameZoom = gpP.frameZoom;
+                    }
+                    var gpT =
+                        typeof JULIA_WH_PORTAL_PRESET_TUNING !== 'undefined'
+                            ? JULIA_WH_PORTAL_PRESET_TUNING.juliaWH_airplane
+                            : null;
+                    if (gpT) wormholeApplySnapshot(gpT);
+                }
                 whDepth = 0;
                 whPrevDepth = 0;
                 whVelocitySm = 0;
                 wormholeRebuildScene();
+                if (
+                    typeof aggressionSel !== 'undefined' &&
+                    aggressionSel &&
+                    typeof wormholeIsJuliaTunnelKey === 'function' &&
+                    wormholeIsJuliaTunnelKey(aggressionSel.value)
+                ) {
+                    wormholeControlsSnapshots[aggressionSel.value] = wormholeCaptureSnapshot();
+                }
             }
         };
         wormholeGui.add(wAct, 'reset').name('Reset defaults (zip)');
@@ -6681,6 +7653,7 @@
                         title: 'Wormhole controls',
                         parent: _whHost,
                         startMinimized: true,
+                        embeddedMaxHeight: 'min(92vh, 900px)',
                     }
                     : {
                         title: 'Wormhole controls',
@@ -7414,7 +8387,7 @@
                 ? JULIA_WH_PORTAL_READOUT_SUFFIX[aggressionSel.value] || ''
                 : '';
         var fractalTag = wormholeNow
-            ? (' · Julia wormhole' + __whReadout)
+            ? (' · Azura Shiva' + __whReadout)
             : fractalMB
                 ? ' · Mandelbrot'
                 : fractalJulia

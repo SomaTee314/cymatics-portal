@@ -1925,19 +1925,19 @@ shell_body_pre_scripts = (
           <h3><span class="num">02</span> Advanced visuals</h3>
           <div class="ctrl-row">
             <label for="aggressionSel">Audio-Visualiser Portals</label>
-            <select id="aggressionSel" title="Classic cymatics, Mandelbrot or Julia escape-time, or Julia wormhole tunnel with named fractal presets">
-              <option value="balanced">Balanced — classic cymatics</option>
-              <option value="fractalMB">Mandelbrot — escape-time</option>
-              <option value="fractalJulia" selected>Julia — escape-time (wandering c)</option>
-              <option value="juliaWH_rabbit">Douady Rabbit</option>
-              <option value="juliaWH_dendrite">Dendrite</option>
-              <option value="juliaWH_sanMarco">San Marco</option>
+            <select id="aggressionSel" title="Particle cymatics, Mandelbrot or Julia fractal, plus tunnel visual presets">
+              <option value="balanced">Particle cymatics</option>
+              <option value="fractalMB">Mandelbrot fractal</option>
+              <option value="fractalJulia" selected>Julia fractal</option>
+              <option value="juliaWH_rabbit">Fractal Vortex</option>
+              <option value="juliaWH_dendrite">Cosmic Magenta</option>
+              <option value="juliaWH_sanMarco">Radiant Helios</option>
               <option value="juliaWH_siegel">Siegel Disc</option>
-              <option value="juliaWH_recursive">Deep Recursive</option>
-              <option value="juliaWH_spiral">Spiral</option>
-              <option value="juliaWH_airplane">Airplane</option>
-              <option value="juliaWH_cauliflower">Cauliflower</option>
-              <option value="juliaWormhole">Julia wormhole — tunnel</option>
+              <option value="juliaWH_recursive">Solar Amber</option>
+              <option value="juliaWH_spiral">Red Dragon</option>
+              <option value="juliaWH_airplane">Gradient Pulse</option>
+              <option value="juliaWH_cauliflower">Green Tree Frog</option>
+              <option value="juliaWormhole">Azura Shiva</option>
             </select>
           </div>
           <div class="ctrl-row">

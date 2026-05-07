@@ -27,9 +27,11 @@
             '.pm-dat-gui-shell.pm-dat-gui-dragging .pm-dat-gui-header{cursor:grabbing}',
             '.pm-dat-gui-drag-hint{opacity:0.5;font-size:12px;line-height:1}',
             '.pm-dat-gui-title{flex:1;font-weight:600;letter-spacing:0.02em}',
-            '.pm-dat-gui-body{background:#1a1a1a;flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;',
-            '-webkit-overflow-scrolling:touch}',
-            '.pm-dat-gui-body .dg{position:relative!important;margin-right:0!important}',
+            '.pm-dat-gui-body{background:#1a1a1a;flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:visible;',
+            '-webkit-overflow-scrolling:touch;padding-bottom:max(48px, env(safe-area-inset-bottom));box-sizing:border-box;scroll-padding-bottom:48px;scrollbar-gutter:stable}',
+            '.pm-dat-gui-body .dg{position:relative!important;margin-right:0!important;height:auto!important;max-height:none!important}',
+            '.dg.cr.color{overflow:visible}',
+            '.dg.cr.color .selector{transform:scale(2.1);transform-origin:top left;z-index:10100!important}',
             '.pm-dat-gui-min{flex-shrink:0;min-width:30px;height:26px;padding:0 8px;border:1px solid #555;',
             'border-radius:3px;background:#3a3a3a;color:#f0f0f0;cursor:pointer;font-size:15px;line-height:1}',
             '.pm-dat-gui-min:hover{background:#4a4a4a}',
@@ -39,10 +41,12 @@
             '.pm-dat-gui-fs-close{flex-shrink:0;min-width:30px;height:26px;padding:0 8px;border:1px solid #555;',
             'border-radius:3px;background:#3a3a3a;color:#f0f0f0;cursor:pointer;font-size:17px;line-height:1}',
             '.pm-dat-gui-fs-close:hover{background:rgba(180,56,56,0.45);border-color:#a85555;color:#fff}',
-            '.pm-dat-gui-shell--embedded{max-height:min(52vh,440px)}',
+            '.pm-dat-gui-shell--embedded{max-height:min(76vh,700px)}',
+            '.pm-dat-gui-body .dg.main{max-height:none!important;height:auto!important;overflow:visible!important}',
             '@media (max-width:768px){',
             '.pm-dat-gui-header{cursor:default;-webkit-user-select:auto;user-select:auto;touch-action:manipulation}',
-            '.pm-dat-gui-drag-hint{display:none!important}}'
+            '.pm-dat-gui-drag-hint{display:none!important}',
+            '.dg.cr.color .selector{transform:scale(1.55)}}'
         ].join('');
         document.head.appendChild(s);
     }
@@ -130,6 +134,10 @@
             shell.style.maxWidth = '100%';
             shell.style.boxSizing = 'border-box';
             shell.style.zIndex = options.zIndex != null ? String(options.zIndex) : '';
+            if (options.embeddedMaxHeight != null) {
+                var emh = options.embeddedMaxHeight;
+                shell.style.maxHeight = typeof emh === 'number' ? emh + 'px' : String(emh);
+            }
         } else {
             document.body.appendChild(shell);
             shell.style.position = 'fixed';
@@ -244,6 +252,7 @@
             shell.style.boxSizing = 'border-box';
             shell.style.zIndex = String(z);
             clampFloatingShellToViewport();
+            shell.style.maxHeight = '';
         }
 
         function resetShellToDefaultPosition(ev) {
@@ -263,6 +272,12 @@
             shell.style.maxWidth = '100%';
             shell.style.boxSizing = 'border-box';
             shell.style.zIndex = options.zIndex != null ? String(options.zIndex) : '';
+            if (options.embeddedMaxHeight != null) {
+                var emh2 = options.embeddedMaxHeight;
+                shell.style.maxHeight = typeof emh2 === 'number' ? emh2 + 'px' : String(emh2);
+            } else {
+                shell.style.maxHeight = '';
+            }
             if (typeof global.__pmFsMountAdvancedGui === 'function') {
                 global.__pmFsMountAdvancedGui();
             }
