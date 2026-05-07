@@ -998,15 +998,42 @@
         };
     }
 
+    /** Same `palette(t)` as Julia fractal backdrop shader (`makeFractalBackdropMaterial`). */
+    function juliaFractalBackdropPaletteRgb(t, paletteOffset, colorIntensity) {
+        t = Math.max(0, Math.min(1, t));
+        paletteOffset = paletteOffset != null && isFinite(paletteOffset) ? paletteOffset : 0;
+        colorIntensity =
+            colorIntensity != null && isFinite(colorIntensity) ? colorIntensity : 0.55;
+        var hue = t * 3 + paletteOffset;
+        var r = 0.5 + 0.5 * Math.cos(6.28318 * hue);
+        var g = 0.5 + 0.5 * Math.cos(6.28318 * (hue + 0.33));
+        var b = 0.5 + 0.5 * Math.cos(6.28318 * (hue + 0.67));
+        var sat = 0.5 + colorIntensity * 0.5;
+        return {
+            r: 0.5 * (1 - sat) + r * sat,
+            g: 0.5 * (1 - sat) + g * sat,
+            b: 0.5 * (1 - sat) + b * sat
+        };
+    }
+
     /**
      * heightToColor: manual = shadow/mid/crest from pickers. Audio-reactive ON + Start audio =
      * same three *roles* (trough / rim / crest) as three separated hues that move with sound;
      * blend to manual via audio ↔ height blend.
+     * useJuliaBackdropPalette: Particle Cymatics only — cosine technicolor matching Julia fractal
+     * (manual palette pickers / audioHue blend skipped).
      */
-    function heightToColor(h, transient, arr, ix, snap) {
+    function heightToColor(h, transient, arr, ix, snap, useJuliaBackdropPalette) {
         snap = snap || {};
         var nBase = (h + 1) * 0.5;
         nBase = Math.max(0, Math.min(1, nBase + transient * simControls.colorBeatBoost * 0.22));
+        if (useJuliaBackdropPalette) {
+            var tc = juliaFractalBackdropPaletteRgb(nBase, fractalSmPal, fractalSmColorI);
+            arr[ix] = Math.min(1, Math.max(0, tc.r));
+            arr[ix + 1] = Math.min(1, Math.max(0, tc.g));
+            arr[ix + 2] = Math.min(1, Math.max(0, tc.b));
+            return;
+        }
         var c0m = hexToRgb01(palette.colorLow);
         var c1m = hexToRgb01(palette.colorMid);
         var c2m = hexToRgb01(palette.colorHigh);

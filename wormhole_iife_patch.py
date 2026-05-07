@@ -173,7 +173,28 @@ def apply_julia_wormhole_iife_patch(iife2: str, project_root: Path) -> str:
             wormholeControls.juliaCx = __whPu.cx;
             wormholeControls.juliaCy = __whPu.cy;
             wormholeControls.juliaFrameZoom = __whPu.frameZoom;
+            var __whPrevJuliaPu =
+                typeof window.__cpLastJuliaWhPreset === 'string'
+                    ? window.__cpLastJuliaWhPreset
+                    : null;
+            window.__cpLastJuliaWhPreset = key;
             setVisualMode('juliaWormhole');
+            if (
+                typeof wormholeSceneBuilt !== 'undefined' &&
+                wormholeSceneBuilt &&
+                __whPrevJuliaPu != null &&
+                __whPrevJuliaPu !== key &&
+                typeof wormholeRebuildScene === 'function'
+            ) {
+                wormholeRebuildScene();
+            } else if (
+                typeof wormholeSceneBuilt !== 'undefined' &&
+                wormholeSceneBuilt &&
+                typeof wormholeApplyPickerColorsToShaders === 'function'
+            ) {
+                wormholeApplyPickerColorsToShaders();
+            }
+            if (typeof wormholeSyncFogFromControls === 'function') wormholeSyncFogFromControls();
             refreshDatGuiDisplay(gui);
             wormholeRefreshWormholeGui();
             return;
@@ -218,32 +239,6 @@ def apply_julia_wormhole_iife_patch(iife2: str, project_root: Path) -> str:
     if old_ag not in iife2:
         raise SystemExit("wormhole: applyAggressionPreset anchor not found")
     iife2 = iife2.replace(old_ag, new_ag, 1)
-
-    _ag_wh_pu_post_old = """            wormholeControls.juliaFrameZoom = __whPu.frameZoom;
-            setVisualMode('juliaWormhole');
-            refreshDatGuiDisplay(gui);
-            wormholeRefreshWormholeGui();
-            return;
-        }
-        if (key === 'fractalJulia') {"""
-    _ag_wh_pu_post_new = """            wormholeControls.juliaFrameZoom = __whPu.frameZoom;
-            setVisualMode('juliaWormhole');
-            if (
-                typeof wormholeSceneBuilt !== 'undefined' &&
-                wormholeSceneBuilt &&
-                typeof wormholeApplyPickerColorsToShaders === 'function'
-            ) {
-                wormholeApplyPickerColorsToShaders();
-            }
-            if (typeof wormholeSyncFogFromControls === 'function') wormholeSyncFogFromControls();
-            refreshDatGuiDisplay(gui);
-            wormholeRefreshWormholeGui();
-            return;
-        }
-        if (key === 'fractalJulia') {"""
-    if _ag_wh_pu_post_old not in iife2:
-        raise SystemExit("wormhole: __whPu aggression post-snippet not found")
-    iife2 = iife2.replace(_ag_wh_pu_post_old, _ag_wh_pu_post_new, 1)
 
     fog_old = """        scene.fog.density = simControls.fogDensity;
 
@@ -609,6 +604,46 @@ def apply_julia_wormhole_iife_patch(iife2: str, project_root: Path) -> str:
                             ? JULIA_WH_PORTAL_PRESET_TUNING.juliaWH_airplane
                             : null;
                     if (gpT) wormholeApplySnapshot(gpT);
+                }
+                if (
+                    typeof aggressionSel !== 'undefined' &&
+                    aggressionSel &&
+                    aggressionSel.value === 'juliaWH_rabbit'
+                ) {
+                    var fvP =
+                        typeof JULIA_WH_PORTAL_PRESETS !== 'undefined'
+                            ? JULIA_WH_PORTAL_PRESETS.juliaWH_rabbit
+                            : null;
+                    if (fvP) {
+                        wormholeControls.juliaCx = fvP.cx;
+                        wormholeControls.juliaCy = fvP.cy;
+                        wormholeControls.juliaFrameZoom = fvP.frameZoom;
+                    }
+                    var fvT =
+                        typeof JULIA_WH_PORTAL_PRESET_TUNING !== 'undefined'
+                            ? JULIA_WH_PORTAL_PRESET_TUNING.juliaWH_rabbit
+                            : null;
+                    if (fvT) wormholeApplySnapshot(fvT);
+                }
+                if (
+                    typeof aggressionSel !== 'undefined' &&
+                    aggressionSel &&
+                    aggressionSel.value === 'juliaWH_siegel'
+                ) {
+                    var sgP =
+                        typeof JULIA_WH_PORTAL_PRESETS !== 'undefined'
+                            ? JULIA_WH_PORTAL_PRESETS.juliaWH_siegel
+                            : null;
+                    if (sgP) {
+                        wormholeControls.juliaCx = sgP.cx;
+                        wormholeControls.juliaCy = sgP.cy;
+                        wormholeControls.juliaFrameZoom = sgP.frameZoom;
+                    }
+                    var sgT =
+                        typeof JULIA_WH_PORTAL_PRESET_TUNING !== 'undefined'
+                            ? JULIA_WH_PORTAL_PRESET_TUNING.juliaWH_siegel
+                            : null;
+                    if (sgT) wormholeApplySnapshot(sgT);
                 }
                 whDepth = 0;
                 whPrevDepth = 0;

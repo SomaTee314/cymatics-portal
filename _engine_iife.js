@@ -106,6 +106,13 @@
         return false;
     }
 
+    function __cpAllowsTrack(se) {
+        if (!se) return false;
+        if (se.isDevMode) return true;
+        if (typeof se.allowUploadTrack === 'boolean') return se.allowUploadTrack;
+        return !!se.allowMic;
+    }
+
     function __cpSubEffective() {
         var d = window.__CP_SUB_STATE;
         if (d && d.isDevMode) {
@@ -114,6 +121,7 @@
                 isDevMode: true,
                 allowFractalVisuals: true,
                 allowMic: true,
+                allowUploadTrack: true,
                 allowCustomHz: true,
                 allowedPresetIndices: null,
                 exportWatermark: false,
@@ -127,6 +135,7 @@
                 isDevMode: false,
                 allowFractalVisuals: true,
                 allowMic: false,
+                allowUploadTrack: true,
                 allowCustomHz: false,
                 allowedPresetIndices: [0, 5, 6],
                 exportWatermark: true,
@@ -149,6 +158,8 @@
             isDevMode: false,
             allowFractalVisuals: allowFractalVisuals,
             allowMic: !!d.allowMic,
+            allowUploadTrack:
+                d.allowUploadTrack !== undefined ? !!d.allowUploadTrack : !!d.allowMic,
             allowCustomHz: !!d.allowCustomHz,
             allowedPresetIndices:
                 d.allowedPresetIndices === undefined ? null : d.allowedPresetIndices,
@@ -171,6 +182,10 @@
                 isDevMode: !!data.isDevMode,
                 allowFractalVisuals: !!data.allowFractalVisuals,
                 allowMic: !!data.allowMic,
+                allowUploadTrack:
+                    data.allowUploadTrack !== undefined
+                        ? !!data.allowUploadTrack
+                        : !!data.allowMic,
                 allowCustomHz: !!data.allowCustomHz,
                 exportWatermark: !!data.exportWatermark
             });
@@ -363,7 +378,7 @@
             if (opt.value === 'track') {
                 opt.disabled = false;
                 opt.title =
-                    !se.allowMic && !se.isDevMode ? __CP_UPGRADE_TIP : '';
+                    !__cpAllowsTrack(se) && !se.isDevMode ? __CP_UPGRADE_TIP : '';
             } else if (opt.value === 'manual') {
                 opt.disabled = false;
                 opt.title =
@@ -378,7 +393,7 @@
     function __cpApplyModeGate() {
         if (!modeSel) return;
         var se = __cpSubEffective();
-        if (!se.allowMic && modeSel.value === 'track') {
+        if (!__cpAllowsTrack(se) && modeSel.value === 'track') {
             modeSel.value = 'preset';
             try {
                 modeSel.dispatchEvent(new Event('change', { bubbles: true }));
@@ -468,7 +483,7 @@
             var se = __cpSubEffective();
             if (se.isDevMode) return;
             var v = modeSel.value;
-            if (!se.allowMic && v === 'track') {
+            if (!__cpAllowsTrack(se) && v === 'track') {
                 __cpIgnoreModeChange = true;
                 modeSel.value = 'preset';
                 try {
@@ -512,39 +527,6 @@
         });
     }
 
-    /**
-     * After free-tier gating, HTML defaults and early gate passes may leave preset + balanced.
-     * Once subscription unlocks (trial/pro/etc.), restore the intended product defaults.
-     */
-    function __cpApplyUnlockedProductDefaults() {
-        var se = __cpSubEffective();
-        if (!se.allowMic || se.allowedAggressionValues != null) {
-            return;
-        }
-        if (!modeSel || !aggressionSel) {
-            return;
-        }
-        if (modeSel.value !== 'track') {
-            modeSel.value = 'track';
-            try {
-                modeSel.dispatchEvent(new Event('change', { bubbles: true }));
-            } catch (eCh0) {
-                /* no-op */
-            }
-        }
-        if (
-            aggressionSel.value !== 'fractalJulia' &&
-            __cpNormalizeAggressionTierKey(aggressionSel.value) !== 'juliaWormhole'
-        ) {
-            aggressionSel.value = 'fractalJulia';
-            try {
-                aggressionSel.dispatchEvent(new Event('change', { bubbles: true }));
-            } catch (eCh1) {
-                /* no-op */
-            }
-        }
-    }
-
     window.__cpApplySubscriptionGates = function () {
         __cpMigrateAggressionPortalSelect();
         var prevAggression = aggressionSel ? aggressionSel.value : null;
@@ -565,7 +547,6 @@
         ) {
             applyAggressionPreset(aggressionSel.value);
         }
-        __cpApplyUnlockedProductDefaults();
         __cpRestartSessionTimer();
         if (selPreset) {
             __cpLastGatedPresetValue = selPreset.value;
@@ -619,6 +600,10 @@
                 isDevMode: !!data.isDevMode,
                 allowFractalVisuals: !!data.allowFractalVisuals,
                 allowMic: !!data.allowMic,
+                allowUploadTrack:
+                    data.allowUploadTrack !== undefined
+                        ? !!data.allowUploadTrack
+                        : !!data.allowMic,
                 allowCustomHz: !!data.allowCustomHz,
                 exportWatermark: !!data.exportWatermark
             };
@@ -642,6 +627,7 @@
             allowedAggressionValues: ['fractalJulia'],
             allowFractalVisuals: true,
             allowMic: false,
+            allowUploadTrack: false,
             allowCustomHz: false,
             exportWatermark: true
         };
@@ -728,7 +714,6 @@
         if (m !== 'preset') selPreset.selectedIndex = 0;
         restartAudioForMode();
         syncTrackTransportUI();
-        if (typeof __cpApplyModeGate === 'function') __cpApplyModeGate();
     });
     (function initModeRows() {
         var m = modeSel.value;
@@ -1523,15 +1508,42 @@
         };
     }
 
+    /** Same `palette(t)` as Julia fractal backdrop shader (`makeFractalBackdropMaterial`). */
+    function juliaFractalBackdropPaletteRgb(t, paletteOffset, colorIntensity) {
+        t = Math.max(0, Math.min(1, t));
+        paletteOffset = paletteOffset != null && isFinite(paletteOffset) ? paletteOffset : 0;
+        colorIntensity =
+            colorIntensity != null && isFinite(colorIntensity) ? colorIntensity : 0.55;
+        var hue = t * 3 + paletteOffset;
+        var r = 0.5 + 0.5 * Math.cos(6.28318 * hue);
+        var g = 0.5 + 0.5 * Math.cos(6.28318 * (hue + 0.33));
+        var b = 0.5 + 0.5 * Math.cos(6.28318 * (hue + 0.67));
+        var sat = 0.5 + colorIntensity * 0.5;
+        return {
+            r: 0.5 * (1 - sat) + r * sat,
+            g: 0.5 * (1 - sat) + g * sat,
+            b: 0.5 * (1 - sat) + b * sat
+        };
+    }
+
     /**
      * heightToColor: manual = shadow/mid/crest from pickers. Audio-reactive ON + Start audio =
      * same three *roles* (trough / rim / crest) as three separated hues that move with sound;
      * blend to manual via audio ↔ height blend.
+     * useJuliaBackdropPalette: Particle Cymatics only — cosine technicolor matching Julia fractal
+     * (manual palette pickers / audioHue blend skipped).
      */
-    function heightToColor(h, transient, arr, ix, snap) {
+    function heightToColor(h, transient, arr, ix, snap, useJuliaBackdropPalette) {
         snap = snap || {};
         var nBase = (h + 1) * 0.5;
         nBase = Math.max(0, Math.min(1, nBase + transient * simControls.colorBeatBoost * 0.22));
+        if (useJuliaBackdropPalette) {
+            var tc = juliaFractalBackdropPaletteRgb(nBase, fractalSmPal, fractalSmColorI);
+            arr[ix] = Math.min(1, Math.max(0, tc.r));
+            arr[ix + 1] = Math.min(1, Math.max(0, tc.g));
+            arr[ix + 2] = Math.min(1, Math.max(0, tc.b));
+            return;
+        }
         var c0m = hexToRgb01(palette.colorLow);
         var c1m = hexToRgb01(palette.colorMid);
         var c2m = hexToRgb01(palette.colorHigh);
@@ -1831,12 +1843,12 @@
         juliaWH_cauliflower: { cx: 0.285, cy: 0.01, frameZoom: 1.5 }
     };
 
-    /** Readout suffix after `Azura Shiva` base tag (portal dropdown; Siegel = Disc per product copy). */
+    /** Readout suffix after `Azura Shiva` base tag (portal dropdown; aligns with aggressionSel labels). */
     var JULIA_WH_PORTAL_READOUT_SUFFIX = {
         juliaWH_rabbit: ' · Fractal Vortex',
         juliaWH_dendrite: ' · Cosmic Magenta',
         juliaWH_sanMarco: ' · Radiant Helios',
-        juliaWH_siegel: ' · Siegel Disc',
+        juliaWH_siegel: ' · Mercury Rising',
         juliaWH_recursive: ' · Solar Amber',
         juliaWH_spiral: ' · Red Dragon',
         juliaWH_airplane: ' · Gradient Pulse',
@@ -1919,6 +1931,34 @@
             whColorRing: '#9eff00',
             whColorOm: '#9eff00',
             whJuliaFractColor: '#9eff00'
+        },
+        /** Fractal Vortex: IQ technicolor (`whJuliaFractColor` neutral) — avoids inheriting Azura baseline. */
+        juliaWH_rabbit: {
+            helixFlareGain: 1,
+            omStreamSpeed: 0.011,
+            whColorHelix: '#ff4da8',
+            whColorHelixB: '#ff4da8',
+            helixHueSpread: 0,
+            fogDensity: 0.02,
+            whColorSky: '#ffffff',
+            whColorRing: '#ffffff',
+            whColorOm: '#ffffff',
+            whJuliaFractColor: '#ffffff'
+        },
+        /** Mercury Rising (`juliaWH_siegel`): bright pearlescent whites, lighter ring anchor; sky/ring intensity + helix flare bumped; slightly airier fog for ethereal read. */
+        juliaWH_siegel: {
+            helixFlareGain: 1.3,
+            omStreamSpeed: 0.011,
+            helixHueSpread: 0,
+            fogDensity: 0.013,
+            skyIntensity: 1.34,
+            ringIntensity: 1.24,
+            whColorSky: '#fcfdfe',
+            whColorRing: '#d0dae8',
+            whColorOm: '#fcfdfe',
+            whJuliaFractColor: '#fcfdfe',
+            whColorHelix: '#eef2fa',
+            whColorHelixB: '#fcfdfe'
         }
     };
 
@@ -2168,6 +2208,13 @@
         }
         wormholeColorFromPickerHex(wormholeControls.whJuliaFractColor || '#ffffff');
         var rBow = wormholeJuliaFractRainbowAmtLoaded();
+        if (
+            typeof aggressionSel !== 'undefined' &&
+            aggressionSel &&
+            aggressionSel.value === 'juliaWH_siegel'
+        ) {
+            rBow = 0;
+        }
         _julFractPickRgb.set(_wormholePickCol.r, _wormholePickCol.g, _wormholePickCol.b);
         if (wormholeFramedSkyMat && wormholeFramedSkyMat.uniforms.uJuliaPickRgb) {
             wormholeFramedSkyMat.uniforms.uJuliaPickRgb.value.copy(_julFractPickRgb);
@@ -2717,8 +2764,13 @@
      * heuristics still leave faint star clusters visible (additive sprites read as tinted quads).
      * Threshold into a foreground mask, keep only the largest 8-connected component (the glyph +
      * its glow), discard all other blobs, then derive alpha inside that mask only.
+     * RGB stays from the asset unless `neutralizeGlyphToWhite`: then glyph pixels become greyscale
+     * white so SpriteMaterial × `whColorOm` yields true monochrome Om (cyan baked into PNG otherwise).
+     * Sobel edge × bright-core shaping removes the broad low-alpha haze that reads as a gray rectangle;
+     * RGB is premultiplied by alpha in the canvas; SpriteMaterial uses premultipliedAlpha for correct blending.
      */
-    function wormholeOmTextureTransparencyFromMap(map) {
+    function wormholeOmTextureTransparencyFromMap(map, neutralizeGlyphToWhite) {
+        neutralizeGlyphToWhite = !!neutralizeGlyphToWhite;
         var img = map.image;
         if (!img || !img.width || !img.height) return map;
         var w = img.width;
@@ -2800,6 +2852,42 @@
                 bestCid = c;
             }
         }
+        var edgeArr = new Float32Array(n);
+        var y;
+        var x;
+        var ii;
+        var sL00;
+        var sL01;
+        var sL02;
+        var sL10;
+        var sL12;
+        var sL20;
+        var sL21;
+        var sL22;
+        var sgx;
+        var sgy;
+        for (y = 1; y < h - 1; y++) {
+            for (x = 1; x < w - 1; x++) {
+                ii = y * w + x;
+                if (comp[ii] !== bestCid || !bw[ii]) {
+                    edgeArr[ii] = 0;
+                    continue;
+                }
+                sL00 = lumArr[ii - w - 1];
+                sL01 = lumArr[ii - w];
+                sL02 = lumArr[ii - w + 1];
+                sL10 = lumArr[ii - 1];
+                sL12 = lumArr[ii + 1];
+                sL20 = lumArr[ii + w - 1];
+                sL21 = lumArr[ii + w];
+                sL22 = lumArr[ii + w + 1];
+                sgx = -sL00 + sL02 - 2 * sL10 + 2 * sL12 - sL20 + sL22;
+                sgy = -sL00 - 2 * sL01 - sL02 + sL20 + 2 * sL21 + sL22;
+                edgeArr[ii] = Math.sqrt(sgx * sgx + sgy * sgy);
+            }
+        }
+
+        var OM_ALPHA_CUT = 0.14;
         for (pi = 0; pi < pix.length; pi += 4) {
             var idx = pi / 4 | 0;
             var rn2 = pix[pi] / 255;
@@ -2819,10 +2907,35 @@
             } else if (lum < 0.068 && mx2 < 0.22) {
                 a = 0;
             } else {
-                var energy = lum * 0.95 + sat * 2.4 + mx2 * 0.45 + Math.max(0, cyanLean) * 0.85;
-                a = Math.pow(Math.max(0, Math.min(1, (energy - 0.1) / 0.92)), 0.88);
+                var energy = lum * 0.95 + sat * 2.35 + mx2 * 0.42 + Math.max(0, cyanLean) * 0.82;
+                var baseA = Math.pow(Math.max(0, Math.min(1, (energy - 0.21) / 0.75)), 0.82);
+                var edgeN = Math.min(1, edgeArr[idx] * 4.35);
+                var coreN = Math.max(0, Math.min(1, (lum - 0.27) / 0.56));
+                var shape = edgeN > coreN ? edgeN : Math.max(edgeN * 0.88 + coreN * 0.22, coreN * coreN);
+                a = baseA * shape;
+                a = Math.pow(Math.max(0, Math.min(1, a)), 1.46);
+                if (a < OM_ALPHA_CUT) {
+                    a = 0;
+                }
             }
-            pix[pi + 3] = Math.round(a * 255);
+            var aByte = Math.round(Math.max(0, Math.min(1, a)) * 255);
+            pix[pi + 3] = aByte;
+            if (aByte === 0) {
+                pix[pi] = 0;
+                pix[pi + 1] = 0;
+                pix[pi + 2] = 0;
+            } else if (neutralizeGlyphToWhite && inGlyph) {
+                var wOm = Math.min(255, Math.round(mx2 * 255 * 1.06));
+                pix[pi] = wOm;
+                pix[pi + 1] = wOm;
+                pix[pi + 2] = wOm;
+            }
+            if (aByte > 0) {
+                var ar = aByte / 255;
+                pix[pi] = Math.round(pix[pi] * ar);
+                pix[pi + 1] = Math.round(pix[pi + 1] * ar);
+                pix[pi + 2] = Math.round(pix[pi + 2] * ar);
+            }
         }
         ctx.putImageData(id, 0, 0);
         var nt = new THREE.CanvasTexture(canvas);
@@ -2872,14 +2985,19 @@
                     map.dispose();
                     return;
                 }
-                map = wormholeOmTextureTransparencyFromMap(map);
+                var omNeutralWhite =
+                    typeof aggressionSel !== 'undefined' &&
+                    aggressionSel &&
+                    aggressionSel.value === 'juliaWH_siegel';
+                map = wormholeOmTextureTransparencyFromMap(map, omNeutralWhite);
                 var aspect = map.image && map.image.height ? map.image.height / map.image.width : 1;
                 var baseW = 0.24;
                 wormholeOmSharedMat = new THREE.SpriteMaterial({
                     map: map,
                     transparent: true,
-                    blending: THREE.AdditiveBlending,
-                    alphaTest: 0.015,
+                    blending: THREE.NormalBlending,
+                    premultipliedAlpha: true,
+                    alphaTest: 0.06,
                     depthWrite: false,
                     fog: true,
                     color: new THREE.Color().copy(wormholeColorFromPickerHex(wormholeControls.whColorOm))
@@ -3816,8 +3934,21 @@
             wormholeControls.juliaCx = __whPu.cx;
             wormholeControls.juliaCy = __whPu.cy;
             wormholeControls.juliaFrameZoom = __whPu.frameZoom;
+            var __whPrevJuliaPu =
+                typeof window.__cpLastJuliaWhPreset === 'string'
+                    ? window.__cpLastJuliaWhPreset
+                    : null;
+            window.__cpLastJuliaWhPreset = key;
             setVisualMode('juliaWormhole');
             if (
+                typeof wormholeSceneBuilt !== 'undefined' &&
+                wormholeSceneBuilt &&
+                __whPrevJuliaPu != null &&
+                __whPrevJuliaPu !== key &&
+                typeof wormholeRebuildScene === 'function'
+            ) {
+                wormholeRebuildScene();
+            } else if (
                 typeof wormholeSceneBuilt !== 'undefined' &&
                 wormholeSceneBuilt &&
                 typeof wormholeApplyPickerColorsToShaders === 'function'
@@ -4162,6 +4293,46 @@
                             ? JULIA_WH_PORTAL_PRESET_TUNING.juliaWH_airplane
                             : null;
                     if (gpT) wormholeApplySnapshot(gpT);
+                }
+                if (
+                    typeof aggressionSel !== 'undefined' &&
+                    aggressionSel &&
+                    aggressionSel.value === 'juliaWH_rabbit'
+                ) {
+                    var fvP =
+                        typeof JULIA_WH_PORTAL_PRESETS !== 'undefined'
+                            ? JULIA_WH_PORTAL_PRESETS.juliaWH_rabbit
+                            : null;
+                    if (fvP) {
+                        wormholeControls.juliaCx = fvP.cx;
+                        wormholeControls.juliaCy = fvP.cy;
+                        wormholeControls.juliaFrameZoom = fvP.frameZoom;
+                    }
+                    var fvT =
+                        typeof JULIA_WH_PORTAL_PRESET_TUNING !== 'undefined'
+                            ? JULIA_WH_PORTAL_PRESET_TUNING.juliaWH_rabbit
+                            : null;
+                    if (fvT) wormholeApplySnapshot(fvT);
+                }
+                if (
+                    typeof aggressionSel !== 'undefined' &&
+                    aggressionSel &&
+                    aggressionSel.value === 'juliaWH_siegel'
+                ) {
+                    var sgP =
+                        typeof JULIA_WH_PORTAL_PRESETS !== 'undefined'
+                            ? JULIA_WH_PORTAL_PRESETS.juliaWH_siegel
+                            : null;
+                    if (sgP) {
+                        wormholeControls.juliaCx = sgP.cx;
+                        wormholeControls.juliaCy = sgP.cy;
+                        wormholeControls.juliaFrameZoom = sgP.frameZoom;
+                    }
+                    var sgT =
+                        typeof JULIA_WH_PORTAL_PRESET_TUNING !== 'undefined'
+                            ? JULIA_WH_PORTAL_PRESET_TUNING.juliaWH_siegel
+                            : null;
+                    if (sgT) wormholeApplySnapshot(sgT);
                 }
                 whDepth = 0;
                 whPrevDepth = 0;
@@ -4848,6 +5019,35 @@
                 }
             }
         }
+        if (!wormholeNow && !fractalNow) {
+            var Bp = snap.bands || null;
+            fractalSmAudioLvl = fractalExpSmooth(
+                fractalSmAudioLvl,
+                lvl,
+                dt,
+                0.16
+            );
+            fractalSmAudioBT = fractalExpSmooth(
+                fractalSmAudioBT,
+                Bp ? (Bp.bass - Bp.treble) : 0,
+                dt,
+                0.11
+            );
+            var palTargetP =
+                time * 0.24 +
+                fractalSmAudioBT * 0.22 +
+                fractalSmAudioLvl * 0.22 +
+                (Bp ? (Bp.mid - 0.5) * 0.04 : 0);
+            fractalSmPal = fractalExpSmooth(fractalSmPal, palTargetP, dt, 0.58);
+            var colorITargetP =
+                0.4 + fractalSmAudioLvl * 0.42 + (Bp ? Bp.mid * 0.14 : 0);
+            fractalSmColorI = fractalExpSmooth(
+                fractalSmColorI,
+                colorITargetP,
+                dt,
+                0.15
+            );
+        }
         if (!fractalNow && !wormholeNow) {
             for (var i = 0; i < N; i++) {
                 var x0 = baseXY[i * 2];
@@ -4859,7 +5059,7 @@
                 arr[ix + 1] = y0;
                 var h = waveHeight(r, th, time, hz, lvl, snap);
                 arr[ix + 2] = h * zScale;
-                heightToColor(h * 0.95, tr, colAttr, ix, snap);
+                heightToColor(h * 0.95, tr, colAttr, ix, snap, true);
                 if (splatFullNow) {
                     spA[ix] = arr[ix];
                     spA[ix + 1] = arr[ix + 1];

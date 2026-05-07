@@ -82,6 +82,7 @@ type SubscriptionMessage = {
   isDevMode: boolean;
   allowFractalVisuals: boolean;
   allowMic: boolean;
+  allowUploadTrack: boolean;
   allowCustomHz: boolean;
   exportWatermark: boolean;
 };
@@ -124,6 +125,7 @@ function buildSubscriptionMessage(
       isVisualModeAvailable(tier, 'fractalJulia') ||
       isVisualModeAvailable(tier, 'juliaWormhole'),
     allowMic: dev || hasFeature(tier, 'micInput'),
+    allowUploadTrack: !lockAnonymous,
     allowCustomHz: dev || hasFeature(tier, 'customFrequencyInput'),
     exportWatermark: dev ? false : features.exportWatermark,
   };

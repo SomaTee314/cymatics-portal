@@ -30,6 +30,13 @@
         return false;
     }
 
+    function __cpAllowsTrack(se) {
+        if (!se) return false;
+        if (se.isDevMode) return true;
+        if (typeof se.allowUploadTrack === 'boolean') return se.allowUploadTrack;
+        return !!se.allowMic;
+    }
+
     function __cpSubEffective() {
         var d = window.__CP_SUB_STATE;
         if (d && d.isDevMode) {
@@ -38,6 +45,7 @@
                 isDevMode: true,
                 allowFractalVisuals: true,
                 allowMic: true,
+                allowUploadTrack: true,
                 allowCustomHz: true,
                 allowedPresetIndices: null,
                 exportWatermark: false,
@@ -51,6 +59,7 @@
                 isDevMode: false,
                 allowFractalVisuals: true,
                 allowMic: false,
+                allowUploadTrack: true,
                 allowCustomHz: false,
                 allowedPresetIndices: [0, 5, 6],
                 exportWatermark: true,
@@ -73,6 +82,8 @@
             isDevMode: false,
             allowFractalVisuals: allowFractalVisuals,
             allowMic: !!d.allowMic,
+            allowUploadTrack:
+                d.allowUploadTrack !== undefined ? !!d.allowUploadTrack : !!d.allowMic,
             allowCustomHz: !!d.allowCustomHz,
             allowedPresetIndices:
                 d.allowedPresetIndices === undefined ? null : d.allowedPresetIndices,
@@ -95,6 +106,10 @@
                 isDevMode: !!data.isDevMode,
                 allowFractalVisuals: !!data.allowFractalVisuals,
                 allowMic: !!data.allowMic,
+                allowUploadTrack:
+                    data.allowUploadTrack !== undefined
+                        ? !!data.allowUploadTrack
+                        : !!data.allowMic,
                 allowCustomHz: !!data.allowCustomHz,
                 exportWatermark: !!data.exportWatermark
             });
@@ -287,7 +302,7 @@
             if (opt.value === 'track') {
                 opt.disabled = false;
                 opt.title =
-                    !se.allowMic && !se.isDevMode ? __CP_UPGRADE_TIP : '';
+                    !__cpAllowsTrack(se) && !se.isDevMode ? __CP_UPGRADE_TIP : '';
             } else if (opt.value === 'manual') {
                 opt.disabled = false;
                 opt.title =
@@ -302,7 +317,7 @@
     function __cpApplyModeGate() {
         if (!modeSel) return;
         var se = __cpSubEffective();
-        if (!se.allowMic && modeSel.value === 'track') {
+        if (!__cpAllowsTrack(se) && modeSel.value === 'track') {
             modeSel.value = 'preset';
             try {
                 modeSel.dispatchEvent(new Event('change', { bubbles: true }));
@@ -392,7 +407,7 @@
             var se = __cpSubEffective();
             if (se.isDevMode) return;
             var v = modeSel.value;
-            if (!se.allowMic && v === 'track') {
+            if (!__cpAllowsTrack(se) && v === 'track') {
                 __cpIgnoreModeChange = true;
                 modeSel.value = 'preset';
                 try {
@@ -436,39 +451,6 @@
         });
     }
 
-    /**
-     * After free-tier gating, HTML defaults and early gate passes may leave preset + balanced.
-     * Once subscription unlocks (trial/pro/etc.), restore the intended product defaults.
-     */
-    function __cpApplyUnlockedProductDefaults() {
-        var se = __cpSubEffective();
-        if (!se.allowMic || se.allowedAggressionValues != null) {
-            return;
-        }
-        if (!modeSel || !aggressionSel) {
-            return;
-        }
-        if (modeSel.value !== 'track') {
-            modeSel.value = 'track';
-            try {
-                modeSel.dispatchEvent(new Event('change', { bubbles: true }));
-            } catch (eCh0) {
-                /* no-op */
-            }
-        }
-        if (
-            aggressionSel.value !== 'fractalJulia' &&
-            __cpNormalizeAggressionTierKey(aggressionSel.value) !== 'juliaWormhole'
-        ) {
-            aggressionSel.value = 'fractalJulia';
-            try {
-                aggressionSel.dispatchEvent(new Event('change', { bubbles: true }));
-            } catch (eCh1) {
-                /* no-op */
-            }
-        }
-    }
-
     window.__cpApplySubscriptionGates = function () {
         __cpMigrateAggressionPortalSelect();
         var prevAggression = aggressionSel ? aggressionSel.value : null;
@@ -489,7 +471,6 @@
         ) {
             applyAggressionPreset(aggressionSel.value);
         }
-        __cpApplyUnlockedProductDefaults();
         __cpRestartSessionTimer();
         if (selPreset) {
             __cpLastGatedPresetValue = selPreset.value;
@@ -543,6 +524,10 @@
                 isDevMode: !!data.isDevMode,
                 allowFractalVisuals: !!data.allowFractalVisuals,
                 allowMic: !!data.allowMic,
+                allowUploadTrack:
+                    data.allowUploadTrack !== undefined
+                        ? !!data.allowUploadTrack
+                        : !!data.allowMic,
                 allowCustomHz: !!data.allowCustomHz,
                 exportWatermark: !!data.exportWatermark
             };
@@ -566,6 +551,7 @@
             allowedAggressionValues: ['fractalJulia'],
             allowFractalVisuals: true,
             allowMic: false,
+            allowUploadTrack: false,
             allowCustomHz: false,
             exportWatermark: true
         };

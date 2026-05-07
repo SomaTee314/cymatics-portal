@@ -441,7 +441,6 @@ mode_portal = """    modeSel.addEventListener('change', function () {
         if (m !== 'preset') selPreset.selectedIndex = 0;
         restartAudioForMode();
         syncTrackTransportUI();
-        if (typeof __cpApplyModeGate === 'function') __cpApplyModeGate();
     });"""
 
 mode_portal_init = mode_portal + """
@@ -1559,6 +1558,35 @@ _anim_new = (
     "                }\n"
     "            }\n"
     "        }\n"
+    "        if (!wormholeNow && !fractalNow) {\n"
+    "            var Bp = snap.bands || null;\n"
+    "            fractalSmAudioLvl = fractalExpSmooth(\n"
+    "                fractalSmAudioLvl,\n"
+    "                lvl,\n"
+    "                dt,\n"
+    "                0.16\n"
+    "            );\n"
+    "            fractalSmAudioBT = fractalExpSmooth(\n"
+    "                fractalSmAudioBT,\n"
+    "                Bp ? (Bp.bass - Bp.treble) : 0,\n"
+    "                dt,\n"
+    "                0.11\n"
+    "            );\n"
+    "            var palTargetP =\n"
+    "                time * 0.24 +\n"
+    "                fractalSmAudioBT * 0.22 +\n"
+    "                fractalSmAudioLvl * 0.22 +\n"
+    "                (Bp ? (Bp.mid - 0.5) * 0.04 : 0);\n"
+    "            fractalSmPal = fractalExpSmooth(fractalSmPal, palTargetP, dt, 0.58);\n"
+    "            var colorITargetP =\n"
+    "                0.4 + fractalSmAudioLvl * 0.42 + (Bp ? Bp.mid * 0.14 : 0);\n"
+    "            fractalSmColorI = fractalExpSmooth(\n"
+    "                fractalSmColorI,\n"
+    "                colorITargetP,\n"
+    "                dt,\n"
+    "                0.15\n"
+    "            );\n"
+    "        }\n"
     "        if (!fractalNow) {\n"
     "            for (var i = 0; i < N; i++) {\n"
     "                var x0 = baseXY[i * 2];\n"
@@ -1570,7 +1598,7 @@ _anim_new = (
     "                arr[ix + 1] = y0;\n"
     "                var h = waveHeight(r, th, time, hz, lvl, snap);\n"
     "                arr[ix + 2] = h * zScale;\n"
-    "                heightToColor(h * 0.95, tr, colAttr, ix, snap);\n"
+    "                heightToColor(h * 0.95, tr, colAttr, ix, snap, true);\n"
     "                if (splatFullNow) {\n"
     "                    spA[ix] = arr[ix];\n"
     "                    spA[ix + 1] = arr[ix + 1];\n"
@@ -1924,15 +1952,15 @@ shell_body_pre_scripts = (
         <div class="ctrl-col" id="pmAudioEngineCol">
           <h3><span class="num">02</span> Advanced visuals</h3>
           <div class="ctrl-row">
-            <label for="aggressionSel">Audio-Visualiser Portals</label>
-            <select id="aggressionSel" title="Particle cymatics, Mandelbrot or Julia fractal, plus tunnel visual presets">
-              <option value="balanced">Particle cymatics</option>
-              <option value="fractalMB">Mandelbrot fractal</option>
-              <option value="fractalJulia" selected>Julia fractal</option>
+            <label for="aggressionSel">Audio Visualiser Portals</label>
+            <select id="aggressionSel" title="Particle Cymatics, Mandelbrot Or Julia Fractal, Plus Tunnel Visual Presets">
+              <option value="balanced">Particle Cymatics</option>
+              <option value="fractalMB">Mandelbrot Fractal</option>
+              <option value="fractalJulia" selected>Julia Fractal</option>
               <option value="juliaWH_rabbit">Fractal Vortex</option>
               <option value="juliaWH_dendrite">Cosmic Magenta</option>
               <option value="juliaWH_sanMarco">Radiant Helios</option>
-              <option value="juliaWH_siegel">Siegel Disc</option>
+              <option value="juliaWH_siegel">Mercury Rising</option>
               <option value="juliaWH_recursive">Solar Amber</option>
               <option value="juliaWH_spiral">Red Dragon</option>
               <option value="juliaWH_airplane">Gradient Pulse</option>
