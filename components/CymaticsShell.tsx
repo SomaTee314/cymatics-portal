@@ -125,7 +125,8 @@ function buildSubscriptionMessage(
     features,
     allowedPresetIndices,
     allowedAggressionValues,
-    sessionMinutes: features.sessionMinutes,
+    /** Signed-in users: no session cap (anonymous / iframe preview still uses tier limit). */
+    sessionMinutes: isAuthenticated ? null : features.sessionMinutes,
     isDevMode: dev,
     allowFractalVisuals:
       dev ||

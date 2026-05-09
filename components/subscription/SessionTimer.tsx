@@ -11,7 +11,7 @@ export function SessionTimer() {
   const sessionLimit = features.sessionMinutes;
 
   useEffect(() => {
-    if (isDevMode || sessionLimit === Infinity) {
+    if (isDevMode || isAuthenticated || sessionLimit === Infinity) {
       setSecondsRemaining(null);
       return;
     }
@@ -26,9 +26,9 @@ export function SessionTimer() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [sessionLimit, isDevMode]);
+  }, [sessionLimit, isDevMode, isAuthenticated]);
 
-  if (secondsRemaining === null || isDevMode) return null;
+  if (secondsRemaining === null || isDevMode || isAuthenticated) return null;
 
   const minutes = Math.floor(secondsRemaining / 60);
   const seconds = secondsRemaining % 60;
