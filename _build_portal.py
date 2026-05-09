@@ -650,33 +650,6 @@ if stop_track_inj not in iife2:
     raise SystemExit("stopTrack anchor not found")
 iife2 = iife2.replace(stop_track_inj, stop_track_new, 1)
 
-audio_track_catch = (
-    "                    playTry.catch(function () {\n"
-    "                        readout.textContent = 'Playback blocked—click Start again after file selected.';\n"
-    "                        window.__audioStarted = false;\n"
-    "                    });\n"
-    "                }\n"
-    "            }\n"
-    "        });\n"
-    "    });"
-)
-audio_track_new = (
-    "                    playTry.catch(function () {\n"
-    "                        readout.textContent = "
-    "'Playback blocked—click Play again.';\n"
-    "                        window.__audioStarted = false;\n"
-    "                        syncTrackTransportUI();\n"
-    "                    });\n"
-    "                }\n"
-    "                syncTrackTransportUI();\n"
-    "            }\n"
-    "        });\n"
-    "    });"
-)
-if audio_track_catch not in iife2:
-    raise SystemExit("btnAudio track catch block not found")
-iife2 = iife2.replace(audio_track_catch, audio_track_new, 1)
-
 btn_stop_inj = (
     "    btnStop.addEventListener('click', function () {\n"
     "        if (modeSel.value === 'track' && mediaEl && mediaEl.src) {\n"

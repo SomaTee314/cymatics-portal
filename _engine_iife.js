@@ -950,6 +950,9 @@
         mediaSourceNode.connect(analyser);
         ensureCtx();
         analyser.connect(masterOut);
+        try {
+            mediaEl.muted = false;
+        } catch (eMu) { /* no-op */ }
         mediaEl.volume = Math.min(1, getVolume());
     }
 
@@ -1034,18 +1037,28 @@
             }
         } else if (m === 'track') {
             stopOsc();
-            runAfterContextReady(ensureCtx(), function () {
-                ensureTrackAudioGraph();
-                if (window.__audioStarted && mediaEl) {
-                    var playTry = mediaEl.play();
-                    if (playTry && typeof playTry.catch === 'function') {
-                        playTry.catch(function () {
-                            readout.textContent = 'Playback blocked—click Play again.';
-                            window.__audioStarted = false;
-                        });
+            if (window.__audioStarted && mediaEl) {
+                var ctxT = ensureCtx();
+                try {
+                    if (ctxT && ctxT.state === 'suspended' && ctxT.resume) {
+                        var prT = ctxT.resume();
+                        if (prT && typeof prT.catch === 'function') prT.catch(function () {});
                     }
+                } catch (eRT) { /* no-op */ }
+                ensureTrackAudioGraph();
+                try {
+                    mediaEl.muted = false;
+                } catch (eM2) { /* no-op */ }
+                var playT = mediaEl.play();
+                if (playT && typeof playT.catch === 'function') {
+                    playT.catch(function () {
+                        readout.textContent = 'Playback blocked—click Play again.';
+                        window.__audioStarted = false;
+                        if (typeof syncTrackTransportUI === 'function') syncTrackTransportUI();
+                    });
                 }
-            });
+                if (typeof syncTrackTransportUI === 'function') syncTrackTransportUI();
+            }
         }
     }
 
@@ -1109,6 +1122,7 @@
     }
 
     function cymaticsResumeWebAudio() {
+        if (!window.__audioStarted) return;
         ensureCtx();
         if (modeSel && modeSel.value === 'track' && mediaEl && mediaEl.src) {
             ensureTrackAudioGraph();
@@ -1128,27 +1142,40 @@
 
     btnAudio.addEventListener('click', function () {
         var ctx = ensureCtx();
+        var hz = getToneHzForAudio();
+        /* Track: keep resume() + play() in the same user-activation turn (critical inside iframes). */
+        if (modeSel.value === 'track') {
+            window.__audioStarted = true;
+            if (!mediaEl || !mediaEl.src) {
+                readout.textContent = 'Choose an audio file first.';
+                window.__audioStarted = false;
+                return;
+            }
+            try {
+                if (ctx && ctx.state === 'suspended' && ctx.resume) {
+                    var prSync = ctx.resume();
+                    if (prSync && typeof prSync.catch === 'function') prSync.catch(function () {});
+                }
+            } catch (eRs) { /* no-op */ }
+            ensureTrackAudioGraph();
+            try {
+                mediaEl.muted = false;
+            } catch (eMu) { /* no-op */ }
+            var playTry = mediaEl.play();
+            if (playTry && typeof playTry.catch === 'function') {
+                playTry.catch(function () {
+                    readout.textContent = 'Playback blocked—click Start again after file selected.';
+                    window.__audioStarted = false;
+                    if (typeof syncTrackTransportUI === 'function') syncTrackTransportUI();
+                });
+            }
+            if (typeof syncTrackTransportUI === 'function') syncTrackTransportUI();
+            return;
+        }
         runAfterContextReady(ctx, function () {
             window.__audioStarted = true;
-            var hz = getToneHzForAudio();
             if (modeSel.value === 'manual' || modeSel.value === 'preset') {
                 startOscillatorAtHz(hz);
-            } else if (modeSel.value === 'track') {
-                if (!mediaEl || !mediaEl.src) {
-                    readout.textContent = 'Choose an audio file first.';
-                    window.__audioStarted = false;
-                    return;
-                }
-                ensureTrackAudioGraph();
-                var playTry = mediaEl.play();
-                if (playTry && typeof playTry.catch === 'function') {
-                    playTry.catch(function () {
-                        readout.textContent = 'Playback blocked—click Play again.';
-                        window.__audioStarted = false;
-                        syncTrackTransportUI();
-                    });
-                }
-                syncTrackTransportUI();
             }
         });
     });
@@ -1206,7 +1233,6 @@
         window.__audioStarted = false;
         if (!f) return;
         ensureCtx();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
         trackObjectUrl = URL.createObjectURL(f);
         mediaEl = new Audio();
         try {

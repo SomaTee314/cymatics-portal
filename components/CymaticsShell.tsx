@@ -165,6 +165,7 @@ const CymaticsFrame = memo(
           ref={ref}
           title="Cymatics Portal"
           src={cymaticsIframeSrc()}
+          allow="autoplay 'self'; microphone 'self'"
           className={
             iframePositionClassName ??
             'fixed inset-0 z-0 h-full w-full border-0'
