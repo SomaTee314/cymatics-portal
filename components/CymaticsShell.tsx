@@ -248,7 +248,7 @@ export function CymaticsShell() {
     if (iframeLoaded) return;
     let attempts = 0;
     const maxAttempts = 35;
-    let intervalId: ReturnType<typeof setInterval> | undefined;
+    let intervalId: number | undefined;
     const tick = () => {
       attempts += 1;
       const el = iframeRef.current;
