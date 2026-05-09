@@ -338,35 +338,54 @@ _anim_gate_old = """    function animate() {
 _anim_gate_new = """    function animate() {
         requestAnimationFrame(animate);
         /* Landing + guide share portal-main--behind-landing; skip=1 removes landing UX only.
-         * While gated: WebGL does not run. Orphan class + hidden landing would freeze the portal forever. */
-        var __cpPm = document.querySelector('.portal-main');
-        var __cpLandingSkipped = document.documentElement.classList.contains('skip-landing');
-        var __cpLr = document.getElementById('landing-root');
-        var __cpLrGone = false;
-        if (__cpLr) {
-            try {
-                __cpLrGone = window.getComputedStyle(__cpLr).display === 'none';
-            } catch (_eLr) {
-                __cpLrGone = __cpLr.style.display === 'none';
+         * While gated: WebGL does not run. Cache DOM + throttle getComputedStyle once the main
+         * portal is active (major frame-time win during long sessions). */
+        if (!__cpAnimGateDone) {
+            var __cpPm =
+                __cpPmCached ||
+                (__cpPmCached = document.querySelector('.portal-main'));
+            var __cpLandingSkipped =
+                document.documentElement.classList.contains('skip-landing');
+            var __cpLr =
+                __cpLrCached ||
+                (__cpLrCached = document.getElementById('landing-root'));
+            if (__cpLr) {
+                if ((__cpLrPollPhase++ & 3) === 0) {
+                    try {
+                        __cpLrGoneCached =
+                            window.getComputedStyle(__cpLr).display === 'none';
+                    } catch (_eLr) {
+                        __cpLrGoneCached = __cpLr.style.display === 'none';
+                    }
+                }
+            } else {
+                __cpLrGoneCached = false;
             }
-        }
-        if (
-            __cpLrGone &&
-            __cpPm &&
-            __cpPm.classList.contains('portal-main--behind-landing')
-        ) {
-            try {
-                __cpPm.classList.remove('portal-main--behind-landing');
-            } catch (_healPm) {}
-        }
-        if (
-            __cpPm &&
-            __cpPm.classList.contains('portal-main--behind-landing') &&
-            !__cpLandingSkipped &&
-            !__cpLrGone
-        ) {
-            clock.getDelta();
-            return;
+            var __cpLrGone = __cpLrGoneCached;
+            if (
+                __cpLrGone &&
+                __cpPm &&
+                __cpPm.classList.contains('portal-main--behind-landing')
+            ) {
+                try {
+                    __cpPm.classList.remove('portal-main--behind-landing');
+                } catch (_healPm) {}
+            }
+            if (
+                __cpPm &&
+                __cpPm.classList.contains('portal-main--behind-landing') &&
+                !__cpLandingSkipped &&
+                !__cpLrGone
+            ) {
+                clock.getDelta();
+                return;
+            }
+            if (
+                !__cpPm ||
+                !__cpPm.classList.contains('portal-main--behind-landing')
+            ) {
+                __cpAnimGateDone = true;
+            }
         }
         var dt = clock.getDelta();"""
 if _anim_gate_old not in iife2:
@@ -412,6 +431,11 @@ iife2 = iife2.replace(_readout_sub_anchor, _readout_sub_replacement, 1)
 iife2 = iife2.replace(
     "    setupGui();\n\n    function animate()",
     "    setupGui();\n\n"
+    "    var __cpAnimGateDone = false;\n"
+    "    var __cpPmCached = null;\n"
+    "    var __cpLrCached = null;\n"
+    "    var __cpLrGoneCached = false;\n"
+    "    var __cpLrPollPhase = 0;\n\n"
     "    window.addEventListener('keydown', function (e) {\n"
     "        if ((e.key === 'h' || e.key === 'H') && gui && gui.__pmDatGuiToggleVisibility) {\n"
     "            gui.__pmDatGuiToggleVisibility();\n"
@@ -437,6 +461,21 @@ read_new = """        var fractalTag = fractalMB ? ' · Mandelbrot' : fractalJul
 if read_old not in iife2:
     raise SystemExit("readout block not found")
 iife2 = iife2.replace(read_old, read_new)
+
+_readout_dedupe_old = """        readout.textContent =
+            'Particles: ' + N +
+            ' · Drive Hz: ' + hz.toFixed(1) +
+            ' · Lobes ~' + lobes + fractalTag;"""
+_readout_dedupe_new = """        var __cpReadoutLine =
+            'Particles: ' + N +
+            ' · Drive Hz: ' + hz.toFixed(1) +
+            ' · Lobes ~' + lobes + fractalTag;
+        if (readout.__cpPrevLine !== __cpReadoutLine) {
+            readout.__cpPrevLine = __cpReadoutLine;
+            readout.textContent = __cpReadoutLine;
+        }"""
+if _readout_dedupe_old in iife2:
+    iife2 = iife2.replace(_readout_dedupe_old, _readout_dedupe_new, 1)
 
 mode_block = """    modeSel.addEventListener('change', function () {
         var m = modeSel.value;
@@ -872,6 +911,11 @@ iife2 = iife2.replace(gui_tw, gui_tw_new, 1)
 
 sgui_key = (
     "    setupGui();\n\n"
+    "    var __cpAnimGateDone = false;\n"
+    "    var __cpPmCached = null;\n"
+    "    var __cpLrCached = null;\n"
+    "    var __cpLrGoneCached = false;\n"
+    "    var __cpLrPollPhase = 0;\n\n"
     "    window.addEventListener('keydown', function (e) {\n"
     "        if ((e.key === 'h' || e.key === 'H') && gui && "
     "gui.__pmDatGuiToggleVisibility) {\n"
@@ -881,6 +925,11 @@ sgui_key = (
 )
 sgui_key_new = (
     "    setupGui();\n"
+    "    var __cpAnimGateDone = false;\n"
+    "    var __cpPmCached = null;\n"
+    "    var __cpLrCached = null;\n"
+    "    var __cpLrGoneCached = false;\n"
+    "    var __cpLrPollPhase = 0;\n\n"
     "    if (aggressionSel) {\n"
     "        if (typeof __cpMigrateAggressionPortalSelect === 'function') {\n"
     "            __cpMigrateAggressionPortalSelect();\n"

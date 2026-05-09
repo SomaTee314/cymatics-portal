@@ -293,10 +293,19 @@ def apply_julia_wormhole_iife_patch(iife2: str, project_root: Path) -> str:
         var lobes = Math.max(2, Math.min(42, Math.round(Math.sqrt(hz / 20))));
         var fractalTag = fractalMB ? ' · Mandelbrot' : fractalJulia ? ' · Julia' : '';"""
     cam_new = """        if (wormholeNow) {
+            var __cpPn = camera.near;
+            var __cpPf = camera.far;
+            var __cpPfv = camera.fov;
             camera.near = 0.1;
             camera.far += (600 - camera.far) * 0.14;
             camera.fov += (72 - camera.fov) * 0.12;
-            camera.updateProjectionMatrix();
+            if (
+                Math.abs(camera.near - __cpPn) > 1e-6 ||
+                Math.abs(camera.far - __cpPf) > 0.02 ||
+                Math.abs(camera.fov - __cpPfv) > 0.01
+            ) {
+                camera.updateProjectionMatrix();
+            }
             var rollWh = wormholeRoot && wormholeRoot.userData._rm
                 ? 0
                 : Math.sin(time * 0.21) * 0.04 + whVelocitySm * 0.0015;
@@ -304,10 +313,19 @@ def apply_julia_wormhole_iife_patch(iife2: str, project_root: Path) -> str:
             camera.rotation.set(0, 0, rollWh);
             camera.lookAt(new THREE.Vector3(0, 0, -1));
         } else {
+            var __cpPn2 = camera.near;
+            var __cpPf2 = camera.far;
+            var __cpPfv2 = camera.fov;
             camera.near += (0.02 - camera.near) * 0.14;
             camera.far += (80 - camera.far) * 0.14;
             camera.fov += (48 - camera.fov) * 0.12;
-            camera.updateProjectionMatrix();
+            if (
+                Math.abs(camera.near - __cpPn2) > 1e-6 ||
+                Math.abs(camera.far - __cpPf2) > 0.02 ||
+                Math.abs(camera.fov - __cpPfv2) > 0.01
+            ) {
+                camera.updateProjectionMatrix();
+            }
             var zCam = 2.5 - zoom * 0.75;
             camera.position.z += (zCam - camera.position.z) * 0.08;
             camera.position.x = 0;
@@ -316,21 +334,14 @@ def apply_julia_wormhole_iife_patch(iife2: str, project_root: Path) -> str:
         }
 
         var lobes = Math.max(2, Math.min(42, Math.round(Math.sqrt(hz / 20))));
-        var __whReadout =
-            wormholeNow &&
-            typeof aggressionSel !== 'undefined' &&
-            aggressionSel &&
-            aggressionSel.value &&
-            typeof JULIA_WH_PORTAL_READOUT_SUFFIX !== 'undefined'
-                ? JULIA_WH_PORTAL_READOUT_SUFFIX[aggressionSel.value] || ''
-                : '';
-        var fractalTag = wormholeNow
-            ? (' · Azura Shiva' + __whReadout)
-            : fractalMB
-                ? ' · Mandelbrot'
-                : fractalJulia
-                    ? ' · Julia'
-                    : '';"""
+        var fractalTag = '';
+        if (wormholeNow) {
+            fractalTag = __cpWhReadoutSuffix;
+        } else if (fractalMB) {
+            fractalTag = ' · Mandelbrot';
+        } else if (fractalJulia) {
+            fractalTag = ' · Julia';
+        }"""
     if cam_old not in iife2:
         raise SystemExit("wormhole: camera/readout anchor not found")
     iife2 = iife2.replace(cam_old, cam_new, 1)
@@ -692,9 +703,21 @@ def apply_julia_wormhole_iife_patch(iife2: str, project_root: Path) -> str:
     iife2 = iife2.replace(sg_anchor, setup_insert + sg_anchor, 1)
 
     call_old = """    setupGui();
+    var __cpAnimGateDone = false;
+    var __cpPmCached = null;
+    var __cpLrCached = null;
+    var __cpLrGoneCached = false;
+    var __cpLrPollPhase = 0;
+
     if (aggressionSel) {"""
     call_new = """    setupGui();
     setupWormholeGui();
+    var __cpAnimGateDone = false;
+    var __cpPmCached = null;
+    var __cpLrCached = null;
+    var __cpLrGoneCached = false;
+    var __cpLrPollPhase = 0;
+
     if (aggressionSel) {"""
     if call_old not in iife2:
         raise SystemExit("wormhole: setupGui(); callsite not found")
@@ -734,14 +757,59 @@ def apply_julia_wormhole_iife_patch(iife2: str, project_root: Path) -> str:
                 return wormholeOrigApplyAggressionPreset(key);
             } finally {
                 wormholeAggWrapDepth--;
+                if (
+                    wormholeAggWrapDepth === 0 &&
+                    typeof __cpRefreshWhReadoutSuffix === 'function'
+                ) {
+                    __cpRefreshWhReadoutSuffix();
+                }
             }
         };
     })();
+
+    var __cpWhReadoutSuffix = '';
+    function __cpRefreshWhReadoutSuffix() {
+        __cpWhReadoutSuffix = '';
+        if (
+            typeof aggressionSel !== 'undefined' &&
+            aggressionSel &&
+            aggressionSel.selectedIndex >= 0
+        ) {
+            var __whOpt = aggressionSel.options[aggressionSel.selectedIndex];
+            var __whLabel =
+                __whOpt && __whOpt.textContent
+                    ? __whOpt.textContent.replace(/\\s+/g, ' ').trim()
+                    : '';
+            if (__whLabel) __cpWhReadoutSuffix = ' · ' + __whLabel;
+        }
+    }
 
     function wormholeRebuildScene() {"""
 
     if wrap_old not in iife2:
         raise SystemExit("wormhole: applyAggressionPreset / wormholeRebuildScene anchor not found")
     iife2 = iife2.replace(wrap_old, wrap_new, 1)
+
+    _render_bench_old = "        renderer.render(scene, camera);"
+    _render_bench_new = """        if (/[?&]cpDebugAnimate=1(?:&|$)/.test(location.search || '')) {
+            var __cpR0 = performance.now();
+            renderer.render(scene, camera);
+            var __cpRd = performance.now() - __cpR0;
+            window.__cpAnimBenchN = (window.__cpAnimBenchN || 0) + 1;
+            window.__cpAnimBenchMs = (window.__cpAnimBenchMs || 0) + __cpRd;
+            if (window.__cpAnimBenchN >= 120) {
+                console.info(
+                    '[cpDebugAnimate] mean renderer.render ms/frame (120 samples):',
+                    (window.__cpAnimBenchMs / 120).toFixed(3)
+                );
+                window.__cpAnimBenchN = 0;
+                window.__cpAnimBenchMs = 0;
+            }
+        } else {
+            renderer.render(scene, camera);
+        }"""
+    if _render_bench_old not in iife2:
+        raise SystemExit("wormhole: renderer.render(scene, camera) anchor not found")
+    iife2 = iife2.replace(_render_bench_old, _render_bench_new, 1)
 
     return iife2

@@ -565,6 +565,9 @@
             }
         }
         __cpAttachGatedSelectListeners();
+        if (typeof __cpRefreshWhReadoutSuffix === 'function') {
+            __cpRefreshWhReadoutSuffix();
+        }
     };
 
     window.addEventListener('message', function (ev) {
@@ -4020,9 +4023,32 @@
                 return wormholeOrigApplyAggressionPreset(key);
             } finally {
                 wormholeAggWrapDepth--;
+                if (
+                    wormholeAggWrapDepth === 0 &&
+                    typeof __cpRefreshWhReadoutSuffix === 'function'
+                ) {
+                    __cpRefreshWhReadoutSuffix();
+                }
             }
         };
     })();
+
+    var __cpWhReadoutSuffix = '';
+    function __cpRefreshWhReadoutSuffix() {
+        __cpWhReadoutSuffix = '';
+        if (
+            typeof aggressionSel !== 'undefined' &&
+            aggressionSel &&
+            aggressionSel.selectedIndex >= 0
+        ) {
+            var __whOpt = aggressionSel.options[aggressionSel.selectedIndex];
+            var __whLabel =
+                __whOpt && __whOpt.textContent
+                    ? __whOpt.textContent.replace(/\s+/g, ' ').trim()
+                    : '';
+            if (__whLabel) __cpWhReadoutSuffix = ' · ' + __whLabel;
+        }
+    }
 
     function wormholeRebuildScene() {
         var vis = visualMode === 'juliaWormhole';
@@ -4435,6 +4461,12 @@
     }
     setupGui();
     setupWormholeGui();
+    var __cpAnimGateDone = false;
+    var __cpPmCached = null;
+    var __cpLrCached = null;
+    var __cpLrGoneCached = false;
+    var __cpLrPollPhase = 0;
+
     if (aggressionSel) {
         if (typeof __cpMigrateAggressionPortalSelect === 'function') {
             __cpMigrateAggressionPortalSelect();
@@ -4457,35 +4489,54 @@
     function animate() {
         requestAnimationFrame(animate);
         /* Landing + guide share portal-main--behind-landing; skip=1 removes landing UX only.
-         * While gated: WebGL does not run. Orphan class + hidden landing would freeze the portal forever. */
-        var __cpPm = document.querySelector('.portal-main');
-        var __cpLandingSkipped = document.documentElement.classList.contains('skip-landing');
-        var __cpLr = document.getElementById('landing-root');
-        var __cpLrGone = false;
-        if (__cpLr) {
-            try {
-                __cpLrGone = window.getComputedStyle(__cpLr).display === 'none';
-            } catch (_eLr) {
-                __cpLrGone = __cpLr.style.display === 'none';
+         * While gated: WebGL does not run. Cache DOM + throttle getComputedStyle once the main
+         * portal is active (major frame-time win during long sessions). */
+        if (!__cpAnimGateDone) {
+            var __cpPm =
+                __cpPmCached ||
+                (__cpPmCached = document.querySelector('.portal-main'));
+            var __cpLandingSkipped =
+                document.documentElement.classList.contains('skip-landing');
+            var __cpLr =
+                __cpLrCached ||
+                (__cpLrCached = document.getElementById('landing-root'));
+            if (__cpLr) {
+                if ((__cpLrPollPhase++ & 3) === 0) {
+                    try {
+                        __cpLrGoneCached =
+                            window.getComputedStyle(__cpLr).display === 'none';
+                    } catch (_eLr) {
+                        __cpLrGoneCached = __cpLr.style.display === 'none';
+                    }
+                }
+            } else {
+                __cpLrGoneCached = false;
             }
-        }
-        if (
-            __cpLrGone &&
-            __cpPm &&
-            __cpPm.classList.contains('portal-main--behind-landing')
-        ) {
-            try {
-                __cpPm.classList.remove('portal-main--behind-landing');
-            } catch (_healPm) {}
-        }
-        if (
-            __cpPm &&
-            __cpPm.classList.contains('portal-main--behind-landing') &&
-            !__cpLandingSkipped &&
-            !__cpLrGone
-        ) {
-            clock.getDelta();
-            return;
+            var __cpLrGone = __cpLrGoneCached;
+            if (
+                __cpLrGone &&
+                __cpPm &&
+                __cpPm.classList.contains('portal-main--behind-landing')
+            ) {
+                try {
+                    __cpPm.classList.remove('portal-main--behind-landing');
+                } catch (_healPm) {}
+            }
+            if (
+                __cpPm &&
+                __cpPm.classList.contains('portal-main--behind-landing') &&
+                !__cpLandingSkipped &&
+                !__cpLrGone
+            ) {
+                clock.getDelta();
+                return;
+            }
+            if (
+                !__cpPm ||
+                !__cpPm.classList.contains('portal-main--behind-landing')
+            ) {
+                __cpAnimGateDone = true;
+            }
         }
         var dt = clock.getDelta();
         var time = clock.getElapsedTime();
@@ -5109,10 +5160,19 @@
         }
 
         if (wormholeNow) {
+            var __cpPn = camera.near;
+            var __cpPf = camera.far;
+            var __cpPfv = camera.fov;
             camera.near = 0.1;
             camera.far += (600 - camera.far) * 0.14;
             camera.fov += (72 - camera.fov) * 0.12;
-            camera.updateProjectionMatrix();
+            if (
+                Math.abs(camera.near - __cpPn) > 1e-6 ||
+                Math.abs(camera.far - __cpPf) > 0.02 ||
+                Math.abs(camera.fov - __cpPfv) > 0.01
+            ) {
+                camera.updateProjectionMatrix();
+            }
             var rollWh = wormholeRoot && wormholeRoot.userData._rm
                 ? 0
                 : Math.sin(time * 0.21) * 0.04 + whVelocitySm * 0.0015;
@@ -5120,10 +5180,19 @@
             camera.rotation.set(0, 0, rollWh);
             camera.lookAt(new THREE.Vector3(0, 0, -1));
         } else {
+            var __cpPn2 = camera.near;
+            var __cpPf2 = camera.far;
+            var __cpPfv2 = camera.fov;
             camera.near += (0.02 - camera.near) * 0.14;
             camera.far += (80 - camera.far) * 0.14;
             camera.fov += (48 - camera.fov) * 0.12;
-            camera.updateProjectionMatrix();
+            if (
+                Math.abs(camera.near - __cpPn2) > 1e-6 ||
+                Math.abs(camera.far - __cpPf2) > 0.02 ||
+                Math.abs(camera.fov - __cpPfv2) > 0.01
+            ) {
+                camera.updateProjectionMatrix();
+            }
             var zCam = 2.5 - zoom * 0.75;
             camera.position.z += (zCam - camera.position.z) * 0.08;
             camera.position.x = 0;
@@ -5132,27 +5201,40 @@
         }
 
         var lobes = Math.max(2, Math.min(42, Math.round(Math.sqrt(hz / 20))));
-        var __whReadout =
-            wormholeNow &&
-            typeof aggressionSel !== 'undefined' &&
-            aggressionSel &&
-            aggressionSel.value &&
-            typeof JULIA_WH_PORTAL_READOUT_SUFFIX !== 'undefined'
-                ? JULIA_WH_PORTAL_READOUT_SUFFIX[aggressionSel.value] || ''
-                : '';
-        var fractalTag = wormholeNow
-            ? (' · Azura Shiva' + __whReadout)
-            : fractalMB
-                ? ' · Mandelbrot'
-                : fractalJulia
-                    ? ' · Julia'
-                    : '';
-        readout.textContent =
+        var fractalTag = '';
+        if (wormholeNow) {
+            fractalTag = __cpWhReadoutSuffix;
+        } else if (fractalMB) {
+            fractalTag = ' · Mandelbrot';
+        } else if (fractalJulia) {
+            fractalTag = ' · Julia';
+        }
+        var __cpReadoutLine =
             'Particles: ' + N +
             ' · Drive Hz: ' + hz.toFixed(1) +
             ' · Lobes ~' + lobes + fractalTag;
+        if (readout.__cpPrevLine !== __cpReadoutLine) {
+            readout.__cpPrevLine = __cpReadoutLine;
+            readout.textContent = __cpReadoutLine;
+        }
 
-        renderer.render(scene, camera);
+        if (/[?&]cpDebugAnimate=1(?:&|$)/.test(location.search || '')) {
+            var __cpR0 = performance.now();
+            renderer.render(scene, camera);
+            var __cpRd = performance.now() - __cpR0;
+            window.__cpAnimBenchN = (window.__cpAnimBenchN || 0) + 1;
+            window.__cpAnimBenchMs = (window.__cpAnimBenchMs || 0) + __cpRd;
+            if (window.__cpAnimBenchN >= 120) {
+                console.info(
+                    '[cpDebugAnimate] mean renderer.render ms/frame (120 samples):',
+                    (window.__cpAnimBenchMs / 120).toFixed(3)
+                );
+                window.__cpAnimBenchN = 0;
+                window.__cpAnimBenchMs = 0;
+            }
+        } else {
+            renderer.render(scene, camera);
+        }
     }
     animate();
 })();

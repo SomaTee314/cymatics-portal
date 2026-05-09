@@ -118,7 +118,9 @@ function buildSubscriptionMessage(
   const allowedPresetIndices = dev ? null : getAllowedPresetIndices(tier);
   const allowedAggressionValues = lockAnonymous
     ? [...FREE_VISUAL_MODES]
-    : getAllowedAggressionValuesForMessage(tier, dev);
+    : isAuthenticated || dev
+      ? null
+      : getAllowedAggressionValuesForMessage(tier, false);
   return {
     type: SUB_MSG,
     tier,
@@ -216,12 +218,6 @@ export function CymaticsShell() {
       lastPostedJsonRef.current = json;
       try {
         win.postMessage(msg, origin);
-        if (!isDevMode() && !ctxDev) {
-          console.info('[CymaticsShell] postMessage cp-subscription', {
-            tier: msg.tier,
-            sessionMinutes: msg.sessionMinutes,
-          });
-        }
       } catch (e) {
         console.error('[CymaticsShell] postMessage failed', e);
       }
@@ -235,14 +231,14 @@ export function CymaticsShell() {
 
   /* `message` listener in the iframe may attach after `load`; resend subscription a few times. */
   useEffect(() => {
-    if (!iframeLoaded) return;
+    if (!iframeLoaded || isLoading) return;
     lastPostedJsonRef.current = null;
     const delays = [0, 80, 250, 800, 2000];
     const ids = delays.map((ms) =>
       window.setTimeout(() => postSubscriptionToIframe(true), ms),
     );
     return () => ids.forEach((id) => window.clearTimeout(id));
-  }, [iframeLoaded, postSubscriptionToIframe]);
+  }, [iframeLoaded, isLoading, postSubscriptionToIframe]);
 
   /* Same-origin: if `onLoad` doesn’t fire, still mark ready for postMessage. */
   useEffect(() => {

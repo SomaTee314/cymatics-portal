@@ -489,6 +489,9 @@
             }
         }
         __cpAttachGatedSelectListeners();
+        if (typeof __cpRefreshWhReadoutSuffix === 'function') {
+            __cpRefreshWhReadoutSuffix();
+        }
     };
 
     window.addEventListener('message', function (ev) {

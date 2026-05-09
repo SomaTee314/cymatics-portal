@@ -11,7 +11,12 @@ import { fileURLToPath } from 'url';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const nextDir = path.join(root, '.next');
-fs.rmSync(nextDir, { recursive: true, force: true });
+fs.rmSync(nextDir, {
+  recursive: true,
+  force: true,
+  maxRetries: 6,
+  retryDelay: 120,
+});
 console.log('Removed', nextDir);
 console.log(
   'Next: run dev once (e.g. npm run dev:3005), hard-refresh the browser (Ctrl+Shift+R). Use npm run dev:3005:fresh to free port 3005, clean .next, sync portal, and start dev.',
