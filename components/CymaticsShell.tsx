@@ -3,15 +3,23 @@
 import {
   forwardRef,
   memo,
+  startTransition,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
 import { AccountMenu } from '@/components/shell/AccountMenu';
-import { SHELL_CHROME_FRAME } from '@/components/shell/shellChrome';
+import {
+  SHELL_AUTH_ROW,
+  SHELL_AUTH_ROW_PORTAL,
+  SHELL_CHROME_FRAME,
+  SHELL_CHROME_PORTAL_INFLOW,
+} from '@/components/shell/shellChrome';
 import { SessionTimer } from '@/components/subscription/SessionTimer';
 import {
   FREE_VISUAL_MODES,
@@ -139,16 +147,25 @@ function cymaticsIframeSrc() {
     : '/cymatics.html';
 }
 
+type CymaticsFrameProps = {
+  onLoad: () => void;
+  /** Default: full-viewport fixed under shell chrome. Portal uses `absolute` inside a flex-1 host. */
+  iframePositionClassName?: string;
+};
+
 /** Isolated from overlay re-renders — same props skip React reconciliation of the iframe subtree. */
 const CymaticsFrame = memo(
-  forwardRef<HTMLIFrameElement, { onLoad: () => void }>(
-    function CymaticsFrame({ onLoad }, ref) {
+  forwardRef<HTMLIFrameElement, CymaticsFrameProps>(
+    function CymaticsFrame({ onLoad, iframePositionClassName }, ref) {
       return (
         <iframe
           ref={ref}
           title="Cymatics Portal"
           src={cymaticsIframeSrc()}
-          className="fixed inset-0 z-0 h-full w-full border-0"
+          className={
+            iframePositionClassName ??
+            'fixed inset-0 z-0 h-full w-full border-0'
+          }
           onLoad={onLoad}
           referrerPolicy="same-origin"
         />
@@ -178,6 +195,7 @@ export function CymaticsShell() {
   const subscriptionPaused = isSubscriptionPaused();
   const [signUpModalOpen, setSignUpModalOpen] = useState(false);
   const [shellPhase, setShellPhase] = useState<ShellLandingPhase>('hero');
+  const [landingLoaderDismissed, setLandingLoaderDismissed] = useState(false);
 
   const postSubscriptionToIframe = useCallback(
     (force?: boolean) => {
@@ -228,20 +246,30 @@ export function CymaticsShell() {
   /* Same-origin: if `onLoad` doesn’t fire, still mark ready for postMessage. */
   useEffect(() => {
     if (iframeLoaded) return;
+    let attempts = 0;
+    const maxAttempts = 35;
+    let intervalId: ReturnType<typeof setInterval> | undefined;
     const tick = () => {
+      attempts += 1;
       const el = iframeRef.current;
       if (!el) return;
       try {
         if (el.contentDocument?.readyState === 'complete') {
           setIframeLoaded(true);
+          if (intervalId !== undefined) window.clearInterval(intervalId);
         }
       } catch {
         /* cross-origin — ignore */
       }
+      if (attempts >= maxAttempts && intervalId !== undefined) {
+        window.clearInterval(intervalId);
+      }
     };
     tick();
-    const intervalId = window.setInterval(tick, 200);
-    return () => window.clearInterval(intervalId);
+    intervalId = window.setInterval(tick, 250);
+    return () => {
+      if (intervalId !== undefined) window.clearInterval(intervalId);
+    };
   }, [iframeLoaded]);
 
   useEffect(() => {
@@ -249,7 +277,7 @@ export function CymaticsShell() {
     postSubscriptionToIframe(false);
   }, [iframeLoaded, isLoading, postSubscriptionToIframe]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const onMessage = (ev: MessageEvent) => {
       /* Same-origin cymatics iframe only — check before source identity (sources can mismatch ref edge cases). */
       if (!samePortalOrigin(ev.origin, window.location.origin)) return;
@@ -296,9 +324,16 @@ export function CymaticsShell() {
       if (ev.source !== iframeRef.current?.contentWindow) return;
       const d = ev.data as { type?: string; action?: string } | null;
       if (!d || d.type !== 'cp-action') return;
+      if (d.action === 'landing-loader-dismissed') {
+        startTransition(() => setLandingLoaderDismissed(true));
+        return;
+      }
       if (d.action === 'guide-opened') {
-        setShellPhase('guide');
-        setReachedPortal(false);
+        startTransition(() => {
+          setLandingLoaderDismissed(true);
+          setShellPhase('guide');
+          setReachedPortal(false);
+        });
         try {
           window.localStorage.removeItem('cp_reached_portal');
         } catch {
@@ -307,7 +342,10 @@ export function CymaticsShell() {
         return;
       }
       if (d.action === 'guide-closed') {
-        setShellPhase('hero');
+        startTransition(() => {
+          setLandingLoaderDismissed(true);
+          setShellPhase('hero');
+        });
         return;
       }
       if (d.action === 'portal-reached') {
@@ -316,8 +354,11 @@ export function CymaticsShell() {
         } catch {
           /* ignore */
         }
-        setReachedPortal(true);
-        setShellPhase('portal');
+        startTransition(() => {
+          setLandingLoaderDismissed(true);
+          setReachedPortal(true);
+          setShellPhase('portal');
+        });
         return;
       }
       if (d.action === 'signup-prompt' || d.action === 'upgrade-clicked') {
@@ -347,58 +388,107 @@ export function CymaticsShell() {
   }, [router, subscriptionPaused, isAuthenticated, ctxDev]);
 
   const postShellNavBack = useCallback(() => {
-    const win = iframeRef.current?.contentWindow;
-    if (!win) return;
-    try {
-      win.postMessage(
-        { type: 'cp-shell', action: 'nav-back' },
-        window.location.origin
-      );
-    } catch {
-      /* ignore */
-    }
+    const tryPost = () => {
+      const win = iframeRef.current?.contentWindow;
+      if (!win || typeof window === 'undefined') return false;
+      try {
+        win.postMessage(
+          { type: 'cp-shell', action: 'nav-back' },
+          window.location.origin
+        );
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    if (tryPost()) return;
+    window.requestAnimationFrame(() => {
+      if (tryPost()) return;
+      window.setTimeout(() => {
+        tryPost();
+      }, 0);
+    });
   }, []);
 
-  return (
-    <div className="relative min-h-screen w-full bg-[#030508]">
-      <SessionTimer />
-      <div className={SHELL_CHROME_FRAME}>
-        {(shellPhase === 'guide' || shellPhase === 'portal') && (
-          <button
-            type="button"
-            onClick={postShellNavBack}
-            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-white/15 bg-black/80 text-white shadow-lg transition-colors hover:bg-black/90"
-            aria-label="Back"
-          >
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
+  const isPortalPage = shellPhase === 'portal';
+  const shellChromeHostClass = isPortalPage
+    ? SHELL_CHROME_PORTAL_INFLOW
+    : SHELL_CHROME_FRAME;
+  const shellAuthRowClass =
+    shellPhase === 'portal' ? SHELL_AUTH_ROW_PORTAL : SHELL_AUTH_ROW;
+
+  const shellChromeInner = (
+    <div className={shellAuthRowClass}>
+      {landingLoaderDismissed ? (
+        <>
+          {!isLoading && !isAuthenticated ? (
+            <Link
+              href="/login"
+              prefetch={false}
+              className="inline-flex max-w-[min(12rem,calc(100vw-2rem))] items-center justify-end whitespace-nowrap bg-transparent px-0 pt-[2px] pb-[2px] text-right font-['Courier_New',Courier,monospace] text-[clamp(11.25px,1.525vw,13.75px)] font-bold uppercase leading-[1.18] tracking-[0.14em] text-[rgba(255,255,255,0.95)] shadow-none [text-shadow:0_1px_6px_rgba(0,0,0,0.55),0_2px_20px_rgba(0,0,0,0.35)] transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400/50"
+              aria-label="Sign in"
             >
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-          </button>
-        )}
-        <AccountMenu
-          showAnonymousSignup={reachedPortal}
-          chromeInline
-        />
-      </div>
+              Sign in
+            </Link>
+          ) : null}
+          <AccountMenu
+            showAnonymousSignup={reachedPortal}
+            chromeInline
+          />
+        </>
+      ) : null}
+      {(shellPhase === 'guide' || shellPhase === 'portal') && (
+        <button
+          type="button"
+          onClick={postShellNavBack}
+          className="inline-flex h-[calc(1.18*clamp(11.25px,1.525vw,13.75px))] shrink-0 items-center justify-center border-0 bg-transparent p-0 text-white shadow-none transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400/50"
+          aria-label="Back"
+        >
+          <svg
+            className="shrink-0 text-white [filter:drop-shadow(0_1px_3px_rgba(0,0,0,0.55))]"
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+
+  const iframeStageClass = isPortalPage
+    ? 'relative min-h-0 w-full flex-1'
+    : 'pointer-events-none fixed inset-0 z-0';
+
+  return (
+    <div
+      className={
+        isPortalPage
+          ? 'flex h-dvh max-h-dvh min-h-0 w-full flex-col overflow-x-hidden overscroll-none bg-[#030508]'
+          : 'relative h-dvh max-h-dvh min-h-0 w-full overflow-x-hidden overscroll-none bg-[#030508]'
+      }
+    >
+      <SessionTimer />
+      <div className={shellChromeHostClass}>{shellChromeInner}</div>
       <SignUpPromptModal
         open={signUpModalOpen}
         onClose={() => setSignUpModalOpen(false)}
       />
-      <CymaticsFrame
-        key={CYMATICS_IFRAME_KEY}
-        ref={iframeRef}
-        onLoad={onIframeLoad}
-      />
+      <div className={iframeStageClass}>
+        <CymaticsFrame
+          key={CYMATICS_IFRAME_KEY}
+          ref={iframeRef}
+          onLoad={onIframeLoad}
+          iframePositionClassName="pointer-events-auto absolute inset-0 z-0 h-full w-full border-0"
+        />
+      </div>
     </div>
   );
 }

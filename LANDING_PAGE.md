@@ -4,6 +4,10 @@
 >
 > **For Cursor:** Copy all code, CSS, and markup **verbatim** from the source files referenced below. Do not reconstruct from description — use the exact source.
 
+## Next.js: how the iframe gets its files
+
+In this repo `public/cymatics.html` and `public/landing/` are generated (gitignored) by `python _build_portal.py` plus `scripts/sync-cymatics-public.mjs`. The home page iframe points at **`/cymatics.html`** ([`CymaticsShell`](components/CymaticsShell.tsx)). Use **`npm run dev`** so the **`predev`** hook builds and syncs; running **`next dev` alone** skips that step and the iframe loads nothing until you run **`node scripts/prebuild.mjs`** (same steps as **`prebuild`** before **`next build`**).
+
 ---
 
 ## 1. Architecture Overview

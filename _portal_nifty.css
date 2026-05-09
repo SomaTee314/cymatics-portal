@@ -160,6 +160,7 @@
     }
     .title-area h1 {
       font-size: clamp(28px, 5vw, 72px);
+      line-height: 1.2;
       text-transform: uppercase;
       letter-spacing: 0.15em;
       color: var(--cream);
@@ -581,7 +582,7 @@
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
-      z-index: 4;
+      z-index: 25;
       pointer-events: none;
       -webkit-user-select: none;
       user-select: none;
@@ -595,7 +596,7 @@
 
     #landing-root .landing-particle-om-svg {
       display: block;
-      width: 40mm;
+      width: 20mm;
       height: auto;
       aspect-ratio: 356 / 367;
       vertical-align: top;
@@ -631,7 +632,7 @@
 
     /*
      * Hero Cymatics Portal wordmark (before .cp-logo-compact FLIP): centred above the OM
-     * (~40mm + neon bloom); particle GSAP vertical-centre bypassed in particle-landing.
+     * (~20mm + neon bloom); particle GSAP vertical-centre bypassed in particle-landing.
      */
     #landing-root .logo:not(.cp-logo-compact) {
       position: fixed !important;
@@ -639,7 +640,7 @@
       right: auto !important;
       top: max(
         calc(env(safe-area-inset-top, 0px) + 28px),
-        calc(min(50dvh, 50vh) - 34mm - 104px)
+        calc(min(50dvh, 50vh) - 24mm - 104px)
       ) !important;
       margin-left: 0 !important;
       margin-right: 0 !important;
@@ -652,6 +653,7 @@
       justify-content: center !important;
       text-align: center !important;
       pointer-events: auto !important;
+      z-index: 35 !important;
     }
 
     #landing-root .logo:not(.cp-logo-compact) .logo-title {
@@ -672,18 +674,18 @@
       width: auto !important;
       max-width: min(420px, 92vw) !important;
       min-height: 0 !important;
-      padding: 10px 22.5px !important;
+      padding: 2px 0 !important;
       display: inline-flex !important;
       flex-direction: row !important;
       align-items: center !important;
-      justify-content: center !important;
-      text-align: center !important;
-      background: rgba(5, 10, 18, 0.58);
-      border: 1px solid rgba(100, 220, 255, 0.35);
-      border-radius: 999px;
-      -webkit-backdrop-filter: blur(10px);
-      backdrop-filter: blur(10px);
-      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.4);
+      justify-content: flex-start !important;
+      text-align: left !important;
+      background: transparent !important;
+      border: none !important;
+      border-radius: 0 !important;
+      -webkit-backdrop-filter: none !important;
+      backdrop-filter: none !important;
+      box-shadow: none !important;
       pointer-events: auto !important;
       z-index: 30;
       opacity: 1 !important;
@@ -701,12 +703,12 @@
       overflow: hidden;
       text-overflow: ellipsis;
       max-width: 100%;
-      text-shadow: 0 1.25px 3.75px rgba(0, 0, 0, 0.85);
+      text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55), 0 2px 20px rgba(0, 0, 0, 0.35);
       text-transform: uppercase;
       color: rgba(255, 255, 255, 0.95);
     }
 
-    /* ── Enter Portal: capsule chip (paired sizing with #landing-root .logo.cp-logo-compact) ── */
+    /* ── Enter Portal: capsule chip (wordmark `.logo.cp-logo-compact` is plain text — no capsule) ── */
 
     #landing-root .menu .go-btn {
       position: relative;
@@ -778,7 +780,7 @@
     @media screen and (max-device-width: 640px) {
       #landing-root .logo.cp-logo-compact {
         left: max(8px, calc(max(18px, 4vw) - 0.75cm)) !important;
-        padding: 8.75px 17.5px !important;
+        padding: 2px 0 !important;
       }
       #landing-root .logo.cp-logo-compact .logo-title {
         font-size: clamp(10px, 3.25vw, 12.5px) !important;

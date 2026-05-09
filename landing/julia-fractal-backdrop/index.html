@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <link rel="icon" href="data:,">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Julia fractal backdrop</title>
+    <style>
+        html, body { margin: 0; height: 100%; overflow: hidden; background: #030308; }
+        canvas { display: block; position: fixed; left: 0; top: 0; width: 100% !important; height: 100% !important; }
+    </style>
+    <script src="../../vendor/three.r76.min.js"></script>
+</head>
+<body>
+<script>
+/**
+ * Portal-parity Julia backdrop shader + layout; motion matches `fractalJulia` branch in _engine_iife.js
+ * with synthetic “528 Hz / healing preset” style band drives (no Web Audio).
+ */
+(function () {
+    if (!window.THREE) return;
+
+    function fractalExpSmooth(cur, target, dt, tau) {
+        if (!(tau > 0) || !isFinite(dt) || dt <= 0) return target;
+        var a = 1 - Math.exp(-dt / tau);
+        return cur + (target - cur) * a;
+    }
+
+    function hzToPalette01(hz) {
+        hz = Math.max(20, Math.min(22000, hz));
+        var lo = Math.log(20);
+        var hi = Math.log(22000);
+        return (Math.log(hz) - lo) / (hi - lo);
+    }
+
+    function syntheticSnap528(time) {
+        var wobble = 0.5 + 0.5 * Math.sin(time * 0.73);
+        return {
+            lvl: 0.56 + 0.12 * Math.sin(time * 0.38),
+            tr: 0.11 + 0.06 * Math.sin(time * 1.9),
+            rms: 0.34 + 0.08 * Math.sin(time * 0.51),
+            fluxNorm: 0.21 + 0.07 * Math.sin(time * 1.12),
+            bands: {
+                bass: 0.44 + 0.08 * wobble,
+                treble: 0.38 + 0.06 * Math.sin(time * 0.62),
+                mid: 0.51 + 0.07 * Math.sin(time * 0.44),
+                high: 0.36 + 0.05 * Math.sin(time * 0.88),
+                lowMid: 0.48 + 0.05 * Math.sin(time * 0.55),
+                sub: 0.33 + 0.04 * Math.sin(time * 0.29)
+            }
+        };
+    }
+
+    var scene = new THREE.Scene();
+    var camera = new THREE.PerspectiveCamera(50, 1, 0.01, 100);
+    camera.position.z = 2.35;
+
+    var renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+    renderer.setClearColor(0x030308, 1);
+    document.body.appendChild(renderer.domElement);
+
+    var jBaseCr = -0.355;
+    var jBaseCi = 0.595;
+    var hzLanding = 528;
+
+    var mat = new THREE.ShaderMaterial({
+        uniforms: {
+            u_resolution: { value: new THREE.Vector2(1024, 768) },
+            u_center: { value: new THREE.Vector2(0, 0) },
+            u_zoom: { value: 0.48 },
+            u_maxIter: { value: 280 },
+            u_c: { value: new THREE.Vector2(jBaseCr, jBaseCi) },
+            u_paletteOffset: { value: 0 },
+            u_escapeRadius: { value: 2 },
+            u_isJulia: { value: 1 },
+            u_colorIntensity: { value: 0.55 },
+            u_viewAngle: { value: 0 },
+            u_spiralPhase: { value: 0 },
+            u_mbInteriorPhase: { value: new THREE.Vector3(0, 0, 0) },
+            u_mbInteriorSpin: { value: 0 },
+            u_mbArmDrive: { value: 0 }
+        },
+        fog: false,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        depthTest: false,
+        vertexShader: [
+            'varying vec2 vUv;',
+            'void main() {',
+            '  vUv = uv;',
+            '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
+            '}'
+        ].join('\n'),
+        fragmentShader: [
+            'precision highp float;',
+            'varying vec2 vUv;',
+            'uniform vec2 u_resolution;',
+            'uniform vec2 u_center;',
+            'uniform float u_zoom;',
+            'uniform float u_maxIter;',
+            'uniform vec2 u_c;',
+            'uniform float u_paletteOffset;',
+            'uniform float u_escapeRadius;',
+            'uniform float u_isJulia;',
+            'uniform float u_colorIntensity;',
+            'uniform float u_viewAngle;',
+            'uniform float u_spiralPhase;',
+            'uniform vec3 u_mbInteriorPhase;',
+            'uniform float u_mbInteriorSpin;',
+            'uniform float u_mbArmDrive;',
+            'vec3 palette(float t) {',
+            '  float hue = t * 3.0 + u_paletteOffset;',
+            '  float r = 0.5 + 0.5 * cos(6.28318 * hue);',
+            '  float g = 0.5 + 0.5 * cos(6.28318 * (hue + 0.33));',
+            '  float b = 0.5 + 0.5 * cos(6.28318 * (hue + 0.67));',
+            '  vec3 base = vec3(r, g, b);',
+            '  float sat = 0.5 + u_colorIntensity * 0.5;',
+            '  return mix(vec3(0.5), base, sat);',
+            '}',
+            'float juliaAngleCont(float zx, float zy) {',
+            '  float rh = length(vec2(zx, zy));',
+            '  if (rh < 1e-7) return 0.0;',
+            '  return 2.0 * atan(zy, zx + rh + 1e-7);',
+            '}',
+            'void main() {',
+            '  vec2 v_coord = vec2(vUv.x * 2.0 - 1.0, vUv.y * 2.0 - 1.0);',
+            '  float scale = pow(2.0, u_zoom);',
+            '  vec2 aspect = vec2(u_resolution.x / max(u_resolution.y, 1.0), 1.0);',
+            '  vec2 p = (v_coord * aspect) / scale;',
+            '  float cr = cos(u_viewAngle);',
+            '  float sr = sin(u_viewAngle);',
+            '  vec2 pr = vec2(p.x * cr + p.y * sr, -p.x * sr + p.y * cr);',
+            '  vec2 complexCoord = pr + u_center;',
+            '  vec2 z;',
+            '  vec2 c;',
+            '  if (u_isJulia < 0.5) {',
+            '    z = vec2(0.0, 0.0);',
+            '    c = complexCoord;',
+            '  } else {',
+            '    z = complexCoord;',
+            '    c = u_c;',
+            '  }',
+            '  float n = -1.0;',
+            '  for (int i = 0; i < 640; i++) {',
+            '    if (float(i) >= u_maxIter) break;',
+            '    float x2 = z.x * z.x;',
+            '    float y2 = z.y * z.y;',
+            '    if (x2 + y2 > u_escapeRadius * u_escapeRadius) {',
+            '      float log_zn = log(x2 + y2) * 0.5;',
+            '      float nu = log(log_zn / log(2.0)) / log(2.0);',
+            '      n = float(i) + 1.0 - nu;',
+            '      break;',
+            '    }',
+            '    z = vec2(x2 - y2 + c.x, 2.0 * z.x * z.y + c.y);',
+            '  }',
+            '  float denom = max(u_maxIter, 1.0);',
+            '  vec3 outRgb;',
+            '  if (u_isJulia > 0.5) {',
+            '    if (n >= 0.0) {',
+            '      float tLin = clamp(n / denom, 0.0, 1.0);',
+            '      float zx0 = complexCoord.x;',
+            '      float zy0 = complexCoord.y;',
+            '      float r0 = length(vec2(zx0, zy0));',
+            '      float a0 = juliaAngleCont(zx0, zy0);',
+            '      float lr0 = log(r0 + 1e-6);',
+            '      float spr0 = lr0 * 0.48 + u_spiralPhase * 0.26 + u_paletteOffset * 0.07;',
+            '      spr0 += 0.036 * sin(2.0 * a0 + lr0 * 1.15 + u_spiralPhase * 0.85);',
+            '      spr0 += 0.024 * sin(4.0 * a0 + u_paletteOffset * 2.1 + lr0 * 0.65);',
+            '      float zr2 = z.x * z.x + z.y * z.y;',
+            '      float zang = juliaAngleCont(z.x, z.y);',
+            '      float zlr = log(zr2) * 0.5;',
+            '      float sprEsc = zlr * 0.13;',
+            '      sprEsc += 0.030 * sin(2.0 * zang + zlr * 0.9 + u_spiralPhase * 0.5);',
+            '      sprEsc += 0.020 * cos(4.0 * zang + zlr * 0.45 + u_paletteOffset * 1.3);',
+            '      float sprSum = spr0 + sprEsc + tLin * 0.1;',
+            '      float spiralAcc = fract(sprSum);',
+            '      float t = clamp(0.3 * tLin + 0.7 * spiralAcc, 0.0, 0.98);',
+            '      outRgb = palette(t);',
+            '      float nearEdge = (1.0 - tLin) * (1.0 - tLin);',
+            '      outRgb *= 1.0 + 0.22 * nearEdge;',
+            '      outRgb = mix(outRgb, outRgb * 1.07, tLin * 0.2);',
+            '    } else {',
+            '      float ang = juliaAngleCont(z.x, z.y);',
+            '      float rm = length(z);',
+            '      float lf = log(max(rm, 5e-7));',
+            '      float zx0 = complexCoord.x;',
+            '      float zy0 = complexCoord.y;',
+            '      float sub = 0.5 + 0.5 * sin(ang * 1.55 + lf * 1.25 + u_paletteOffset * 0.22);',
+            '      vec3 deep = vec3(0.018, 0.026, 0.072);',
+            '      vec3 lift = vec3(0.065, 0.056, 0.15);',
+            '      outRgb = mix(deep, lift, sub);',
+            '      float grain = 0.5 + 0.5 * sin(zx0 * 9.0 + zy0 * 7.5 + lf * 2.8);',
+            '      outRgb += vec3(0.015, 0.02, 0.038) * grain;',
+            '      float rI = length(vec2(zx0, zy0));',
+            '      float aI = juliaAngleCont(zx0, zy0);',
+            '      float lrI = log(rI + 1e-6);',
+            '      float spIFull = lrI * 0.5 + u_spiralPhase * 0.25 + lf * 0.055;',
+            '      spIFull += 0.038 * sin(2.0 * aI + lrI * 1.05 + u_spiralPhase * 0.7);',
+            '      spIFull += 0.026 * sin(4.0 * ang + lf * 0.9 + u_paletteOffset * 1.4);',
+            '      float sprI = fract(spIFull);',
+            '      vec3 sArm = palette(0.1 + sprI * 0.62);',
+            '      sArm *= vec3(0.26, 0.28, 0.4);',
+            '      outRgb = mix(outRgb, sArm, 0.44 * (0.55 + 0.45 * sub));',
+            '      outRgb = clamp(outRgb, 0.0, 1.0);',
+            '    }',
+            '  } else {',
+            '    outRgb = vec3(0.02, 0.02, 0.04);',
+            '  }',
+            '  gl_FragColor = vec4(outRgb, 1.0);',
+            '}'
+        ].join('\n')
+    });
+
+    var mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+    mesh.frustumCulled = false;
+    mesh.renderOrder = -1000;
+    mesh.position.z = -7.2;
+    scene.add(mesh);
+
+    /** World-space distance camera → backdrop plane (mesh at negative Z). Engine used local -z for rigged camera; here camera.z is +2.35. */
+    function layoutBackdrop() {
+        var dist = camera.position.z - mesh.position.z;
+        if (!(dist > 0.01)) dist = 9.55;
+        var vFOV = THREE.Math.degToRad(camera.fov);
+        var hh = 2 * Math.tan(vFOV * 0.5) * dist;
+        var bleed = 1.035;
+        var pixAsp =
+            renderer.domElement.clientWidth / Math.max(1, renderer.domElement.clientHeight);
+        mesh.scale.set(hh * pixAsp * bleed, hh * bleed, 1);
+    }
+
+    function resize() {
+        var w = window.innerWidth;
+        var h = window.innerHeight;
+        camera.aspect = w / Math.max(1, h);
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h, true);
+        var pr = renderer.getPixelRatio();
+        mat.uniforms.u_resolution.value.set(w * pr, h * pr);
+        layoutBackdrop();
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+
+    var fractalJuliaTourSeg = -1;
+    var fractalJuliaConnectEnergy = 0;
+    var fractalJuliaConnectSm = 0;
+    var fractalJuliaSmTr = 0;
+    var fractalJuliaOrbitPh = 0;
+    var fractalJuliaOrbitPh2 = 0;
+    var fractalJuliaFastLvl = 0;
+    var fractalJuliaBandDriftCr = 0;
+    var fractalJuliaBandDriftCi = 0;
+    var fractalJuliaRmsDrift = 0;
+    var fractalSmJcr = jBaseCr;
+    var fractalSmJci = jBaseCi;
+    var fractalJuliaSpiralAccum = 0;
+    var fractalSmJSpiralAudio = 0;
+    var fractalJuliaDiscEffSm = 0.135;
+    var fractalSmJMaxIter = 280;
+    var fractalSmAudioLvl = 0;
+    var fractalSmAudioBT = 0;
+    var fractalSmPal = 0;
+    var fractalSmColorI = 0.55;
+
+    var clock = new THREE.Clock();
+
+    function tickJulia528(dt, time) {
+        var snap = syntheticSnap528(time);
+        var lvl = snap.lvl;
+        var tr = snap.tr;
+        var rmsN = snap.rms;
+        var fluxN = snap.fluxNorm;
+        var Bf = snap.bands;
+        var hz01x = hzToPalette01(hzLanding);
+
+        fractalSmAudioLvl = fractalExpSmooth(fractalSmAudioLvl, lvl, dt, 0.16);
+        fractalSmAudioBT = fractalExpSmooth(
+            fractalSmAudioBT,
+            Bf.bass - Bf.treble,
+            dt,
+            0.11
+        );
+
+        var palTarget =
+            time * 0.24 +
+            fractalSmAudioBT * 0.22 +
+            fractalSmAudioLvl * 0.22 +
+            (Bf.mid - 0.5) * 0.04;
+        fractalSmPal = fractalExpSmooth(fractalSmPal, palTarget, dt, 0.58);
+        var colorITarget = 0.4 + fractalSmAudioLvl * 0.42 + Bf.mid * 0.14;
+        fractalSmColorI = fractalExpSmooth(fractalSmColorI, colorITarget, dt, 0.15);
+        mat.uniforms.u_colorIntensity.value = fractalSmColorI;
+
+        var juliaNeedSnap = fractalJuliaTourSeg === -1;
+        if (fractalJuliaTourSeg === -1) {
+            fractalJuliaTourSeg = 1;
+        }
+
+        var jLvlDrive = fractalSmAudioLvl * 0.52 + lvl * 0.48;
+
+        fractalJuliaConnectEnergy += dt * (3.35 * tr + 2.5 * fluxN + 1.12 * rmsN + 0.34 * lvl);
+        fractalJuliaConnectEnergy *= Math.exp(-dt * 1.02);
+        fractalJuliaConnectEnergy = Math.min(2.65, fractalJuliaConnectEnergy);
+        fractalJuliaConnectSm = fractalExpSmooth(
+            fractalJuliaConnectSm,
+            fractalJuliaConnectEnergy,
+            dt,
+            0.11
+        );
+        fractalJuliaSmTr = fractalExpSmooth(fractalJuliaSmTr, tr, dt, 0.092);
+        var trJ = fractalJuliaSmTr * 0.8 + tr * 0.2;
+        fractalJuliaOrbitPh +=
+            dt *
+            (0.287 +
+                lvl * 0.403 +
+                fractalSmAudioLvl * 0.496 +
+                rmsN * 0.558 +
+                trJ * 0.232 +
+                fluxN * 0.28 +
+                (Bf.mid * 0.202 + Bf.bass * 0.155 + Bf.lowMid * 0.112));
+        fractalJuliaOrbitPh2 +=
+            dt *
+            (0.229 +
+                jLvlDrive * 0.357 +
+                rmsN * 0.465 +
+                trJ * 0.202 +
+                fluxN * 0.22 +
+                (Bf.high * 0.093 + Bf.treble * 0.085));
+        fractalJuliaFastLvl = fractalExpSmooth(fractalJuliaFastLvl, jLvlDrive, dt, 0.17);
+        var jBreath = fractalJuliaFastLvl - fractalSmAudioLvl;
+        var bandMixCr =
+            (Bf.mid - 0.5) * 0.11 +
+            (Bf.bass - Bf.treble) * 0.07 +
+            (Bf.lowMid - 0.5) * 0.08 +
+            (Bf.high - 0.5) * 0.04;
+        var bandMixCi =
+            (Bf.mid - 0.5) * 0.1 +
+            (Bf.lowMid - Bf.high) * 0.065 +
+            Bf.sub * 0.06 +
+            (0.5 - Bf.treble) * 0.045;
+        fractalJuliaBandDriftCr = fractalExpSmooth(
+            fractalJuliaBandDriftCr,
+            bandMixCr,
+            dt,
+            0.32
+        );
+        fractalJuliaBandDriftCi = fractalExpSmooth(
+            fractalJuliaBandDriftCi,
+            bandMixCi,
+            dt,
+            0.32
+        );
+        fractalJuliaRmsDrift = fractalExpSmooth(
+            fractalJuliaRmsDrift,
+            rmsN * 0.16 + trJ * 0.11,
+            dt,
+            0.36
+        );
+
+        var jOrbCr =
+            0.065 * Math.sin(fractalJuliaOrbitPh) +
+            0.057 *
+                Math.cos(fractalJuliaOrbitPh * 0.74 + hz01x * 6.28318 * 0.45) +
+            0.05 *
+                Math.sin(fractalJuliaOrbitPh2 * 1.29 + hz01x * 6.28318 * 0.52) +
+            0.042 *
+                Math.cos(fractalJuliaOrbitPh * 0.42 - fractalJuliaOrbitPh2 * 0.91);
+        var jOrbCi =
+            0.062 * Math.cos(fractalJuliaOrbitPh * 0.89) +
+            0.054 *
+                Math.sin(fractalJuliaOrbitPh2 * 0.94 + hz01x * 6.28318 * 0.41) +
+            0.047 *
+                Math.cos(
+                    fractalJuliaOrbitPh * 1.08 + fractalJuliaOrbitPh2 * 0.57
+                ) +
+            0.04 * Math.sin(fractalJuliaOrbitPh2 * 1.38);
+        var jSlowRing =
+            Math.sin(
+                fractalJuliaOrbitPh * 1.08 + hz01x * 4.2 + fractalJuliaRmsDrift * 1.8
+            ) *
+            (0.024 + fractalJuliaRmsDrift * 0.075);
+        var jSlowRingI =
+            Math.cos(
+                fractalJuliaOrbitPh2 * 1.02 + hz01x * 3.95 + fractalJuliaRmsDrift * 1.6
+            ) *
+            (0.022 + fractalJuliaRmsDrift * 0.07);
+        var jDiscMaxEff = Math.min(
+            0.172,
+            0.122 + fractalJuliaSmTr * 0.044 + jLvlDrive * 0.021
+        );
+        fractalJuliaDiscEffSm = fractalExpSmooth(
+            fractalJuliaDiscEffSm,
+            jDiscMaxEff,
+            dt,
+            0.15
+        );
+        var jConnK = fractalJuliaConnectSm * 0.056;
+        var jcrT =
+            jBaseCr +
+            jLvlDrive * 0.11 +
+            jBreath * 0.09 +
+            fractalJuliaBandDriftCr * 0.94 +
+            fractalSmAudioBT * 0.05 +
+            trJ * 0.042 +
+            jOrbCr +
+            jSlowRing +
+            jConnK * -0.846 +
+            fractalJuliaConnectSm * 0.018 * Math.sin(hz01x * 6.28318);
+        var jciT =
+            jBaseCi +
+            jLvlDrive * 0.104 +
+            jBreath * 0.082 +
+            fractalJuliaBandDriftCi * 0.94 +
+            fractalSmAudioBT * 0.046 +
+            trJ * 0.039 +
+            jOrbCi +
+            jSlowRingI +
+            jConnK * -0.537 +
+            fractalJuliaConnectSm * 0.018 * Math.cos(hz01x * 6.28318);
+        var jdx = jcrT - jBaseCr;
+        var jdy = jciT - jBaseCi;
+        var jD2 = jdx * jdx + jdy * jdy;
+        if (jD2 > fractalJuliaDiscEffSm * fractalJuliaDiscEffSm) {
+            var jS = fractalJuliaDiscEffSm / Math.sqrt(jD2);
+            jcrT = jBaseCr + jdx * jS;
+            jciT = jBaseCi + jdy * jS;
+        }
+        if (juliaNeedSnap) {
+            fractalSmJcr = jcrT;
+            fractalSmJci = jciT;
+        } else {
+            fractalSmJcr = fractalExpSmooth(fractalSmJcr, jcrT, dt, 0.155);
+            fractalSmJci = fractalExpSmooth(fractalSmJci, jciT, dt, 0.155);
+        }
+        jdx = fractalSmJcr - jBaseCr;
+        jdy = fractalSmJci - jBaseCi;
+        jD2 = jdx * jdx + jdy * jdy;
+        if (jD2 > fractalJuliaDiscEffSm * fractalJuliaDiscEffSm) {
+            var jS2 = fractalJuliaDiscEffSm / Math.sqrt(jD2);
+            fractalSmJcr = jBaseCr + jdx * jS2;
+            fractalSmJci = jBaseCi + jdy * jS2;
+        }
+        mat.uniforms.u_c.value.set(fractalSmJcr, fractalSmJci);
+        mat.uniforms.u_center.value.set(0, 0);
+        mat.uniforms.u_zoom.value = 0.48;
+
+        fractalJuliaSpiralAccum +=
+            dt *
+            (0.118 +
+                lvl * 0.07 +
+                fractalSmAudioLvl * 0.075 +
+                jLvlDrive * 0.062 +
+                fractalJuliaRmsDrift * 0.14 +
+                rmsN * 0.09 +
+                fluxN * 0.11 +
+                (Bf.mid * 0.036 + Bf.lowMid * 0.026));
+        var jSpiralAudioT =
+            fractalSmAudioLvl * 0.55 +
+            jLvlDrive * 0.36 +
+            lvl * 0.22 +
+            fractalJuliaRmsDrift * 0.45 +
+            rmsN * 0.5 +
+            trJ * 0.22 +
+            fluxN * 0.42 +
+            (Bf.bass * 0.26 + Bf.lowMid * 0.2 + (Bf.mid - 0.5) * 0.17) +
+            0.35 * Math.sin(fractalJuliaOrbitPh * 0.31) +
+            0.28 * Math.cos(fractalJuliaOrbitPh2 * 0.37);
+        fractalSmJSpiralAudio = fractalExpSmooth(
+            fractalSmJSpiralAudio,
+            jSpiralAudioT,
+            dt,
+            0.32
+        );
+        mat.uniforms.u_spiralPhase.value =
+            fractalJuliaSpiralAccum + fractalSmJSpiralAudio;
+
+        var jMaxT = Math.min(
+            450,
+            Math.max(
+                232,
+                218 +
+                    fractalSmAudioLvl * 48 +
+                    jLvlDrive * 40 +
+                    lvl * 22 +
+                    fractalJuliaRmsDrift * 32 +
+                    rmsN * 38 +
+                    (Bf.mid * 40 + Bf.lowMid * 16) +
+                    trJ * 26 +
+                    fluxN * 32 +
+                    fractalJuliaConnectSm * 14 +
+                    28 * Math.sin(fractalJuliaOrbitPh * 0.48) +
+                    22 * Math.cos(fractalJuliaOrbitPh2 * 0.41)
+            )
+        );
+        fractalSmJMaxIter = fractalExpSmooth(fractalSmJMaxIter, jMaxT, dt, 0.34);
+        mat.uniforms.u_maxIter.value = fractalSmJMaxIter;
+        mat.uniforms.u_paletteOffset.value = fractalSmPal;
+        mat.uniforms.u_viewAngle.value = time * 0.072;
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        var dt = Math.min(clock.getDelta(), 0.1);
+        var time = clock.getElapsedTime();
+        tickJulia528(dt, time);
+        renderer.render(scene, camera);
+    }
+    animate();
+})();
+</script>
+</body>
+</html>

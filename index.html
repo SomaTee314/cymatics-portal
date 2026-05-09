@@ -37,6 +37,7 @@
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "What is Cymatics Portal?", "acceptedAnswer": {"@type": "Answer", "text": "Cymatics Portal is a browser-based interactive experience that visualises Chladni-style standing waves with thousands of 3D particles. It pairs a cymatics engine with Web Audio so you can explore sound-driven patterns and frequencies."}}, {"@type": "Question", "name": "Do I need to install anything to use Cymatics Portal?", "acceptedAnswer": {"@type": "Answer", "text": "No installation is required. Open the site in a modern desktop or mobile browser. Optional microphone access may be requested if you use live audio-reactive modes."}}, {"@type": "Question", "name": "How does audio interact with the visual?", "acceptedAnswer": {"@type": "Answer", "text": "Use the sound and playback controls to drive or analyse audio. Playback and device access follow browser rules — you may need to tap or click to start audio after loading the page."}}]}</script>
 
   <script>(function(){if(/#skip-landing|\?skip=1(?:&|$)/.test(location.href)){document.documentElement.classList.add('skip-landing');}})();</script>
+  <script>(function(){try{if(window.parent&&window.parent!==window)document.documentElement.classList.add('cp-embedded-shell');}catch(_e){}})();</script>
   <link rel="stylesheet" href="./landing/css/landing.css">
   <style>
     /* First paint: external landing.css may arrive late; avoid a flash of title-case markup */
@@ -211,6 +212,7 @@
     }
     .title-area h1 {
       font-size: clamp(28px, 5vw, 72px);
+      line-height: 1.2;
       text-transform: uppercase;
       letter-spacing: 0.15em;
       color: var(--cream);
@@ -632,7 +634,7 @@
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
-      z-index: 4;
+      z-index: 25;
       pointer-events: none;
       -webkit-user-select: none;
       user-select: none;
@@ -646,7 +648,7 @@
 
     #landing-root .landing-particle-om-svg {
       display: block;
-      width: 40mm;
+      width: 20mm;
       height: auto;
       aspect-ratio: 356 / 367;
       vertical-align: top;
@@ -682,7 +684,7 @@
 
     /*
      * Hero Cymatics Portal wordmark (before .cp-logo-compact FLIP): centred above the OM
-     * (~40mm + neon bloom); particle GSAP vertical-centre bypassed in particle-landing.
+     * (~20mm + neon bloom); particle GSAP vertical-centre bypassed in particle-landing.
      */
     #landing-root .logo:not(.cp-logo-compact) {
       position: fixed !important;
@@ -690,7 +692,7 @@
       right: auto !important;
       top: max(
         calc(env(safe-area-inset-top, 0px) + 28px),
-        calc(min(50dvh, 50vh) - 34mm - 104px)
+        calc(min(50dvh, 50vh) - 24mm - 104px)
       ) !important;
       margin-left: 0 !important;
       margin-right: 0 !important;
@@ -703,6 +705,7 @@
       justify-content: center !important;
       text-align: center !important;
       pointer-events: auto !important;
+      z-index: 35 !important;
     }
 
     #landing-root .logo:not(.cp-logo-compact) .logo-title {
@@ -723,18 +726,18 @@
       width: auto !important;
       max-width: min(420px, 92vw) !important;
       min-height: 0 !important;
-      padding: 10px 22.5px !important;
+      padding: 2px 0 !important;
       display: inline-flex !important;
       flex-direction: row !important;
       align-items: center !important;
-      justify-content: center !important;
-      text-align: center !important;
-      background: rgba(5, 10, 18, 0.58);
-      border: 1px solid rgba(100, 220, 255, 0.35);
-      border-radius: 999px;
-      -webkit-backdrop-filter: blur(10px);
-      backdrop-filter: blur(10px);
-      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.4);
+      justify-content: flex-start !important;
+      text-align: left !important;
+      background: transparent !important;
+      border: none !important;
+      border-radius: 0 !important;
+      -webkit-backdrop-filter: none !important;
+      backdrop-filter: none !important;
+      box-shadow: none !important;
       pointer-events: auto !important;
       z-index: 30;
       opacity: 1 !important;
@@ -752,12 +755,12 @@
       overflow: hidden;
       text-overflow: ellipsis;
       max-width: 100%;
-      text-shadow: 0 1.25px 3.75px rgba(0, 0, 0, 0.85);
+      text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55), 0 2px 20px rgba(0, 0, 0, 0.35);
       text-transform: uppercase;
       color: rgba(255, 255, 255, 0.95);
     }
 
-    /* ── Enter Portal: capsule chip (paired sizing with #landing-root .logo.cp-logo-compact) ── */
+    /* ── Enter Portal: capsule chip (wordmark `.logo.cp-logo-compact` is plain text — no capsule) ── */
 
     #landing-root .menu .go-btn {
       position: relative;
@@ -829,7 +832,7 @@
     @media screen and (max-device-width: 640px) {
       #landing-root .logo.cp-logo-compact {
         left: max(8px, calc(max(18px, 4vw) - 0.75cm)) !important;
-        padding: 8.75px 17.5px !important;
+        padding: 2px 0 !important;
       }
       #landing-root .logo.cp-logo-compact .logo-title {
         font-size: clamp(10px, 3.25vw, 12.5px) !important;
@@ -1207,6 +1210,26 @@
       opacity: 0 !important;
     }
 
+    /* Backdrop iframes below .ui so hero wordmark and OM clear the WebGL Yin–Yang */
+    #landing-root .iframe-container {
+      z-index: 0;
+    }
+    #landing-root .ui {
+      z-index: 10;
+      isolation: isolate;
+    }
+    /* No ghost wordmark through the boot veil */
+    html.cp-landing-loader-active #landing-root .logo:not(.cp-logo-compact) {
+      visibility: hidden !important;
+    }
+
+    /* Next.js shell: legacy particle-demo close (×) is inapplicable — never show */
+    html.cp-embedded-shell #landing-root .close-btn {
+      display: none !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+
     /* Hero block: user offset −0.75cm X, +1.5cm Y (wording + Enter Portal move together) */
     #landing-root .menu {
       position: fixed !important;
@@ -1227,6 +1250,8 @@
       min-height: 0 !important;
       overflow: visible !important;
       padding-right: max(12px, 1.5vw);
+      /* Pass moves through to neon iframe except on text/CTA (left yin lobe lives under this column). */
+      pointer-events: none !important;
     }
     @media screen and (max-device-width: 640px) {
       #landing-root .menu {
@@ -1255,6 +1280,7 @@
       width: 100%;
       max-width: var(--landing-hero-measure);
       box-sizing: border-box;
+      pointer-events: auto !important;
     }
 
     /* +30% headline type; two-line stack, left-aligned with narrow column */
@@ -1314,9 +1340,140 @@
       max-width: var(--landing-hero-measure);
       margin-top: 28px;
       padding-bottom: 6px;
-      pointer-events: auto;
+      pointer-events: auto !important;
       flex-shrink: 0;
       box-sizing: border-box;
+    }
+
+    /* Boot veil: Om + neon ring meter (cp-landing-progress 0–100) */
+    @keyframes cp-landing-load-laser {
+      to {
+        stroke-dashoffset: -553.07;
+      }
+    }
+    #landing-root .cp-landing-load-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: block;
+      background: radial-gradient(ellipse 120% 80% at 50% 45%, rgba(12, 18, 32, 0.97), rgba(4, 6, 12, 0.99));
+      transition: opacity 0.45s ease;
+    }
+    #landing-root .cp-landing-load-inner {
+      position: relative;
+      width: 100%;
+      min-height: 100%;
+      text-align: center;
+      font-family: 'Courier New', Courier, monospace;
+      box-sizing: border-box;
+      pointer-events: none;
+    }
+    /*
+     * Same viewport anchor as .landing-particle-om (fixed 50%/50%, translate -50%/-50%).
+     * Orbit box height only; percent is position:absolute below so Om stays visually centred.
+     */
+    #landing-root .cp-landing-load-orbit-shell {
+      container-type: inline-size;
+      container-name: cp-loader;
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: min(calc((20mm + 14px) / 0.8625), 92vw);
+      pointer-events: none;
+    }
+    #landing-root .cp-landing-load-orbit {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1;
+      margin: 0 auto;
+    }
+    #landing-root .cp-landing-load-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    #landing-root .cp-landing-load-laser {
+      animation: cp-landing-load-laser 1.65s linear infinite;
+      opacity: 0.92;
+      pointer-events: none;
+    }
+    #landing-root .cp-landing-load-om {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      line-height: 0;
+    }
+    #landing-root .cp-landing-load-om-svg {
+      display: block;
+      width: min(20mm, calc(0.8625 * 100% - 14px));
+      height: auto;
+      aspect-ratio: 356 / 367;
+      vertical-align: top;
+      border: 0;
+      outline: none;
+      pointer-events: none;
+      -webkit-user-drag: none;
+      filter:
+        saturate(1.5)
+        contrast(1.12)
+        brightness(1.1)
+        drop-shadow(0 0 2px rgba(248, 252, 255, 1))
+        drop-shadow(0 0 11px rgba(0, 250, 255, 1))
+        drop-shadow(0 0 26px rgba(0, 195, 255, 1))
+        drop-shadow(0 0 56px rgba(0, 120, 255, 0.9))
+        drop-shadow(0 0 94px rgba(40, 0, 236, 0.38))
+        drop-shadow(0 -1px 6px rgba(160, 255, 255, 0.5));
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #landing-root .cp-landing-load-om-svg {
+        filter:
+          saturate(1.42)
+          contrast(1.1)
+          brightness(1.06)
+          drop-shadow(0 0 2px rgba(248, 252, 255, 1))
+          drop-shadow(0 0 10px rgba(0, 248, 255, 1))
+          drop-shadow(0 0 24px rgba(0, 188, 255, 1))
+          drop-shadow(0 0 50px rgba(0, 110, 255, 0.85))
+          drop-shadow(0 -1px 5px rgba(160, 233, 255, 0.45));
+      }
+    }
+    #landing-root .cp-landing-load-pct {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      top: calc(100% + min(calc(20mm * 0.22), calc(0.12 * 100cqw)));
+      margin: 0;
+      font-size: calc(20mm * 0.31);
+      font-size: min(calc(20mm * 0.31), calc(0.166 * 100cqw));
+      padding: 0;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      line-height: 1.2;
+      color: rgba(200, 244, 255, 0.96);
+      white-space: nowrap;
+      text-shadow:
+        0 0 26px rgba(85, 248, 255, 0.42),
+        0 0 7px rgba(85, 248, 255, 0.35);
+      text-shadow:
+        0 0 min(26px, calc(0.19 * 100cqw)) rgba(85, 248, 255, 0.42),
+        0 0 min(7px, calc(0.055 * 100cqw)) rgba(85, 248, 255, 0.35);
+    }
+    #landing-root .cp-loader-sronly {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
     }
 
     /* Sphere CTA + “Choose visual” hide: _portal_nifty.css (#landing-root .menu .go-btn, .titles-container) */
@@ -1427,19 +1584,27 @@
 
             <div class="guide-instructions">
                 <h2>How to Use</h2>
-                <ol class="guide-steps" aria-label="Sound and visuals">
+                <p class="guide-prose" style="margin-bottom: 1rem;">Choose a quality, tap <strong>Go</strong>, then read this page and tap <strong>Enter Portal</strong> when you are ready. The <strong>back</strong> arrow in the top corner takes you to the previous screen.</p>
+                <ol class="guide-steps" aria-label="Using Cymatics Portal">
                 <li class="guide-step">
                     <span class="guide-step-badge" aria-hidden="true">01</span>
                     <div class="guide-step-body">
-                        <h3 class="guide-step-title">Sound &amp; playback</h3>
-                        <p class="guide-step-text">In the first column, choose an <strong>Audio Mode</strong>: <strong>Upload Track</strong> (choose an <strong>Audio file</strong>), <strong>Healing Presets</strong> (pick a preset), or <strong>Manual tone</strong>. Set <strong>Frequency</strong> with the slider or number box when that mode uses it. Use <strong>Play</strong>, <strong>Pause</strong>, and <strong>Stop</strong>; adjust <strong>Volume</strong>. For an uploaded track, scrub the timeline and watch the time label while it plays.</p>
+                        <h3 class="guide-step-title">Sound</h3>
+                        <p class="guide-step-text">On the main screen, the <strong>left</strong> column is for sound. Pick an <strong>Audio Mode</strong>: your own file, a <strong>Healing preset</strong>, or a <strong>Manual tone</strong>. Use <strong>Play</strong>, <strong>Pause</strong>, and <strong>Stop</strong>. Turn <strong>Volume</strong> up or down. Change <strong>Frequency</strong> with the slider or number box when it appears. For your own files, drag along the timeline to move through the track.</p>
                     </div>
                 </li>
                 <li class="guide-step">
                     <span class="guide-step-badge" aria-hidden="true">02</span>
                     <div class="guide-step-body">
-                        <h3 class="guide-step-title">Advanced visuals</h3>
-                        <p class="guide-step-text">In the second column, pick an <strong>Audio-Visualiser Portal</strong> (<strong>Particle cymatics</strong>, <strong>Mandelbrot fractal</strong>, or <strong>Julia fractal</strong>) and set <strong>Particle count</strong> with the slider or number box. Press <strong>H</strong> to show or hide <strong>Advanced Visual Controls</strong>. Drag that window by its header; tap ↺ to snap it back to its default spot.</p>
+                        <h3 class="guide-step-title">Visuals</h3>
+                        <p class="guide-step-text">The <strong>right</strong> column is for the picture. Under <strong>Audio-Visualiser Portal</strong>, choose <strong>Particle cymatics</strong>, <strong>Mandelbrot fractal</strong>, or <strong>Julia fractal</strong>. Use <strong>Particle count</strong> to make the image lighter or heavier. Press <strong>H</strong> on the keyboard to show or hide <strong>Advanced Visual Controls</strong>. Drag that panel by its title bar; tap ↺ to put it back in the corner.</p>
+                    </div>
+                </li>
+                <li class="guide-step">
+                    <span class="guide-step-badge" aria-hidden="true">03</span>
+                    <div class="guide-step-body">
+                        <h3 class="guide-step-title">Account &amp; sessions</h3>
+                        <p class="guide-step-text">Tap <strong>Sign in</strong> or <strong>Sign up</strong> in the top corner to create a free account. That unlocks the full set of frequencies and visual modes in the browser for this site. If a control is locked or your session ends, follow the message on the screen. Visit the <strong>Pricing</strong> page for paid plans with unlimited time and extra features.</p>
                     </div>
                 </li>
                 </ol>
@@ -1457,8 +1622,194 @@
             </div>
         </div>
     </div>
+
+    <!-- Fullscreen boot veil: progress from particle-landing `cp-landing-progress` until backdrops are ready -->
+    <div id="cp-landing-load-screen" class="cp-landing-load-screen" aria-busy="true">
+        <div class="cp-landing-load-inner">
+            <div class="cp-landing-load-orbit-shell">
+                <div class="cp-landing-load-orbit" aria-hidden="true">
+                <svg class="cp-landing-load-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <defs>
+                        <filter id="cp-landing-load-glow" x="-50%" y="-50%" width="200%" height="200%">
+                            <feGaussianBlur in="SourceGraphic" stdDeviation="2.2" result="blur" />
+                            <feMerge>
+                                <feMergeNode in="blur" />
+                                <feMergeNode in="SourceGraphic" />
+                            </feMerge>
+                        </filter>
+                        <linearGradient id="cp-landing-load-grad" x1="0%" y1="100%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#3ad4ff" />
+                            <stop offset="50%" stop-color="#55f8ff" />
+                            <stop offset="100%" stop-color="#7afcff" />
+                        </linearGradient>
+                    </defs>
+                    <circle class="cp-landing-load-track" cx="100" cy="100" r="88" fill="none" stroke="rgba(85,248,255,0.16)" stroke-width="3" />
+                    <circle
+                        id="cp-landing-load-progress-ring"
+                        class="cp-landing-load-progress"
+                        cx="100"
+                        cy="100"
+                        r="88"
+                        fill="none"
+                        stroke="url(#cp-landing-load-grad)"
+                        stroke-width="3.5"
+                        stroke-linecap="round"
+                        transform="rotate(-90 100 100)"
+                        stroke-dasharray="553.07"
+                        stroke-dashoffset="553.07"
+                        filter="url(#cp-landing-load-glow)"
+                    />
+                    <circle
+                        class="cp-landing-load-laser"
+                        cx="100"
+                        cy="100"
+                        r="88"
+                        fill="none"
+                        stroke="#d6feff"
+                        stroke-width="4"
+                        stroke-linecap="round"
+                        transform="rotate(-90 100 100)"
+                        stroke-dasharray="36 517.07"
+                        stroke-dashoffset="0"
+                        filter="url(#cp-landing-load-glow)"
+                    />
+                </svg>
+                <div class="cp-landing-load-om">
+                    <object
+                        class="cp-landing-load-om-svg"
+                        type="image/svg+xml"
+                        data="./landing/img/landing-om.svg"
+                        width="356"
+                        height="367"
+                        tabindex="-1"
+                        aria-hidden="true"
+                    ></object>
+                </div>
+            </div>
+                <p class="cp-landing-load-pct" id="cp-landing-load-pct" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-live="polite" aria-atomic="true">0%</p>
+            </div>
+            <span class="cp-loader-sronly" id="cp-landing-load-hint">Preparing experience…</span>
+        </div>
+    </div>
 </div>
 <!-- ═══ END LANDING OVERLAY ═══ -->
+<script>
+(function () {
+  function __cpNotifyParentLoaderDismissed() {
+    function send() {
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage(
+            { type: 'cp-action', action: 'landing-loader-dismissed' },
+            window.location.origin || '*'
+          );
+        }
+      } catch (_p) {}
+    }
+    send();
+    setTimeout(send, 0);
+    setTimeout(send, 150);
+    setTimeout(send, 600);
+  }
+  if (document.documentElement.classList.contains('skip-landing')) {
+    document.documentElement.setAttribute('data-cp-loader', 'done');
+    try {
+      window.dispatchEvent(new CustomEvent('cp-landing-loader-dismissed'));
+    } catch (_s) {}
+    __cpNotifyParentLoaderDismissed();
+    var _el = document.getElementById('cp-landing-load-screen');
+    if (_el) _el.style.display = 'none';
+    return;
+  }
+  document.documentElement.classList.add('cp-landing-loader-active');
+  var ring = document.getElementById('cp-landing-load-progress-ring');
+  var pctEl = document.getElementById('cp-landing-load-pct');
+  var hint = document.getElementById('cp-landing-load-hint');
+  var screen = document.getElementById('cp-landing-load-screen');
+  if (!screen) return;
+  var RING_R = 88;
+  var CIRC = 2 * Math.PI * RING_R;
+  if (ring) {
+    ring.setAttribute('stroke-dasharray', String(CIRC));
+    ring.style.strokeDashoffset = String(CIRC);
+  }
+  var shown = 0;
+  var target = 0;
+  var anim = null;
+  function applyVisual(val) {
+    var v = Math.max(0, Math.min(100, val));
+    if (ring) ring.style.strokeDashoffset = String(CIRC * (1 - v / 100));
+    if (pctEl) {
+      var n = Math.round(v);
+      pctEl.textContent = n + '%';
+      pctEl.setAttribute('aria-valuenow', String(n));
+    }
+  }
+  function tick() {
+    var d = target - shown;
+    if (Math.abs(d) < 0.35) {
+      shown = target;
+      applyVisual(shown);
+      anim = null;
+      return;
+    }
+    shown += d * 0.14;
+    applyVisual(shown);
+    anim = requestAnimationFrame(tick);
+  }
+  function setTarget(p) {
+    target = Math.max(0, Math.min(100, p));
+    if (!anim) anim = requestAnimationFrame(tick);
+  }
+  var dismissed = false;
+  function dismiss() {
+    if (dismissed) return;
+    dismissed = true;
+    screen.setAttribute('aria-busy', 'false');
+    document.documentElement.classList.remove('cp-landing-loader-active');
+    document.documentElement.setAttribute('data-cp-loader', 'done');
+    try {
+      window.dispatchEvent(new CustomEvent('cp-landing-loader-dismissed'));
+    } catch (_e) {}
+    __cpNotifyParentLoaderDismissed();
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        screen.style.pointerEvents = 'none';
+        screen.style.opacity = '0';
+        window.setTimeout(function () {
+          screen.style.display = 'none';
+          screen.style.visibility = 'hidden';
+        }, 460);
+      });
+    });
+  }
+  window.addEventListener(
+    'cp-landing-progress',
+    function (ev) {
+      var p = typeof ev.detail === 'number' ? ev.detail : 0;
+      p = Math.max(0, Math.min(100, p));
+      setTarget(p);
+      if (hint) {
+        if (p < 20) hint.textContent = 'Preparing…';
+        else if (p < 55) hint.textContent = 'Initializing…';
+        else if (p < 92) hint.textContent = 'Loading visuals…';
+        else if (p < 100) hint.textContent = 'Almost ready…';
+        else hint.textContent = 'Ready';
+      }
+      if (p >= 100) dismiss();
+    },
+    false
+  );
+  try {
+    if (typeof window.__cpLandingBootPct === 'number' && window.__cpLandingBootPct >= 100) {
+      shown = 100;
+      target = 100;
+      applyVisual(100);
+      dismiss();
+    }
+  } catch (_x) {}
+})();
+</script>
   <div class="noise"></div>
   <div class="portal-main portal-main--behind-landing">
 
@@ -2863,7 +3214,8 @@
       title: 'Cymatics',
       bgColor: '#030508',
       urls: { low: '#', medium: '#', high: '#' },
-      colors: [0x00a8ff, 0xffb84d, 0x3d5cff, 0xff6ec7],
+      /* Four anchors sampled from the Julia wormhole ring shader palette ( IQ-style: a=0.5,b=0.55,c=1,d_xy=(0,0.33,0.67), cos space ). */
+      colors: [0xff1965, 0x541fff, 0x00e69a, 0xabe000],
       speeds: [1.0, 0.0032, 0.7, 0.5, 3.0, 3.4]
     }
   ];
@@ -2871,6 +3223,22 @@
   <script src="./landing/js/particle-landing.js"></script>
   <script>
 (function() {
+    window.__cpPostActionToParent = function (action) {
+      function send() {
+        try {
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage(
+              { type: 'cp-action', action: action },
+              window.location.origin || '*'
+            );
+          }
+        } catch (_e) {}
+      }
+      send();
+      setTimeout(send, 0);
+      setTimeout(send, 150);
+      setTimeout(send, 600);
+    };
     /* Landing perf ingest: disabled by default. Use ?cpDebugPerf=1 to enable (loads extra RAF + POST /api/debug-ingest). */
     if (/[?&]cpDebugPerf=1(?:&|$)/.test(location.search || '')) (function () {
         /* Perf NDJSON → parent postMessage + optional same-origin POST /api/debug-ingest. */
@@ -3058,16 +3426,7 @@
     var landingRoot = document.getElementById('landing-root');
     if (!landingRoot) return;
 
-    // ── 1. AUTO-SKIP QUALITY GATE ──
-    /* Index 0 = Low (LANDING_PAGE_FIXES.md). Deferred click so async preload can attach handlers. */
-    var qualityBtns = landingRoot.querySelectorAll('.quality-btn');
-    if (qualityBtns.length >= 1) {
-        window.setTimeout(function () {
-            try {
-                qualityBtns[0].click(); // Low
-            } catch (_eQ) {}
-        }, 100);
-    }
+    /* Quality auto-pick runs inside particle-landing (`M.delayedCall` after handlers attach). */
 
     // ── 1b. Logo-only FLIP to compact corner (.landing-particle-om stays centred CSS; no coupled GSAP). ──
     (function compactLogoCorner() {
@@ -3169,6 +3528,7 @@
             });
         }
 
+        function wireLogoFlipObservers() {
         var obs = new MutationObserver(function () {
             if (heroWordingUnveiled()) {
                 queueCompact();
@@ -3197,6 +3557,13 @@
             obs.disconnect();
             if (heroWordingUnveiled()) queueCompact();
         }, 12000);
+        }
+
+        if (document.documentElement.getAttribute('data-cp-loader') === 'done') {
+            wireLogoFlipObservers();
+        } else {
+            window.addEventListener('cp-landing-loader-dismissed', wireLogoFlipObservers, { once: true });
+        }
     })();
 
     // ── 2. OVERRIDE GO BUTTON → SHOW GUIDE ──
@@ -3208,34 +3575,85 @@
         origGo.parentNode.replaceChild(newGo, origGo);
 
         newGo.addEventListener('click', function() {
+            var TM = typeof TweenMax !== 'undefined' ? TweenMax : window.__landingTweenMax;
+            if (TM && typeof TM.killTweensOf === 'function') {
+                try {
+                    TM.killTweensOf(landingRoot);
+                } catch (_klr) {}
+                try {
+                    TM.set(landingRoot, { clearProps: 'opacity,transform' });
+                } catch (_slr) {}
+            }
+            try {
+                landingRoot.style.removeProperty('transition');
+            } catch (_trL) {}
+            landingRoot.style.display = '';
+            landingRoot.style.visibility = 'visible';
+            landingRoot.style.opacity = '1';
             landingRoot.classList.add('cp-landing-guide-open');
             var menu = landingRoot.querySelector('.menu');
             if (menu) {
-                TweenMax.to(menu, 0.6, {
-                    opacity: 0,
-                    y: -30,
-                    ease: 'easeInQuint',
-                    onComplete: function() { menu.style.display = 'none'; }
-                });
+                if (TM && typeof TM.killTweensOf === 'function') {
+                    try {
+                        TM.killTweensOf(menu);
+                    } catch (_km) {}
+                    try {
+                        TM.set(menu, { clearProps: 'transform,opacity' });
+                    } catch (_cm) {}
+                }
+                menu.style.display = '';
+                menu.style.visibility = 'visible';
+                menu.style.opacity = '1';
+                if (TM && typeof TM.to === 'function') {
+                    TM.to(menu, 0.6, {
+                        opacity: 0,
+                        y: -30,
+                        ease: 'easeInQuint',
+                        onComplete: function() {
+                            menu.style.display = 'none';
+                        }
+                    });
+                } else {
+                    menu.style.display = 'none';
+                }
             }
 
             var logo = landingRoot.querySelector('.logo');
             if (logo) {
-                TweenMax.to(logo, 0.5, { opacity: 0 });
+                if (TM && typeof TM.killTweensOf === 'function') {
+                    try {
+                        TM.killTweensOf(logo);
+                    } catch (_klg) {}
+                }
+                if (TM && typeof TM.to === 'function') {
+                    TM.to(logo, 0.5, { opacity: 0 });
+                } else {
+                    logo.style.opacity = '0';
+                }
             }
 
+            if (TM && typeof TM.killTweensOf === 'function') {
+                try {
+                    TM.killTweensOf(guide);
+                } catch (_kg) {}
+                try {
+                    TM.set(guide, { clearProps: 'opacity,transform' });
+                } catch (_cg) {}
+            }
             guide.style.display = 'block';
-            TweenMax.fromTo(guide, 0.8,
-                { opacity: 0 },
-                { opacity: 1, ease: 'easeInOutCubic' }
-            );
+            guide.style.visibility = 'visible';
+            if (TM && typeof TM.fromTo === 'function') {
+                TM.fromTo(
+                    guide,
+                    0.8,
+                    { opacity: 0 },
+                    { opacity: 1, ease: 'easeInOutCubic' }
+                );
+            } else {
+                guide.style.opacity = '1';
+            }
             try {
-                if (window.parent && window.parent !== window) {
-                    window.parent.postMessage(
-                        { type: 'cp-action', action: 'guide-opened' },
-                        window.location.origin || '*'
-                    );
-                }
+                window.__cpPostActionToParent('guide-opened');
             } catch (_g1) {}
         });
     }
@@ -3244,29 +3662,85 @@
     var enterBtn = document.getElementById('enter-portal-btn');
     if (enterBtn) {
         enterBtn.addEventListener('click', function() {
-            TweenMax.to(landingRoot, 0.8, {
-                opacity: 0,
-                ease: 'easeInCubic',
-                onComplete: function() {
-                    landingRoot.style.display = 'none';
+            var TM = typeof TweenMax !== 'undefined' ? TweenMax : window.__landingTweenMax;
+            if (TM && typeof TM.killTweensOf === 'function') {
+                try {
+                    TM.killTweensOf(landingRoot);
+                } catch (_ke) {}
+                try {
+                    TM.set(landingRoot, { clearProps: 'opacity,transform' });
+                } catch (_ce) {}
+            }
+            try {
+                landingRoot.style.removeProperty('transition');
+            } catch (_tIn) {}
+            landingRoot.style.display = '';
+            landingRoot.style.visibility = 'visible';
+            landingRoot.style.opacity = '1';
 
-                    var portalMain = document.querySelector('.portal-main');
-                    if (portalMain) {
-                        portalMain.classList.remove('portal-main--behind-landing');
-                    }
+            var __cpEnterDone = false;
+            var __cpEnterFailId = null;
 
+            function __cpFinishEnterPortal() {
+                if (__cpEnterDone) return;
+                __cpEnterDone = true;
+                if (__cpEnterFailId != null) {
                     try {
-                        if (window.parent && window.parent !== window) {
-                            window.parent.postMessage(
-                                { type: 'cp-action', action: 'portal-reached' },
-                                window.location.origin || '*'
-                            );
-                        }
-                    } catch (ePr) {}
-
-                    window.dispatchEvent(new Event('resize'));
-
+                        window.clearTimeout(__cpEnterFailId);
+                    } catch (_ct) {}
+                    __cpEnterFailId = null;
                 }
+                try {
+                    landingRoot.removeEventListener(
+                        'transitionend',
+                        __cpOnLandingFadeEnd
+                    );
+                } catch (_re) {}
+                if (TM && typeof TM.killTweensOf === 'function') {
+                    try {
+                        TM.killTweensOf(landingRoot);
+                    } catch (_kf) {}
+                }
+                if (TM && typeof TM.set === 'function') {
+                    try {
+                        TM.set(landingRoot, { clearProps: 'opacity,transform' });
+                    } catch (_cfin) {}
+                }
+                try {
+                    landingRoot.style.removeProperty('transition');
+                } catch (_tOut) {}
+                landingRoot.style.display = 'none';
+                var portalMain = document.querySelector('.portal-main');
+                if (portalMain) {
+                    portalMain.classList.remove('portal-main--behind-landing');
+                }
+                try {
+                    window.__cpPostActionToParent('portal-reached');
+                } catch (ePr) {}
+                try {
+                    window.dispatchEvent(new Event('resize'));
+                } catch (_rz) {}
+            }
+
+            function __cpOnLandingFadeEnd(ev) {
+                try {
+                    if (!ev || ev.target !== landingRoot) return;
+                    if (ev.propertyName !== 'opacity') return;
+                } catch (_eTe) {
+                    return;
+                }
+                __cpFinishEnterPortal();
+            }
+
+            landingRoot.addEventListener('transitionend', __cpOnLandingFadeEnd);
+            __cpEnterFailId = window.setTimeout(__cpFinishEnterPortal, 1100);
+
+            window.requestAnimationFrame(function() {
+                window.requestAnimationFrame(function() {
+                    landingRoot.style.transition =
+                        'opacity 0.75s cubic-bezier(0.55, 0, 1, 1)';
+                    landingRoot.style.opacity = '0';
+                });
             });
         });
     }
@@ -3288,6 +3762,21 @@
       var portalMain = document.querySelector('.portal-main');
       if (!landingRoot || !guide) return;
 
+      var closeBtn = landingRoot.querySelector('.close-btn');
+      if (closeBtn) {
+        if (TM) {
+          try {
+            TweenMax.killTweensOf(closeBtn);
+          } catch (_kcb) {}
+          try {
+            TweenMax.set(closeBtn, { clearProps: 'opacity,transform' });
+          } catch (_scb) {}
+        }
+        closeBtn.style.display = 'none';
+        closeBtn.style.visibility = '';
+        closeBtn.style.opacity = '';
+      }
+
       try {
         if (typeof window.__pmVisualFullscreenExit === 'function') {
           window.__pmVisualFullscreenExit();
@@ -3308,6 +3797,16 @@
         }
       }
 
+      /* Enter Portal fades #landing-root to opacity 0 before display:none in onComplete; Back during
+       * that tween can leave inline opacity 0 while the guide→hero branch never restores it. */
+      if (TM) {
+        try {
+          TweenMax.set(landingRoot, { clearProps: 'opacity,transform' });
+        } catch (_clLanding0) {}
+      }
+      landingRoot.style.opacity = '1';
+      landingRoot.style.visibility = 'visible';
+
       var lrHidden = false;
       try {
         lrHidden = window.getComputedStyle(landingRoot).display === 'none';
@@ -3315,6 +3814,7 @@
         lrHidden = landingRoot.style.display === 'none';
       }
 
+      /* From full portal: land on instruction guide (step 2), not the hero — keeps shell + iframe stacks aligned */
       if (lrHidden) {
         try {
           document.documentElement.classList.remove('skip-landing');
@@ -3326,16 +3826,32 @@
         }
         landingRoot.style.display = '';
         landingRoot.style.opacity = '1';
-        if (portalMain) portalMain.classList.add('portal-main--behind-landing');
         landingRoot.classList.add('cp-landing-guide-open');
+        if (portalMain) portalMain.classList.add('portal-main--behind-landing');
         if (menu) {
+          if (TM) {
+            try {
+              TweenMax.killTweensOf(menu);
+            } catch (_kmR) {}
+            try {
+              TweenMax.set(menu, { clearProps: 'transform,opacity' });
+            } catch (_smR) {}
+          }
           menu.style.display = 'none';
           menu.style.opacity = '0';
           menu.style.visibility = 'hidden';
         }
         guide.style.display = 'block';
-        guide.style.opacity = '1';
         guide.style.visibility = 'visible';
+        guide.style.opacity = '1';
+        if (TM) {
+          try {
+            TweenMax.killTweensOf(guide);
+          } catch (_kgR) {}
+          try {
+            TweenMax.set(guide, { opacity: 1 });
+          } catch (_sG) {}
+        }
         var logo = landingRoot.querySelector('.logo');
         if (logo) {
           if (TM) {
@@ -3343,21 +3859,16 @@
               TweenMax.killTweensOf(logo);
             } catch (_klg) {}
             try {
-              TM.set(logo, { opacity: 1, clearProps: 'transform' });
+              TM.set(logo, { opacity: 0, clearProps: 'transform' });
             } catch (_l1) {
-              logo.style.opacity = '1';
+              logo.style.opacity = '0';
             }
           } else {
-            logo.style.opacity = '1';
+            logo.style.opacity = '0';
           }
         }
         try {
-          if (window.parent !== window) {
-            window.parent.postMessage(
-              { type: 'cp-action', action: 'guide-opened' },
-              window.location.origin || '*'
-            );
-          }
+          window.__cpPostActionToParent('guide-opened');
         } catch (e1) {}
         try {
           window.dispatchEvent(new Event('resize'));
@@ -3371,12 +3882,28 @@
       } catch (_gs) {
         guideShown = guide.style.display === 'block';
       }
-      if (landingRoot.classList.contains('cp-landing-guide-open') && guideShown) {
+      /* Close guide → hero: trust class flag so back still works if display/visibility glitched */
+      if (landingRoot.classList.contains('cp-landing-guide-open')) {
+        if (TM) {
+          try {
+            TweenMax.set(landingRoot, { clearProps: 'opacity,transform' });
+          } catch (_clHero) {}
+        }
+        landingRoot.style.opacity = '1';
+        landingRoot.style.visibility = 'visible';
+        landingRoot.style.display = '';
         landingRoot.classList.remove('cp-landing-guide-open');
         if (TM) {
           try {
             TweenMax.killTweensOf(guide);
           } catch (_kg1) {}
+        }
+        if (!guideShown) {
+          guide.style.visibility = 'visible';
+          guide.style.display = 'block';
+          guide.style.opacity = '1';
+        }
+        if (TM) {
           TweenMax.to(guide, 0.35, {
             opacity: 0,
             ease: 'easeInCubic',
@@ -3429,12 +3956,7 @@
           }
         }
         try {
-          if (window.parent !== window) {
-            window.parent.postMessage(
-              { type: 'cp-action', action: 'guide-closed' },
-              window.location.origin || '*'
-            );
-          }
+          window.__cpPostActionToParent('guide-closed');
         } catch (e2) {}
         try {
           window.dispatchEvent(new Event('resize'));
@@ -3447,7 +3969,9 @@
 (function () {
     function __cpPostPortalReached() {
         try {
-            if (window.parent && window.parent !== window) {
+            if (typeof window.__cpPostActionToParent === 'function') {
+                window.__cpPostActionToParent('portal-reached');
+            } else if (window.parent && window.parent !== window) {
                 window.parent.postMessage(
                     { type: 'cp-action', action: 'portal-reached' },
                     window.location.origin || '*'
@@ -5261,7 +5785,7 @@
         juliaRotationSpeed: 0.085,
         juliaRidgeStrength: 0.09,
         juliaPulseSpeed: 0.4,
-        omStreamSpeed: 0.05,
+        omStreamSpeed: 0.011,
         fractalEvolutionSpeed: 3.0,
         discRadius: 0.24,
         ringRadius: 8,
@@ -7618,7 +8142,7 @@
                 wormholeControls.juliaRotationSpeed = 0.085;
                 wormholeControls.juliaRidgeStrength = 0.09;
                 wormholeControls.juliaPulseSpeed = 0.4;
-                wormholeControls.omStreamSpeed = 0.05;
+                wormholeControls.omStreamSpeed = 0.011;
                 wormholeControls.fractalEvolutionSpeed = 3.0;
                 wormholeControls.discRadius = 0.24;
                 wormholeControls.ringRadius = 8;
@@ -7922,13 +8446,33 @@
 
     function animate() {
         requestAnimationFrame(animate);
-        /* Landing + guide share portal-main--behind-landing; skip=1 removes landing UX only. */
+        /* Landing + guide share portal-main--behind-landing; skip=1 removes landing UX only.
+         * While gated: WebGL does not run. Orphan class + hidden landing would freeze the portal forever. */
         var __cpPm = document.querySelector('.portal-main');
         var __cpLandingSkipped = document.documentElement.classList.contains('skip-landing');
+        var __cpLr = document.getElementById('landing-root');
+        var __cpLrGone = false;
+        if (__cpLr) {
+            try {
+                __cpLrGone = window.getComputedStyle(__cpLr).display === 'none';
+            } catch (_eLr) {
+                __cpLrGone = __cpLr.style.display === 'none';
+            }
+        }
+        if (
+            __cpLrGone &&
+            __cpPm &&
+            __cpPm.classList.contains('portal-main--behind-landing')
+        ) {
+            try {
+                __cpPm.classList.remove('portal-main--behind-landing');
+            } catch (_healPm) {}
+        }
         if (
             __cpPm &&
             __cpPm.classList.contains('portal-main--behind-landing') &&
-            !__cpLandingSkipped
+            !__cpLandingSkipped &&
+            !__cpLrGone
         ) {
             clock.getDelta();
             return;

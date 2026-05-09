@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="icon" href="data:,">
+  <title>Elemental Yin Yang — Fire & Water</title>
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #02030a;
+      font-family: Georgia, 'Times New Roman', serif;
+    }
+    canvas {
+      display: block;
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 100% !important;
+      height: 100% !important;
+      z-index: 1;
+    }
+    .vignette {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+      background: radial-gradient(ellipse at center, transparent 35%, rgba(2, 3, 10, 0.78) 100%);
+    }
+    #hint {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 18px;
+      text-align: center;
+      color: rgba(255, 255, 255, 0.32);
+      font-size: 12px;
+      letter-spacing: 0.05em;
+      pointer-events: none;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+      z-index: 3;
+    }
+  </style>
+  <!-- Modern Three.js. Pin to whatever version your project uses; r150+ all work. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
+</head>
+<body>
+  <div class="vignette"></div>
+  <div id="hint">move pointer · scroll to zoom</div>
+  <script>
+  (function () {
+    'use strict';
+
+    // ============================================================
+    // CONFIG — every knob lives here
+    // ============================================================
+    function particleGoal() {
+      var m = window.location.hash.match(/particles=(\d+)/i);
+      var n = m ? parseInt(m[1], 10) : 22000;
+      return Math.min(60000, Math.max(6000, n));
+    }
+
+    var RADIUS         = 0.62;     // outer yin-yang radius in world units
+    var POINT_SIZE_FG  = 0.011;    // foreground bright particles
+    var POINT_SIZE_HALO = 0.055;   // background bloom halo
+    var DOT_RADIUS_FACTOR = 1/5;     // was implicit 1/8 in classify() — larger, more visible dots
+    var FG_OPACITY     = 0.95;
+    var HALO_OPACITY   = 0.30;
+    var HALO_LAG       = 0.18;     // 0..1, how fast halo follows FG (higher = tighter)
+
+    // Palettes (linear-ish RGB, 0..1). 3 stops per side: deep -> mid -> hot.
+    var COOL_DEEP = [0.08, 0.20, 0.62]; // navy
+    var COOL_MID  = [0.18, 0.55, 1.00]; // cobalt
+    var COOL_HOT  = [0.85, 0.96, 1.00]; // ice-white
+    var WARM_DEEP = [0.62, 0.18, 0.08]; // crimson
+    var WARM_MID  = [1.00, 0.42, 0.10]; // orange
+    var WARM_HOT  = [1.00, 0.88, 0.55]; // gold-yellow
+
+    // Motion (matches the original feel; tune carefully)
+    var MASTER         = 1.20;
+    var POINTER_SHARP  = 26;
+    var REPEL          = 4.6;
+    var SWIRL          = 3.0;
+    var PUSH_RADIUS    = 0.50;
+    var SPRING         = 6.0;
+    var DAMPING        = 0.965;
+    var CURL           = 0.045;
+    var FLOW           = 1.10;
+    var DEPTH_W        = 0.018;
+    var PARALLAX       = 0.060;
+    var ZOOM_SENS      = 0.00055;
+    var ROTATION_SPEED = 0.025;     // rad / s, full-cloud spin
+    var WARM_FLICKER   = 1.45;      // curl multiplier on warm side
+    var COOL_DRIFT     = 0.85;      // curl multiplier on cool side
+
+    // ============================================================
+    // SCENE
+    // ============================================================
+    var scene = new THREE.Scene();
+
+    var camera = new THREE.PerspectiveCamera(50, 1, 0.01, 100);
+    camera.position.z = 2.35;
+
+    var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setClearColor(0x02030a, 1);
+    document.body.insertBefore(renderer.domElement, document.body.firstChild);
+
+    // ============================================================
+    // SOFT-DISC SPRITE (radial gradient → round, glowing points)
+    // ============================================================
+    function makeSoftDisc() {
+      var s = 64;
+      var c = document.createElement('canvas');
+      c.width = c.height = s;
+      var g = c.getContext('2d');
+      var grd = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+      grd.addColorStop(0.00, 'rgba(255,255,255,1.00)');
+      grd.addColorStop(0.25, 'rgba(255,255,255,0.55)');
+      grd.addColorStop(0.55, 'rgba(255,255,255,0.18)');
+      grd.addColorStop(1.00, 'rgba(255,255,255,0.00)');
+      g.fillStyle = grd;
+      g.fillRect(0, 0, s, s);
+      var tex = new THREE.CanvasTexture(c);
+      tex.needsUpdate = true;
+      return tex;
+    }
+    var softDisc = makeSoftDisc();
+
+    // ============================================================
+    // INPUT
+    // ============================================================
+    var mouse     = new THREE.Vector2(0, 0);
+    var mouseSm   = new THREE.Vector2(0, 0);
+    var _unproj   = new THREE.Vector3();
+    var _dir      = new THREE.Vector3();
+    var mouseWorld = new THREE.Vector3(0, 0, 0);
+    var scrollZoom = 0;
+
+    function onPointer(e) {
+      mouse.x =  (e.clientX / window.innerWidth)  * 2 - 1;
+      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    }
+    window.addEventListener('pointermove', onPointer, { passive: true });
+    window.addEventListener('pointerdown', onPointer, { passive: true });
+    window.addEventListener('wheel', function (e) {
+      scrollZoom += e.deltaY * ZOOM_SENS;
+      scrollZoom = Math.max(-0.9, Math.min(1.2, scrollZoom));
+    }, { passive: true });
+
+    function resize() {
+      var w = window.innerWidth, h = window.innerHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h, true);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function updateMouseWorld(ndcX, ndcY) {
+      _unproj.set(ndcX, ndcY, 0.5).unproject(camera);
+      _dir.copy(_unproj).sub(camera.position).normalize();
+      var t = -camera.position.z / _dir.z;
+      if (t > 0 && isFinite(t)) {
+        mouseWorld.copy(camera.position).addScaledVector(_dir, t);
+      } else {
+        mouseWorld.set(ndcX * 1.85, ndcY * 1.85, 0);
+      }
+    }
+
+    // ============================================================
+    // YIN-YANG SDF — classify every sample point
+    // ============================================================
+    // Outer disc radius R. Two bulbs of radius R/2 centered at (0,+R/2) and (0,-R/2).
+    // Two dots of radius R/8 at the same centers (inverted color of their bulb).
+    // Returns { side: 'COOL'|'WARM', dEdge: distance-to-nearest-form-edge, kind } or null if outside.
+    function classify(x, y) {
+      var R = RADIUS;
+      var rOuter = Math.sqrt(x * x + y * y);
+      if (rOuter > R) return null;
+
+      var dxUp = x, dyUp = y - R / 2;
+      var dxLo = x, dyLo = y + R / 2;
+      var dUp  = Math.sqrt(dxUp * dxUp + dyUp * dyUp);
+      var dLo  = Math.sqrt(dxLo * dxLo + dyLo * dyLo);
+      var dotR = R * DOT_RADIUS_FACTOR;
+
+      var dEdgeOuter = R - rOuter;
+      var dEdgeUp    = Math.abs(dUp - R / 2);
+      var dEdgeLo    = Math.abs(dLo - R / 2);
+      var dEdge      = Math.min(dEdgeOuter, Math.min(dEdgeUp, dEdgeLo));
+      var dEdgeS     = Math.min(dEdgeUp, dEdgeLo);
+      var nearS      = dEdgeS < 0.07;
+
+      if (dUp < dotR) return { side: 'WARM', dEdge: Math.min(dEdge, dotR - dUp), isDot: true,  isS: false };
+      if (dLo < dotR) return { side: 'COOL', dEdge: Math.min(dEdge, dotR - dLo), isDot: true,  isS: false };
+      if (dUp < R/2)  return { side: 'COOL', dEdge: dEdge, isDot: false, isS: nearS };
+      if (dLo < R/2)  return { side: 'WARM', dEdge: dEdge, isDot: false, isS: nearS };
+      if (x < 0)      return { side: 'COOL', dEdge: dEdge, isDot: false, isS: nearS };
+      return            { side: 'WARM', dEdge: dEdge, isDot: false, isS: nearS };
+    }
+
+    // Cheap pseudo-noise (no extra deps). Smooth, periodic-ish, good enough for clumping.
+    function fbm(x, y) {
+      return 0.5 + 0.5 * Math.sin(x * 3.7 + Math.cos(y * 2.9));
+    }
+
+    function lerp3(a, b, t) {
+      return [
+        a[0] + (b[0] - a[0]) * t,
+        a[1] + (b[1] - a[1]) * t,
+        a[2] + (b[2] - a[2]) * t
+      ];
+    }
+    function paletteFor(side, t) {
+      // t in 0..1, 0 = deep interior, 1 = hot rim
+      var A = side === 'COOL' ? COOL_DEEP : WARM_DEEP;
+      var B = side === 'COOL' ? COOL_MID  : WARM_MID;
+      var C = side === 'COOL' ? COOL_HOT  : WARM_HOT;
+      if (t < 0.5) return lerp3(A, B, t * 2);
+      return lerp3(B, C, (t - 0.5) * 2);
+    }
+
+    // ============================================================
+    // PARTICLE BUILD — rejection sampling inside the SDF
+    // ============================================================
+    function buildParticles() {
+      var goal = particleGoal();
+      var positions = [];
+      var colors    = [];
+      var tries = 0;
+      var maxTries = goal * 80;
+
+      while (positions.length / 3 < goal && tries < maxTries) {
+        tries++;
+        var x = (Math.random() - 0.5) * 2 * RADIUS * 1.05;
+        var y = (Math.random() - 0.5) * 2 * RADIUS * 1.05;
+        var c = classify(x, y);
+        if (!c) continue;
+
+        var edgeNorm = Math.min(1, c.dEdge / (RADIUS * 0.45));
+        var edgeWeight = Math.pow(1 - edgeNorm, 0.45) * 0.65 + 0.35;
+        var noiseMod = 0.75 + 0.25 * fbm(x * 4.0, y * 4.0);
+        var sBoost   = c.isS   ? 0.85 : 0;
+        var dotBoost = c.isDot ? 0.95 : 0;
+        var keep = Math.min(1, edgeWeight * noiseMod + sBoost + dotBoost);
+        if (Math.random() > keep) continue;
+
+        var zJit = (c.side === 'WARM')
+          ? (Math.random() - 0.5) * 0.05
+          : (Math.random() - 0.5) * 0.025;
+        var jx = (Math.random() - 0.5) * 0.005;
+        var jy = (Math.random() - 0.5) * 0.005;
+        positions.push(x + jx, y + jy, zJit);
+
+        var nearEdge = 1 - edgeNorm;
+        var sBonus   = c.isS   ? 0.55 : 0;
+        var dotBonus = c.isDot ? 0.95 : 0;
+        var t_color = Math.max(0, Math.min(1,
+          0.32
+          + 0.68 * Math.pow(nearEdge, 1.3)
+          + 0.18 * fbm(x * 7.0, y * 7.0)
+          + sBonus
+          + dotBonus
+        ));
+        var col = paletteFor(c.side, t_color);
+        colors.push(col[0], col[1], col[2]);
+      }
+
+      var basePos = new Float32Array(positions);
+      var vel     = new Float32Array(positions.length);
+
+      var geomFg = new THREE.BufferGeometry();
+      geomFg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
+      geomFg.setAttribute('color',    new THREE.BufferAttribute(new Float32Array(colors), 3));
+
+      var geomHalo = new THREE.BufferGeometry();
+      geomHalo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
+      geomHalo.setAttribute('color',    new THREE.BufferAttribute(new Float32Array(colors), 3));
+
+      var matFg = new THREE.PointsMaterial({
+        size: POINT_SIZE_FG, map: softDisc, vertexColors: true,
+        transparent: true, opacity: FG_OPACITY,
+        blending: THREE.AdditiveBlending, depthWrite: false,
+        sizeAttenuation: true, alphaTest: 0.001
+      });
+      var matHalo = new THREE.PointsMaterial({
+        size: POINT_SIZE_HALO, map: softDisc, vertexColors: true,
+        transparent: true, opacity: HALO_OPACITY,
+        blending: THREE.AdditiveBlending, depthWrite: false,
+        sizeAttenuation: true, alphaTest: 0.001
+      });
+      var matGlow = new THREE.PointsMaterial({
+        size: 0.110, map: softDisc, vertexColors: true,
+        transparent: true, opacity: 0.10,
+        blending: THREE.AdditiveBlending, depthWrite: false,
+        sizeAttenuation: true, alphaTest: 0.001
+      });
+
+      var pointsFg   = new THREE.Points(geomFg,   matFg);
+      var pointsHalo = new THREE.Points(geomHalo, matHalo);
+      var pointsGlow = new THREE.Points(geomHalo, matGlow);
+
+      var group = new THREE.Group();
+      group.add(pointsGlow);
+      group.add(pointsHalo);
+      group.add(pointsFg);
+      scene.add(group);
+
+      return { group: group, geomFg: geomFg, geomHalo: geomHalo, basePos: basePos, vel: vel };
+    }
+
+    var sys = buildParticles();
+
+    // ============================================================
+    // ANIMATION
+    // ============================================================
+    function curl2(px, py, time) {
+      var s = 2.1;
+      return {
+        x: Math.sin(py * s + time * 0.9) * Math.cos(px * s * 0.7 - time * 0.45),
+        y: Math.sin(px * s - time * 0.7) * Math.cos(py * 0.8 * s + time * 0.35)
+      };
+    }
+
+    var clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      var dt = Math.min(clock.getDelta(), 0.08);
+      var t = clock.getElapsedTime() * FLOW;
+
+      // Pointer smoothing
+      var ease = 1 - Math.exp(-POINTER_SHARP * dt);
+      mouseSm.x += (mouse.x - mouseSm.x) * ease;
+      mouseSm.y += (mouse.y - mouseSm.y) * ease;
+      updateMouseWorld(mouseSm.x, mouseSm.y);
+
+      // Camera (zoom + parallax)
+      var zTarget = 2.35 - scrollZoom * 0.85;
+      camera.position.z += (zTarget - camera.position.z) * (0.08 + dt * 4);
+      camera.position.x = mouseSm.x * PARALLAX;
+      camera.position.y = mouseSm.y * PARALLAX * 0.92;
+      camera.lookAt(scene.position);
+
+      // Slow whole-cloud rotation
+      sys.group.rotation.z += dt * ROTATION_SPEED;
+
+      var arr     = sys.geomFg.attributes.position.array;
+      var haloArr = sys.geomHalo.attributes.position.array;
+      var basePos = sys.basePos;
+      var vel     = sys.vel;
+
+      var mx = mouseWorld.x, my = mouseWorld.y;
+      var mi = MASTER;
+      var pushRadiusSq = PUSH_RADIUS * PUSH_RADIUS;
+      var repel = REPEL * mi;
+      var swirl = SWIRL * mi;
+      var damp  = Math.pow(DAMPING, dt * 60);
+
+      for (var i = 0; i < arr.length; i += 3) {
+        var bx = basePos[i],     by = basePos[i + 1], bz = basePos[i + 2];
+        var px = arr[i],         py = arr[i + 1],     pz = arr[i + 2];
+        var dxm = px - mx,       dym = py - my;
+        var distSq = dxm * dxm + dym * dym + 0.00008;
+
+        var fx = 0, fy = 0, fz = 0;
+
+        if (distSq < pushRadiusSq) {
+          var inv = 1 / distSq;
+          var falloff = (pushRadiusSq - distSq) / pushRadiusSq;
+          var push = repel * falloff * falloff * inv * 0.085;
+          fx += dxm * push;
+          fy += dym * push;
+          var invLen = 1 / Math.sqrt(distSq);
+          fx += (-dym * invLen) * swirl * falloff * 0.14;
+          fy += ( dxm * invLen) * swirl * falloff * 0.14;
+        }
+
+        // Curl noise — asymmetric per side
+        var c = curl2(bx * 3.2, by * 3.2, t);
+        var sideMul = (bx > 0) ? WARM_FLICKER : COOL_DRIFT;
+        var curlAmt = CURL * mi * sideMul;
+        fx += c.x * curlAmt;
+        fy += c.y * curlAmt;
+
+        // Spring back to rest, with a wobble in z
+        fx += (bx - px) * SPRING;
+        fy += (by - py) * SPRING;
+        fz += (bz + DEPTH_W * Math.sin(t * 1.8 + bx * 5 + by * 3) - pz) * (SPRING * 0.68);
+
+        vel[i]     = (vel[i]     + fx * dt) * damp;
+        vel[i + 1] = (vel[i + 1] + fy * dt) * damp;
+        vel[i + 2] = (vel[i + 2] + fz * dt) * damp;
+
+        arr[i]     += vel[i];
+        arr[i + 1] += vel[i + 1];
+        arr[i + 2] += vel[i + 2];
+
+        // Halo lerps toward FG — cheap streak / glow trail
+        haloArr[i]     += (arr[i]     - haloArr[i])     * HALO_LAG;
+        haloArr[i + 1] += (arr[i + 1] - haloArr[i + 1]) * HALO_LAG;
+        haloArr[i + 2] += (arr[i + 2] - haloArr[i + 2]) * HALO_LAG;
+      }
+      sys.geomFg.attributes.position.needsUpdate = true;
+      sys.geomHalo.attributes.position.needsUpdate = true;
+
+      renderer.render(scene, camera);
+    }
+    animate();
+  })();
+  </script>
+</body>
+</html>

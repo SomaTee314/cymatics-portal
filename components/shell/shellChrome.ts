@@ -1,7 +1,25 @@
 /**
- * Shell controls: column (back above menu), vertically centred on the top marquee.
- * Horizontal `right` centres the stack in the gutter and adds **+3mm** so the cluster
- * sits slightly left (away from the scrollbar). See `.portal-main` in _portal_nifty.css.
+ * Shell controls: right column — sign-in (when anonymous), hamburger, then back.
+ * `position: fixed` over the full-viewport iframe so the landing layout stays edge-to-edge.
+ * `top` / `right` match `#landing-root .logo.cp-logo-compact` in _portal_nifty.css.
  */
 export const SHELL_CHROME_FRAME =
-  'fixed z-[96] flex flex-col items-center gap-0.5 pointer-events-auto top-[calc(env(safe-area-inset-top,0px)+max(8px,1.5vw)+clamp(36px,4.2vw,54px)/2)] -translate-y-1/2 right-[max(calc(10px+3mm),min(calc((100vw-min(95vw,1400px))/4-10px+env(safe-area-inset-right,0px)+3mm),calc((100vw-min(95vw,1400px))/2-26px+3mm)))]';
+  'fixed z-[96] flex flex-col items-end gap-1 pointer-events-auto left-auto bottom-auto max-w-[100vw] top-[max(calc(env(safe-area-inset-top,0px)+10px),14px,2.5vmin)] right-[max(10px,calc(max(28px,5vw)-0.75cm))]';
+
+/**
+ * Step 3 (portal) only: shell row is **in document flow** above the iframe so the cluster
+ * sits in the page layout and scrolls with the host column (not `position:fixed` on the viewport).
+ * Hero + guide keep {@link SHELL_CHROME_FRAME}.
+ */
+export const SHELL_CHROME_PORTAL_INFLOW =
+  'flex shrink-0 flex-col items-end gap-1 pointer-events-auto z-[96] pt-[max(calc(env(safe-area-inset-top,0px)+6px),10px,1.8vmin)] pr-[max(10px,calc(max(28px,5vw)-0.75cm))]';
+
+/**
+ * Sign in + account menu row: slight upward nudge so baselines match the iframe wordmark
+ * (parent stacking / font rasterisation vs same `top` on #landing-root .logo.cp-logo-compact).
+ */
+export const SHELL_AUTH_ROW =
+  '-translate-y-[3px] flex flex-row items-center gap-2';
+
+/** Portal page: no iframe wordmark nudge — title-area handles alignment. */
+export const SHELL_AUTH_ROW_PORTAL = 'flex flex-row items-center gap-2';

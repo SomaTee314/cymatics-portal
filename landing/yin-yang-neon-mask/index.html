@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <link rel="icon" href="data:,">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Yin Yang</title>
+    <style>
+        html, body { margin: 0; height: 100%; overflow: hidden; background: transparent; font-family: Georgia, 'Times New Roman', serif; }
+        canvas { display: block; position: fixed; left: 0; top: 0; width: 100% !important; height: 100% !important; }
+    </style>
+    <script src="../../vendor/three.r76.min.js"></script>
+    <script src="mask-draw.js"></script>
+</head>
+<body>
+    <script>
+(function () {
+    if (!window.THREE) return;
+    var BG_HEX = 0x000000;
+    var BG_AMBIENT = 0x1a4080;
+
+    function particleGoal() {
+        var m = window.location.hash.match(/particles=(\d+)/i);
+        var n = m ? parseInt(m[1], 10) : 14000;
+        return Math.min(48000, Math.max(4000, n));
+    }
+
+    var scene = new THREE.Scene();
+
+    var camera = new THREE.PerspectiveCamera(50, 1, 0.01, 100);
+    camera.position.z = 2.35;
+
+    var renderer = new THREE.WebGLRenderer({
+        antialias: false,
+        alpha: true,
+        premultipliedAlpha: false
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setClearColor(BG_HEX, 0);
+    document.body.insertBefore(renderer.domElement, document.body.firstChild);
+
+    var mouse = new THREE.Vector2(0, 0);
+    var mouseSm = new THREE.Vector2(0, 0);
+    /** False until a real pointer move/down — avoids repel at default (0,0) NDC = hub void on load. */
+    var pointerRepelActive = false;
+    var scrollZoom = 0;
+
+    var _unproj = new THREE.Vector3();
+    var _dir = new THREE.Vector3();
+    var mouseWorld = new THREE.Vector3(0, 0, 0);
+
+    var pointsMaterial = null;
+    var yinRoot = new THREE.Group();
+    scene.add(yinRoot);
+
+    /** Base spin (rad/s ≈ medium), + momentum from clicks, slow decay. */
+    var spinBase = 0.11;
+    var spinMomentum = 0;
+    var spinMomentumMax = 5.2;
+    var spinClickDelta = 0.38;
+    var spinDecayPerSec = 0.22;
+    var _invSpin = new THREE.Matrix4();
+    var _localMouse = new THREE.Vector3();
+    /** Max disc radius in local XY (set in buildParticles) — spiral flare falloff. */
+    var spiralDiscR = 1;
+
+    var controls = {
+        masterIntensity: 1.35,
+        pointerSharpness: 28,
+        repel: 4.2,
+        swirl: 2.4,
+        radius: 0.5,
+        spring: 5.8,
+        velocityDamping: 0.965,
+        curlStrength: 0.038,
+        flowSpeed: 1.15,
+        depthWobble: 0.014,
+        cameraParallax: 0.055,
+        zoomSensitivity: 0.00055,
+        pointSize: 0.009,
+        particleOpacity: 0.97,
+        fogDensity: 0.032
+    };
+
+    function syncMaterialFromControls() {
+        if (pointsMaterial && pointsMaterial.uniforms) {
+            pointsMaterial.uniforms.opacity.value = controls.particleOpacity;
+        }
+    }
+
+    function syncPointScaleUniform() {
+        if (!pointsMaterial || !pointsMaterial.uniforms) return;
+        var pr = renderer.getPixelRatio();
+        var h = renderer.domElement.height;
+        var fov = (camera.fov * Math.PI) / 180;
+        pointsMaterial.uniforms.scaleMul.value =
+            controls.pointSize * pr * h / (2 * Math.tan(fov / 2));
+    }
+
+    function createPlasmaParticleMaterial() {
+        return new THREE.RawShaderMaterial({
+            uniforms: {
+                opacity: { value: controls.particleOpacity },
+                time: { value: 0 },
+                scaleMul: { value: 1 },
+                /** Match Cymatics framed Julia sky (`wormholeFramedSkyFragmentGlsl`). */
+                uPulseSpeed: { value: 0.4 },
+                uPulseAmount: { value: 0.1 },
+                uRidgeStrength: { value: 0.09 },
+                uJuliaPickRgb: { value: new THREE.Vector3(1, 1, 1) },
+                uJuliaRainbow: { value: 1.0 },
+                uRadialMax: { value: 1.0 },
+                uTrailExpand: { value: 0 },
+                uSpinOmega: { value: 0.11 },
+                uWheelGlow: { value: 0 },
+                uSpinGlow: { value: 0 }
+            },
+            vertexColors: THREE.VertexColors,
+            vertexShader: [
+                'precision highp float;',
+                'uniform mat4 modelViewMatrix;',
+                'uniform mat4 projectionMatrix;',
+                'attribute vec3 position;',
+                'attribute vec3 color;',
+                'varying vec3 vColor;',
+                'varying vec3 vWorldPos;',
+                'varying float vRadial;',
+                'uniform float scaleMul;',
+                'uniform float uRadialMax;',
+                'uniform float uSpinOmega;',
+                'uniform float uSpinGlow;',
+                'void main() {',
+                '  vColor = color;',
+                '  vWorldPos = position;',
+                '  vRadial = length(position.xy) / max(uRadialMax, 1e-4);',
+                '  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);',
+                '  float ps = scaleMul / max(-mvPosition.z, 1e-4);',
+                '  ps *= 1.0 + uSpinGlow * uSpinGlow * (0.14 + vRadial * 0.32);',
+                '  gl_PointSize = clamp(ps, 1.0, 280.0);',
+                '  gl_Position = projectionMatrix * mvPosition;',
+                '}'
+            ].join('\n'),
+            fragmentShader: [
+                'precision highp float;',
+                'varying vec3 vColor;',
+                'varying vec3 vWorldPos;',
+                'varying float vRadial;',
+                'uniform float opacity;',
+                'uniform float time;',
+                'uniform float uPulseSpeed;',
+                'uniform float uPulseAmount;',
+                'uniform float uRidgeStrength;',
+                'uniform vec3 uJuliaPickRgb;',
+                'uniform float uJuliaRainbow;',
+                'uniform float uTrailExpand;',
+                'uniform float uSpinOmega;',
+                'uniform float uWheelGlow;',
+                'uniform float uSpinGlow;',
+                'vec3 wh_rgb2hsv(vec3 c) {',
+                '  vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);',
+                '  vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));',
+                '  vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));',
+                '  float d = q.x - min(q.w, q.y);',
+                '  float e = 1.0e-10;',
+                '  return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);',
+                '}',
+                'vec3 wh_hsv2rgb(vec3 c) {',
+                '  vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);',
+                '  vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);',
+                '  return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);',
+                '}',
+                'vec3 wh_juliaFractColorize(vec3 palLin, vec3 pickRgb, float rainbowAmt) {',
+                '  vec3 techno = palLin;',
+                '  vec3 pick = clamp(pickRgb, vec3(1.0 / 2048.0), vec3(1.0));',
+                '  vec3 pch = wh_rgb2hsv(pick);',
+                '  float lum = clamp(dot(palLin, vec3(0.299, 0.587, 0.114)), 0.0, 1.0);',
+                '  float satk = pch.y * mix(0.22, 1.0, pow(lum + 0.015, 0.62));',
+                '  float vk = clamp((0.04 + lum * (0.7 + 0.26 * pch.z)) * (0.85 + 0.15 / max(pch.z, 1.0 / 2048.0)), 0.02, 1.35);',
+                '  vec3 mono = wh_hsv2rgb(vec3(pch.x, clamp(satk, 0.0, 1.0), vk));',
+                '  return mix(mono, techno, rainbowAmt);',
+                '}',
+                'float juliaAngleCont(float zx, float zy) {',
+                '  float rh = length(vec2(zx, zy));',
+                '  if (rh < 1e-7) return 0.0;',
+                '  return 2.0 * atan(zy, zx + rh + 1e-7);',
+                '}',
+                'vec3 iqJuliaPalette(float t) {',
+                '  vec3 a = vec3(0.5);',
+                '  vec3 b = vec3(0.55);',
+                '  vec3 c = vec3(1.0);',
+                '  vec3 d = vec3(0.00, 0.33, 0.67);',
+                '  return a + b * cos(6.28318530718 * (c * t + d));',
+                '}',
+                'void main() {',
+                '  vec2 xy = vWorldPos.xy;',
+                '  float rDisc = length(xy);',
+                '  float aDisc = atan(xy.y, xy.x);',
+                '  float trailBase = smoothstep(0.70, 0.99, vRadial) * 0.64;',
+                '  float band2 = smoothstep(0.54, 0.74, vRadial) * uTrailExpand * 0.74;',
+                '  float band3 = smoothstep(0.34, 0.54, vRadial) * uTrailExpand * uTrailExpand * 0.88;',
+                '  float band4 = smoothstep(0.11, 0.34, vRadial) * pow(uTrailExpand, 2.15) * 1.02;',
+                '  float trailAmt = clamp(trailBase + band2 + band3 + band4, 0.0, 3.35);',
+                '  trailAmt *= 1.0 + uWheelGlow * 0.95;',
+                '  float rl = rDisc;',
+                '  vec2 tdir = rl > 1e-5 ? vec2(-xy.y / rl, xy.x / rl) : vec2(1.0, 0.0);',
+                '  float ca = tdir.x;',
+                '  float sa = tdir.y;',
+                '  vec2 pc0 = gl_PointCoord - vec2(0.5);',
+                '  float qx = ca * pc0.x * 2.0 + sa * pc0.y * 2.0;',
+                '  float qy = -sa * pc0.x * 2.0 + ca * pc0.y * 2.0;',
+                '  float stretch = 1.0 + trailAmt * (1.88 + uWheelGlow * 1.55);',
+                '  stretch *= 1.0 + uSpinGlow * uSpinGlow * (0.1 + vRadial * 0.28);',
+                '  qx /= stretch;',
+                '  float prx = ca * qx - sa * qy;',
+                '  float pry = sa * qx + ca * qy;',
+                '  float r = sqrt(prx * prx + pry * pry);',
+                '  if (r > 1.0) discard;',
+                '  float n1 = sin(time * 3.15 + vWorldPos.x * 9.2 + vWorldPos.y * 7.6);',
+                '  float n2 = sin(time * 1.78 + vWorldPos.x * -5.4 + vWorldPos.y * 8.1 + vWorldPos.z * 12.0);',
+                '  float n3 = sin(time * 2.45 + dot(vWorldPos, vec3(4.1, -6.2, 3.7)));',
+                '  float flick = 0.52 + 0.48 * (0.55 * n1 + 0.35 * n2 + 0.28 * n3);',
+                '  float core = pow(1.0 - r, 3.45);',
+                '  float halo = pow(max(0.0, 1.0 - r), 1.12) * (0.52 + uSpinGlow * 0.18);',
+                '  float bloomShell = pow(max(0.0, 1.0 - r), 1.35) * uSpinGlow * (0.05 + vRadial * 0.18);',
+                '  float plasma = core + halo + bloomShell;',
+                '  vec3 tint = vec3(',
+                '    1.0 + 0.07 * sin(time * 2.1 + vWorldPos.y * 6.0),',
+                '    1.0 + 0.05 * sin(time * 2.4 + vWorldPos.x * 5.5),',
+                '    1.0 + 0.06 * sin(time * 1.9 + vWorldPos.z * 22.0)',
+                '  );',
+                '  float warmMix = smoothstep(-0.02, 0.085, vColor.r - vColor.b * 1.035);',
+                '  float pulsePhasor = sin(time * uPulseSpeed);',
+                '  float pulseBreath = 1.0 + pulsePhasor * uPulseAmount;',
+                '  float lr0 = log(rDisc + 1e-4);',
+                '  float paletteOffset = time * 0.24 + pulsePhasor * uPulseAmount * 0.65;',
+                '  float spiralPhase = time * 0.18 + pulsePhasor * uPulseAmount * 0.45;',
+                '  float parallaxShift = pulsePhasor * uPulseAmount * 0.22;',
+                '  float sprBackbone = lr0 * 0.48 + spiralPhase * 0.26 + paletteOffset * 0.07 + parallaxShift * 0.08;',
+                '  float sprWave = 0.036 * sin(2.0 * aDisc + lr0 * 1.15 + spiralPhase * 0.85)',
+                '                + 0.024 * sin(4.0 * aDisc + paletteOffset * 2.1 + lr0 * 0.65);',
+                '  float zx = xy.x + 0.07 * sin(spiralPhase + lr0 * 1.4);',
+                '  float zy = xy.y + 0.07 * cos(spiralPhase * 0.9 + lr0 * 1.1);',
+                '  float zang = juliaAngleCont(zx, zy);',
+                '  float zlr = lr0 * 0.85 + 0.04 * sin(zang * 2.0 + time * 0.5);',
+                '  float sprOrbit = zlr * 0.13',
+                '                 + 0.030 * sin(2.0 * zang + zlr * 0.9 + spiralPhase * 0.5)',
+                '                 + 0.020 * cos(4.0 * zang + zlr * 0.45 + paletteOffset * 1.3);',
+                '  float tLin = clamp(rDisc * 0.42 + 0.08 * sin(aDisc * 3.0 + spiralPhase), 0.0, 1.0);',
+                '  float ridgeBoost = uRidgeStrength * pulseBreath;',
+                '  float sprSum = sprBackbone + ridgeBoost * (sprWave + sprOrbit) + tLin * 0.1;',
+                '  float spiralAcc = fract(sprSum);',
+                '  float tRaw = clamp(0.3 * tLin + 0.7 * spiralAcc, 0.0, 0.98) * 3.0;',
+                '  float paletteT = clamp(fract(tRaw), 0.001, 0.999);',
+                '  vec3 pal = iqJuliaPalette(paletteT);',
+                '  vec3 col = wh_juliaFractColorize(pal, uJuliaPickRgb, uJuliaRainbow);',
+                '  float nearEdge = (1.0 - tLin) * (1.0 - tLin);',
+                '  float metalRipple = ridgeBoost * 1.15 * sin(spiralPhase + lr0 * 4.2 + zang * 0.5) * 0.38;',
+                '  col *= 1.0 + 0.22 * nearEdge;',
+                '  col *= mix(0.72, 1.22, pulseBreath * 0.48 + 0.52);',
+                '  col *= 1.0 + metalRipple;',
+                '  vec3 warmRgb = col * plasma * (flick * 1.06 + 0.28);',
+                '  vec3 royalNeon = vec3(0.40, 0.09, 0.97);',
+                '  float coolBright = (0.74 + 0.26 * paletteT) * (0.9 + 0.1 * flick);',
+                '  vec3 colCoolTech = royalNeon * coolBright;',
+                '  vec3 colCool = mix(vColor, colCoolTech, 0.82);',
+                '  float coolTintPulse = 1.0 + 0.05 * sin(time * 2.0 + dot(vWorldPos.xy, vec2(5.2, 4.1)));',
+                '  colCool *= coolTintPulse;',
+                '  colCool *= 1.0 + 0.22 * nearEdge;',
+                '  colCool *= mix(0.72, 1.22, pulseBreath * 0.48 + 0.52);',
+                '  colCool *= 1.0 + metalRipple;',
+                '  vec3 coolRgb = colCool * plasma * (flick * 1.18 + 0.26);',
+                '  vec3 rgb = mix(coolRgb, warmRgb, warmMix);',
+                '  float whirl = sin(aDisc * 8.0 + time * uSpinOmega * 2.1 + vRadial * 24.0);',
+                '  vec3 sparkCol = mix(vec3(0.7, 0.45, 1.0), vec3(1.0, 0.76, 0.42), warmMix);',
+                '  rgb += sparkCol * uWheelGlow * max(0.0, whirl) * halo * 0.62;',
+                '  float gEase = uSpinGlow * uSpinGlow * (2.0 - uSpinGlow);',
+                '  vec3 elecBlue = vec3(0.12, 0.55, 1.0);',
+                '  float hubCore = exp(-vRadial * (13.5 - gEase * 3.2));',
+                '  float spiralPhaseGlow = aDisc * 2.0 + vRadial * 8.5 - time * uSpinOmega * 1.18;',
+                '  float spiralArm = pow(max(0.0, sin(spiralPhaseGlow) * 0.5 + 0.5), 2.6);',
+                '  float outSpiral = smoothstep(0.04, 0.22, vRadial) * (1.0 - smoothstep(0.86, 1.01, vRadial));',
+                '  float spiralGlow = outSpiral * spiralArm * gEase * 0.62;',
+                '  float glowAmt = gEase * (0.32 * hubCore + spiralGlow);',
+                '  rgb += elecBlue * glowAmt * (0.22 * core + 0.16 * halo + 0.08 * bloomShell);',
+                '  float a = (core * 0.9 + halo * (0.64 + uSpinGlow * 0.12) + bloomShell * 0.35) * opacity;',
+                '  a *= 1.0 + uSpinGlow * min(0.28, 0.14 * hubCore + 0.12 * spiralGlow);',
+                '  float aCap = 0.96;',
+                '  if (a > aCap) a = aCap;',
+                '  gl_FragColor = vec4(rgb, a);',
+                '}'
+            ].join('\n'),
+            transparent: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        });
+    }
+
+    function syncFogFromControls() {
+        if (!scene.fog) scene.fog = new THREE.FogExp2(BG_HEX, controls.fogDensity);
+        else {
+            scene.fog.color.setHex(BG_HEX);
+            scene.fog.density = controls.fogDensity;
+        }
+    }
+
+    function onPointerMove(e) {
+        pointerRepelActive = true;
+        var x = e.clientX, y = e.clientY;
+        mouse.x = (x / window.innerWidth) * 2 - 1;
+        mouse.y = -(y / window.innerHeight) * 2 + 1;
+    }
+    function onPointerDown(e) {
+        pointerRepelActive = true;
+        onPointerMove(e);
+        spinMomentum = Math.min(spinMomentumMax, spinMomentum + spinClickDelta);
+    }
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    window.addEventListener('pointerdown', onPointerDown, { passive: true });
+
+    window.addEventListener('wheel', function (e) {
+        scrollZoom += e.deltaY * controls.zoomSensitivity;
+        scrollZoom = Math.max(-0.9, Math.min(1.2, scrollZoom));
+    }, { passive: true });
+
+    function resize() {
+        var w = window.innerWidth, h = window.innerHeight;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h, true);
+        syncPointScaleUniform();
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function updateMouseWorld(ndcX, ndcY) {
+        _unproj.set(ndcX, ndcY, 0.5);
+        _unproj.unproject(camera);
+        _dir.copy(_unproj).sub(camera.position).normalize();
+        var t = -camera.position.z / _dir.z;
+        if (t > 0 && isFinite(t)) {
+            mouseWorld.copy(camera.position).add(_dir.multiplyScalar(t));
+        } else {
+            mouseWorld.set(ndcX * 1.85, ndcY * 1.85, 0);
+        }
+    }
+
+    function startScene(imgOrNull) {
+        buildParticles(imgOrNull);
+        syncMaterialFromControls();
+        syncFogFromControls();
+    }
+
+    var loader = new THREE.TextureLoader();
+    if (location.protocol === 'file:') {
+      startScene(null);
+    } else {
+      loader.crossOrigin = 'anonymous';
+      loader.load(
+        '../images/fire-ice-yin-yang-neon.png',
+        function (tex) { startScene(tex.image); },
+        undefined,
+        function () { startScene(null); }
+      );
+    }
+
+    var geom = null;
+    var basePos = null;
+    var vel = null;
+    var clock = new THREE.Clock();
+
+    function neonTint(r, g, b, L) {
+        var boost = 0.08 + L * 0.92;
+        var cool = b > r * 1.02;
+        var warm = r > b * 1.02;
+        var rr = r * boost;
+        var gg = g * boost;
+        var bb = b * boost;
+        if (cool) {
+            var puR = 0.395, puG = 0.105, puB = 0.965;
+            var tw = 0.72 + 0.28 * L;
+            rr = Math.min(1, rr * (1 - tw) + puR * tw * boost);
+            gg = Math.min(1, gg * (1 - tw) + puG * tw * boost);
+            bb = Math.min(1, bb * (1 - tw) + puB * tw * boost);
+        } else if (warm) {
+            rr = Math.min(1, rr * 1.12 + L * 0.07);
+            gg = Math.min(1, gg * 1.05 + L * 0.02);
+            bb *= 0.9;
+        } else {
+            rr = Math.min(1, rr + L * 0.03);
+            gg = Math.min(1, gg + L * 0.03);
+            bb = Math.min(1, bb + L * 0.03);
+        }
+        return [Math.min(1, rr), Math.min(1, gg), Math.min(1, bb)];
+    }
+
+    function buildParticles(img) {
+        var goal = particleGoal();
+
+        var w = 340;
+        var h = img ? Math.max(32, Math.round(img.height * (w / img.width))) : 400;
+        var canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        var ctx = canvas.getContext('2d');
+        if (img) {
+            ctx.drawImage(img, 0, 0, w, h);
+        } else if (typeof drawNeonMaskRaster === 'function') {
+            drawNeonMaskRaster(ctx, w, h);
+        } else {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, w, h);
+            var grd0 = ctx.createLinearGradient(0, 0, w, h);
+            grd0.addColorStop(0, '#6328d4');
+            grd0.addColorStop(1, '#ff6600');
+            ctx.fillStyle = grd0;
+            ctx.beginPath();
+            ctx.arc(w * 0.5, h * 0.5, h * 0.38, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        var im = ctx.getImageData(0, 0, w, h);
+        var data = im.data;
+
+        function lumAt(ix, iy) {
+            var i = (iy * w + ix) * 4;
+            return (0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]) / 255;
+        }
+
+        /* Scale field to fit visible frustum (~full screen, small inset). Mask disk maps to ~0.38×spanY world radius when spanY=1.18. */
+        var d0 = camera.position.z;
+        var vfov = (camera.fov * Math.PI) / 180;
+        var halfY = d0 * Math.tan(vfov * 0.5);
+        var halfX = halfY * camera.aspect;
+        /* Slight inset so disc + spiral glow clears top/bottom of viewport (~92% of half-axis). */
+        var margin = 0.92;
+        var rFormNominal = 0.372;
+        var fillScale = (margin * Math.min(halfX, halfY)) / rFormNominal;
+        if (fillScale < 1) fillScale = 1;
+        if (fillScale > 5) fillScale = 5;
+
+        var aspectImg = w / h;
+        var spanX = aspectImg * 1.18 * fillScale;
+        var spanY = 1.18 * fillScale;
+
+        var discR = Math.max(spanX, spanY) * 0.52;
+
+        var basePt =
+            goal > 22000 ? 0.0078 : goal > 12000 ? 0.0088 : 0.01;
+        controls.pointSize = basePt * Math.pow(fillScale, 0.32);
+
+        var pos = [];
+        var col = [];
+
+        var tries = 0;
+        var maxTries = goal * 100;
+
+        while (pos.length / 3 < goal && tries < maxTries) {
+            tries++;
+            var ix = Math.floor(Math.random() * w);
+            var iy = Math.floor(Math.random() * h);
+            var L = lumAt(ix, iy);
+            if (L < 0.05 + Math.random() * 0.32) continue;
+
+            var nx = (ix / w - 0.5) * spanX;
+            var ny = -(iy / h - 0.5) * spanY;
+            var j = 0.0045 * (1 - L);
+            pos.push(nx + (Math.random() - 0.5) * j, ny + (Math.random() - 0.5) * j, (Math.random() - 0.5) * 0.028);
+
+            var ci = (iy * w + ix) * 4;
+            var r = data[ci] / 255, gch = data[ci + 1] / 255, bch = data[ci + 2] / 255;
+            var rgb = neonTint(r, gch, bch, L);
+            col.push(rgb[0], rgb[1], rgb[2]);
+        }
+
+        basePos = new Float32Array(pos);
+        vel = new Float32Array(pos.length);
+
+        geom = new THREE.BufferGeometry();
+        geom.addAttribute('position', new THREE.BufferAttribute(new Float32Array(pos), 3));
+        geom.addAttribute('color', new THREE.BufferAttribute(new Float32Array(col), 3));
+
+        spiralDiscR = Math.max(discR, 1e-3);
+
+        pointsMaterial = createPlasmaParticleMaterial();
+        pointsMaterial.uniforms.uRadialMax.value = discR;
+        syncPointScaleUniform();
+
+        yinRoot.add(new THREE.Points(geom, pointsMaterial));
+        scene.add(new THREE.AmbientLight(BG_AMBIENT, 0.22));
+        scene.fog = new THREE.FogExp2(BG_HEX, controls.fogDensity);
+    }
+
+    function curl2(px, py, time) {
+        var s = 2.1;
+        return {
+            x: Math.sin(py * s + time * 0.9) * Math.cos(px * s * 0.7 - time * 0.45),
+            y: Math.sin(px * s - time * 0.7) * Math.cos(py * 0.8 * s + time * 0.35)
+        };
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        var dt = Math.min(clock.getDelta(), 0.08);
+        var aud = (window.__pmReactiveAudio && window.__pmReactiveAudio.getDrive)
+            ? window.__pmReactiveAudio.getDrive(clock.getElapsedTime())
+            : { intensity: 1, curl: 1, flow: 1 };
+        var t = clock.getElapsedTime() * controls.flowSpeed * aud.flow;
+
+        var sharp = controls.pointerSharpness;
+        var ease = 1 - Math.exp(-sharp * dt);
+        mouseSm.x += (mouse.x - mouseSm.x) * ease;
+        mouseSm.y += (mouse.y - mouseSm.y) * ease;
+        updateMouseWorld(mouseSm.x, mouseSm.y);
+
+        var zTarget = 2.35 - scrollZoom * 0.85;
+        camera.position.z += (zTarget - camera.position.z) * (0.08 + dt * 4);
+        var par = controls.cameraParallax;
+        camera.position.x = mouseSm.x * par;
+        camera.position.y = mouseSm.y * par * 0.92;
+        camera.lookAt(scene.position);
+
+        var spinOmega = spinBase + spinMomentum * 0.92;
+        yinRoot.rotation.z += spinOmega * dt;
+        spinMomentum = Math.max(0, spinMomentum - spinDecayPerSec * dt);
+
+        yinRoot.updateMatrixWorld(true);
+        _invSpin.getInverse(yinRoot.matrixWorld);
+        _localMouse.copy(mouseWorld);
+        _localMouse.applyMatrix4(_invSpin);
+
+        if (pointsMaterial && pointsMaterial.uniforms) {
+            pointsMaterial.uniforms.time.value = clock.getElapsedTime();
+            var normBoost = Math.min(1, spinMomentum / 2.75);
+            pointsMaterial.uniforms.uTrailExpand.value = normBoost;
+            pointsMaterial.uniforms.uSpinOmega.value = spinOmega;
+            pointsMaterial.uniforms.uWheelGlow.value = Math.max(0, Math.min(1, (spinMomentum - 2) / 2.85));
+            var omegaLo = spinBase;
+            var omegaHi = spinBase + spinMomentumMax * 0.92;
+            var spinGlow01 = (spinOmega - omegaLo) / (omegaHi - omegaLo + 1e-6);
+            if (spinGlow01 < 0) spinGlow01 = 0;
+            if (spinGlow01 > 1) spinGlow01 = 1;
+            spinGlow01 = spinGlow01 * spinGlow01 * (3 - 2 * spinGlow01);
+            pointsMaterial.uniforms.uSpinGlow.value = spinGlow01;
+            syncPointScaleUniform();
+        }
+
+        if (geom && geom.attributes.position && basePos && vel) {
+            var arr = geom.attributes.position.array;
+            var mx = _localMouse.x;
+            var my = _localMouse.y;
+            var spiralNorm = Math.min(1.35, Math.max(0, (spinOmega - spinBase) / 2.85));
+            var spiralRadialK = 0.026 * (0.35 + spiralNorm * 3.2);
+            var spiralTanK = 0.044 * (0.28 + spiralNorm * 4.5);
+            var discSafe = spiralDiscR + 1e-5;
+            var mi = controls.masterIntensity * aud.intensity;
+            var pushRadius = controls.radius;
+            var pushRadiusSq = pushRadius * pushRadius;
+            var repel = controls.repel * mi;
+            var swirl = controls.swirl * mi;
+            var spring = controls.spring;
+            var damp = Math.pow(controls.velocityDamping, dt * 60);
+
+            for (var i = 0; i < arr.length; i += 3) {
+                var bx = basePos[i];
+                var by = basePos[i + 1];
+                var bz = basePos[i + 2];
+
+                var px = arr[i];
+                var py = arr[i + 1];
+                var pz = arr[i + 2];
+
+                var dxm = px - mx;
+                var dym = py - my;
+                var distSq = dxm * dxm + dym * dym + 0.00008;
+
+                var fx = 0;
+                var fy = 0;
+                var fz = 0;
+
+                if (pointerRepelActive && distSq < pushRadiusSq) {
+                    var inv = 1 / distSq;
+                    var falloff = (pushRadiusSq - distSq) / pushRadiusSq;
+                    var push = repel * falloff * falloff * inv * 0.085;
+                    fx += dxm * push;
+                    fy += dym * push;
+                    var invLen = 1 / Math.sqrt(distSq);
+                    fx += (-dym * invLen) * swirl * falloff * 0.14;
+                    fy += (dxm * invLen) * swirl * falloff * 0.14;
+                }
+
+                var c = curl2(bx * 3.2, by * 3.2, t);
+                var curl = controls.curlStrength * mi * aud.curl;
+                fx += c.x * curl;
+                fy += c.y * curl;
+
+                var brSq = bx * bx + by * by;
+                if (brSq > 1e-10) {
+                    var br = Math.sqrt(brSq);
+                    var invb = 1 / br;
+                    var rx = bx * invb;
+                    var ry = by * invb;
+                    var tx = -ry;
+                    var ty = rx;
+                    var mask = br / discSafe;
+                    mask = mask * mask * (0.22 + 0.78 * Math.min(1, mask));
+                    fx += rx * spiralRadialK * mask * br * (1 + spinOmega * 0.12);
+                    fy += ry * spiralRadialK * mask * br * (1 + spinOmega * 0.12);
+                    fx += tx * spiralTanK * mask * br * spinOmega;
+                    fy += ty * spiralTanK * mask * br * spinOmega;
+                }
+
+                fx += (bx - px) * spring;
+                fy += (by - py) * spring;
+                fz += (bz + controls.depthWobble * Math.sin(t * 1.8 + bx * 5 + by * 3) - pz) * (spring * 0.68);
+
+                vel[i]     = (vel[i] + fx * dt) * damp;
+                vel[i + 1] = (vel[i + 1] + fy * dt) * damp;
+                vel[i + 2] = (vel[i + 2] + fz * dt) * damp;
+
+                arr[i]     += vel[i];
+                arr[i + 1] += vel[i + 1];
+                arr[i + 2] += vel[i + 2];
+            }
+            geom.attributes.position.needsUpdate = true;
+        }
+
+        renderer.render(scene, camera);
+    }
+
+    animate();
+})();
+    </script>
+</body>
+</html>

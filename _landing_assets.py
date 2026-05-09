@@ -99,14 +99,18 @@ def patch_particle_js(js: str) -> str:
     )
     js2 = js.replace('assetPath:"./"', f"assetPath:{repl_obj}")
     js2 = js2.replace('assetPath="./"', f"assetPath={repl_assign}")
-    # Spectrum: rotate four key colours in HSL (was fixed blue/teal hex).
+    # Four u_color lerps: Julia backdrop technicolor (same cosine mix as engine
+    # `juliaFractalBackdropPaletteRgb` / backdrop defaults pal=0, colorIntensity≈0.55).
     _l_old = "function l(e){n.needsResetWorldMatrix"
     _l_new = (
-        "function l(e){this._pmHueR=((this._pmHueR||0)+e*1.2)%1;var b=this._pmHueR;"
-        "this.color1.setHSL(b,0.9,0.58);"
-        "this.color2.setHSL((b+0.24)%1,0.87,0.54);"
-        "this.color3.setHSL(0.572,1,0.67);"
-        "this.color4.setHSL(0.598,0.94,0.56);"
+        "function l(e){this._pmJT=((this._pmJT||0)+e*1.2)%1;var u=this._pmJT,Q=6.28318,O=0,"
+        "_pmsat=0.5+0.55*0.5,j=function(t){t=t-Math.floor(t);var h=t*3+O,"
+        "x=0.5+0.5*Math.cos(Q*h),y=0.5+0.5*Math.cos(Q*(h+0.33)),"
+        "z=0.5+0.5*Math.cos(Q*(h+0.67));"
+        "return{x:0.5*(1-_pmsat)+x*_pmsat,y:0.5*(1-_pmsat)+y*_pmsat,z:0.5*(1-_pmsat)+z*_pmsat}};"
+        "var J0=j(u),J1=j(u+0.25),J2=j(u+0.5),J3=j(u+0.75);"
+        "this.color1.setRGB(J0.x,J0.y,J0.z);this.color2.setRGB(J1.x,J1.y,J1.z);"
+        "this.color3.setRGB(J2.x,J2.y,J2.z);this.color4.setRGB(J3.x,J3.y,J3.z);"
         "n.needsResetWorldMatrix"
     )
     if _l_old not in js2:
@@ -152,13 +156,28 @@ def main() -> None:
     scoped = scope_landing_css(SRC_CSS.read_text(encoding="utf-8"))
     # Hero is title-only (overlay has no .logo-byline); keep block compact vs two-line layout.
     scoped = scoped.replace("min-height: 77px;", "min-height: 56px;", 1)
+    scoped2, n_iframe = re.subn(
+        r"(#landing-root \.iframe-container \{\n    )width:",
+        r"\1position: relative;\n    width:",
+        scoped,
+        count=1,
+    )
+    if n_iframe != 1:
+        raise SystemExit("_landing_assets: iframe-container position patch not applied")
+    scoped = scoped2
     OUT_CSS.write_text(scoped, encoding="utf-8")
 
     shutil.copyfile(SRC_THREE, LANDING / "js" / "three.r76.min.js")
     shutil.copyfile(SRC_TW, LANDING / "js" / "TweenMax.min.js")
-    OUT_JS.write_text(patch_particle_js(SRC_JS.read_text(encoding="utf-8")), encoding="utf-8")
+    # landing/js/particle-landing.js — hand-maintained (neon yin-yang iframe + overlay shell).
+    # Do not overwrite from Particle index.js; regenerate only if migrating back to Particle Source bundle.
+    if not OUT_JS.is_file():
+        raise SystemExit(
+            "Missing landing/js/particle-landing.js (yin-yang bundle). "
+            "Restore from git before running _landing_assets.py."
+        )
 
-    print("Wrote", OUT_CSS, "and", OUT_JS)
+    print("Wrote", OUT_CSS, "(particle-landing.js unchanged, hand-maintained)")
 
 
 if __name__ == "__main__":

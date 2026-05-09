@@ -102,19 +102,27 @@
 
             <div class="guide-instructions">
                 <h2>How to Use</h2>
-                <ol class="guide-steps" aria-label="Sound and visuals">
+                <p class="guide-prose" style="margin-bottom: 1rem;">Choose a quality, tap <strong>Go</strong>, then read this page and tap <strong>Enter Portal</strong> when you are ready. The <strong>back</strong> arrow in the top corner takes you to the previous screen.</p>
+                <ol class="guide-steps" aria-label="Using Cymatics Portal">
                 <li class="guide-step">
                     <span class="guide-step-badge" aria-hidden="true">01</span>
                     <div class="guide-step-body">
-                        <h3 class="guide-step-title">Sound &amp; playback</h3>
-                        <p class="guide-step-text">In the first column, choose an <strong>Audio Mode</strong>: <strong>Upload Track</strong> (choose an <strong>Audio file</strong>), <strong>Healing Presets</strong> (pick a preset), or <strong>Manual tone</strong>. Set <strong>Frequency</strong> with the slider or number box when that mode uses it. Use <strong>Play</strong>, <strong>Pause</strong>, and <strong>Stop</strong>; adjust <strong>Volume</strong>. For an uploaded track, scrub the timeline and watch the time label while it plays.</p>
+                        <h3 class="guide-step-title">Sound</h3>
+                        <p class="guide-step-text">On the main screen, the <strong>left</strong> column is for sound. Pick an <strong>Audio Mode</strong>: your own file, a <strong>Healing preset</strong>, or a <strong>Manual tone</strong>. Use <strong>Play</strong>, <strong>Pause</strong>, and <strong>Stop</strong>. Turn <strong>Volume</strong> up or down. Change <strong>Frequency</strong> with the slider or number box when it appears. For your own files, drag along the timeline to move through the track.</p>
                     </div>
                 </li>
                 <li class="guide-step">
                     <span class="guide-step-badge" aria-hidden="true">02</span>
                     <div class="guide-step-body">
-                        <h3 class="guide-step-title">Advanced visuals</h3>
-                        <p class="guide-step-text">In the second column, pick an <strong>Audio-Visualiser Portal</strong> (<strong>Particle cymatics</strong>, <strong>Mandelbrot fractal</strong>, or <strong>Julia fractal</strong>) and set <strong>Particle count</strong> with the slider or number box. Press <strong>H</strong> to show or hide <strong>Advanced Visual Controls</strong>. Drag that window by its header; tap ↺ to snap it back to its default spot.</p>
+                        <h3 class="guide-step-title">Visuals</h3>
+                        <p class="guide-step-text">The <strong>right</strong> column is for the picture. Under <strong>Audio-Visualiser Portal</strong>, choose <strong>Particle cymatics</strong>, <strong>Mandelbrot fractal</strong>, or <strong>Julia fractal</strong>. Use <strong>Particle count</strong> to make the image lighter or heavier. Press <strong>H</strong> on the keyboard to show or hide <strong>Advanced Visual Controls</strong>. Drag that panel by its title bar; tap ↺ to put it back in the corner.</p>
+                    </div>
+                </li>
+                <li class="guide-step">
+                    <span class="guide-step-badge" aria-hidden="true">03</span>
+                    <div class="guide-step-body">
+                        <h3 class="guide-step-title">Account &amp; sessions</h3>
+                        <p class="guide-step-text">Tap <strong>Sign in</strong> or <strong>Sign up</strong> in the top corner to create a free account. That unlocks the full set of frequencies and visual modes in the browser for this site. If a control is locked or your session ends, follow the message on the screen. Visit the <strong>Pricing</strong> page for paid plans with unlimited time and extra features.</p>
                     </div>
                 </li>
                 </ol>
@@ -132,5 +140,191 @@
             </div>
         </div>
     </div>
+
+    <!-- Fullscreen boot veil: progress from particle-landing `cp-landing-progress` until backdrops are ready -->
+    <div id="cp-landing-load-screen" class="cp-landing-load-screen" aria-busy="true">
+        <div class="cp-landing-load-inner">
+            <div class="cp-landing-load-orbit-shell">
+                <div class="cp-landing-load-orbit" aria-hidden="true">
+                <svg class="cp-landing-load-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <defs>
+                        <filter id="cp-landing-load-glow" x="-50%" y="-50%" width="200%" height="200%">
+                            <feGaussianBlur in="SourceGraphic" stdDeviation="2.2" result="blur" />
+                            <feMerge>
+                                <feMergeNode in="blur" />
+                                <feMergeNode in="SourceGraphic" />
+                            </feMerge>
+                        </filter>
+                        <linearGradient id="cp-landing-load-grad" x1="0%" y1="100%" x2="100%" y2="0%">
+                            <stop offset="0%" stop-color="#3ad4ff" />
+                            <stop offset="50%" stop-color="#55f8ff" />
+                            <stop offset="100%" stop-color="#7afcff" />
+                        </linearGradient>
+                    </defs>
+                    <circle class="cp-landing-load-track" cx="100" cy="100" r="88" fill="none" stroke="rgba(85,248,255,0.16)" stroke-width="3" />
+                    <circle
+                        id="cp-landing-load-progress-ring"
+                        class="cp-landing-load-progress"
+                        cx="100"
+                        cy="100"
+                        r="88"
+                        fill="none"
+                        stroke="url(#cp-landing-load-grad)"
+                        stroke-width="3.5"
+                        stroke-linecap="round"
+                        transform="rotate(-90 100 100)"
+                        stroke-dasharray="553.07"
+                        stroke-dashoffset="553.07"
+                        filter="url(#cp-landing-load-glow)"
+                    />
+                    <circle
+                        class="cp-landing-load-laser"
+                        cx="100"
+                        cy="100"
+                        r="88"
+                        fill="none"
+                        stroke="#d6feff"
+                        stroke-width="4"
+                        stroke-linecap="round"
+                        transform="rotate(-90 100 100)"
+                        stroke-dasharray="36 517.07"
+                        stroke-dashoffset="0"
+                        filter="url(#cp-landing-load-glow)"
+                    />
+                </svg>
+                <div class="cp-landing-load-om">
+                    <object
+                        class="cp-landing-load-om-svg"
+                        type="image/svg+xml"
+                        data="./landing/img/landing-om.svg"
+                        width="356"
+                        height="367"
+                        tabindex="-1"
+                        aria-hidden="true"
+                    ></object>
+                </div>
+            </div>
+                <p class="cp-landing-load-pct" id="cp-landing-load-pct" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-live="polite" aria-atomic="true">0%</p>
+            </div>
+            <span class="cp-loader-sronly" id="cp-landing-load-hint">Preparing experience…</span>
+        </div>
+    </div>
 </div>
 <!-- ═══ END LANDING OVERLAY ═══ -->
+<script>
+(function () {
+  function __cpNotifyParentLoaderDismissed() {
+    function send() {
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage(
+            { type: 'cp-action', action: 'landing-loader-dismissed' },
+            window.location.origin || '*'
+          );
+        }
+      } catch (_p) {}
+    }
+    send();
+    setTimeout(send, 0);
+    setTimeout(send, 150);
+    setTimeout(send, 600);
+  }
+  if (document.documentElement.classList.contains('skip-landing')) {
+    document.documentElement.setAttribute('data-cp-loader', 'done');
+    try {
+      window.dispatchEvent(new CustomEvent('cp-landing-loader-dismissed'));
+    } catch (_s) {}
+    __cpNotifyParentLoaderDismissed();
+    var _el = document.getElementById('cp-landing-load-screen');
+    if (_el) _el.style.display = 'none';
+    return;
+  }
+  document.documentElement.classList.add('cp-landing-loader-active');
+  var ring = document.getElementById('cp-landing-load-progress-ring');
+  var pctEl = document.getElementById('cp-landing-load-pct');
+  var hint = document.getElementById('cp-landing-load-hint');
+  var screen = document.getElementById('cp-landing-load-screen');
+  if (!screen) return;
+  var RING_R = 88;
+  var CIRC = 2 * Math.PI * RING_R;
+  if (ring) {
+    ring.setAttribute('stroke-dasharray', String(CIRC));
+    ring.style.strokeDashoffset = String(CIRC);
+  }
+  var shown = 0;
+  var target = 0;
+  var anim = null;
+  function applyVisual(val) {
+    var v = Math.max(0, Math.min(100, val));
+    if (ring) ring.style.strokeDashoffset = String(CIRC * (1 - v / 100));
+    if (pctEl) {
+      var n = Math.round(v);
+      pctEl.textContent = n + '%';
+      pctEl.setAttribute('aria-valuenow', String(n));
+    }
+  }
+  function tick() {
+    var d = target - shown;
+    if (Math.abs(d) < 0.35) {
+      shown = target;
+      applyVisual(shown);
+      anim = null;
+      return;
+    }
+    shown += d * 0.14;
+    applyVisual(shown);
+    anim = requestAnimationFrame(tick);
+  }
+  function setTarget(p) {
+    target = Math.max(0, Math.min(100, p));
+    if (!anim) anim = requestAnimationFrame(tick);
+  }
+  var dismissed = false;
+  function dismiss() {
+    if (dismissed) return;
+    dismissed = true;
+    screen.setAttribute('aria-busy', 'false');
+    document.documentElement.classList.remove('cp-landing-loader-active');
+    document.documentElement.setAttribute('data-cp-loader', 'done');
+    try {
+      window.dispatchEvent(new CustomEvent('cp-landing-loader-dismissed'));
+    } catch (_e) {}
+    __cpNotifyParentLoaderDismissed();
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        screen.style.pointerEvents = 'none';
+        screen.style.opacity = '0';
+        window.setTimeout(function () {
+          screen.style.display = 'none';
+          screen.style.visibility = 'hidden';
+        }, 460);
+      });
+    });
+  }
+  window.addEventListener(
+    'cp-landing-progress',
+    function (ev) {
+      var p = typeof ev.detail === 'number' ? ev.detail : 0;
+      p = Math.max(0, Math.min(100, p));
+      setTarget(p);
+      if (hint) {
+        if (p < 20) hint.textContent = 'Preparing…';
+        else if (p < 55) hint.textContent = 'Initializing…';
+        else if (p < 92) hint.textContent = 'Loading visuals…';
+        else if (p < 100) hint.textContent = 'Almost ready…';
+        else hint.textContent = 'Ready';
+      }
+      if (p >= 100) dismiss();
+    },
+    false
+  );
+  try {
+    if (typeof window.__cpLandingBootPct === 'number' && window.__cpLandingBootPct >= 100) {
+      shown = 100;
+      target = 100;
+      applyVisual(100);
+      dismiss();
+    }
+  } catch (_x) {}
+})();
+</script>

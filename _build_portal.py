@@ -337,13 +337,33 @@ _anim_gate_old = """    function animate() {
         var dt = clock.getDelta();"""
 _anim_gate_new = """    function animate() {
         requestAnimationFrame(animate);
-        /* Landing + guide share portal-main--behind-landing; skip=1 removes landing UX only. */
+        /* Landing + guide share portal-main--behind-landing; skip=1 removes landing UX only.
+         * While gated: WebGL does not run. Orphan class + hidden landing would freeze the portal forever. */
         var __cpPm = document.querySelector('.portal-main');
         var __cpLandingSkipped = document.documentElement.classList.contains('skip-landing');
+        var __cpLr = document.getElementById('landing-root');
+        var __cpLrGone = false;
+        if (__cpLr) {
+            try {
+                __cpLrGone = window.getComputedStyle(__cpLr).display === 'none';
+            } catch (_eLr) {
+                __cpLrGone = __cpLr.style.display === 'none';
+            }
+        }
+        if (
+            __cpLrGone &&
+            __cpPm &&
+            __cpPm.classList.contains('portal-main--behind-landing')
+        ) {
+            try {
+                __cpPm.classList.remove('portal-main--behind-landing');
+            } catch (_healPm) {}
+        }
         if (
             __cpPm &&
             __cpPm.classList.contains('portal-main--behind-landing') &&
-            !__cpLandingSkipped
+            !__cpLandingSkipped &&
+            !__cpLrGone
         ) {
             clock.getDelta();
             return;
@@ -1682,6 +1702,7 @@ shell_head = f"""<!DOCTYPE html>
 {_json_ld_script_blobs(_ORIGIN)}
 
   <script>(function(){{if(/#skip-landing|\\?skip=1(?:&|$)/.test(location.href)){{document.documentElement.classList.add('skip-landing');}}}})();</script>
+  <script>(function(){{try{{if(window.parent&&window.parent!==window)document.documentElement.classList.add('cp-embedded-shell');}}catch(_e){{}}}})();</script>
   <link rel="stylesheet" href="./landing/css/landing.css">
   <style>
     /* First paint: external landing.css may arrive late; avoid a flash of title-case markup */
@@ -1721,6 +1742,26 @@ portal_css += """
       opacity: 0 !important;
     }
 
+    /* Backdrop iframes below .ui so hero wordmark and OM clear the WebGL Yin–Yang */
+    #landing-root .iframe-container {
+      z-index: 0;
+    }
+    #landing-root .ui {
+      z-index: 10;
+      isolation: isolate;
+    }
+    /* No ghost wordmark through the boot veil */
+    html.cp-landing-loader-active #landing-root .logo:not(.cp-logo-compact) {
+      visibility: hidden !important;
+    }
+
+    /* Next.js shell: legacy particle-demo close (×) is inapplicable — never show */
+    html.cp-embedded-shell #landing-root .close-btn {
+      display: none !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+
     /* Hero block: user offset −0.75cm X, +1.5cm Y (wording + Enter Portal move together) */
     #landing-root .menu {
       position: fixed !important;
@@ -1741,6 +1782,8 @@ portal_css += """
       min-height: 0 !important;
       overflow: visible !important;
       padding-right: max(12px, 1.5vw);
+      /* Pass moves through to neon iframe except on text/CTA (left yin lobe lives under this column). */
+      pointer-events: none !important;
     }
     @media screen and (max-device-width: 640px) {
       #landing-root .menu {
@@ -1769,6 +1812,7 @@ portal_css += """
       width: 100%;
       max-width: var(--landing-hero-measure);
       box-sizing: border-box;
+      pointer-events: auto !important;
     }
 
     /* +30% headline type; two-line stack, left-aligned with narrow column */
@@ -1828,9 +1872,140 @@ portal_css += """
       max-width: var(--landing-hero-measure);
       margin-top: 28px;
       padding-bottom: 6px;
-      pointer-events: auto;
+      pointer-events: auto !important;
       flex-shrink: 0;
       box-sizing: border-box;
+    }
+
+    /* Boot veil: Om + neon ring meter (cp-landing-progress 0–100) */
+    @keyframes cp-landing-load-laser {
+      to {
+        stroke-dashoffset: -553.07;
+      }
+    }
+    #landing-root .cp-landing-load-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: block;
+      background: radial-gradient(ellipse 120% 80% at 50% 45%, rgba(12, 18, 32, 0.97), rgba(4, 6, 12, 0.99));
+      transition: opacity 0.45s ease;
+    }
+    #landing-root .cp-landing-load-inner {
+      position: relative;
+      width: 100%;
+      min-height: 100%;
+      text-align: center;
+      font-family: 'Courier New', Courier, monospace;
+      box-sizing: border-box;
+      pointer-events: none;
+    }
+    /*
+     * Same viewport anchor as .landing-particle-om (fixed 50%/50%, translate -50%/-50%).
+     * Orbit box height only; percent is position:absolute below so Om stays visually centred.
+     */
+    #landing-root .cp-landing-load-orbit-shell {
+      container-type: inline-size;
+      container-name: cp-loader;
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: min(calc((20mm + 14px) / 0.8625), 92vw);
+      pointer-events: none;
+    }
+    #landing-root .cp-landing-load-orbit {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1;
+      margin: 0 auto;
+    }
+    #landing-root .cp-landing-load-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    #landing-root .cp-landing-load-laser {
+      animation: cp-landing-load-laser 1.65s linear infinite;
+      opacity: 0.92;
+      pointer-events: none;
+    }
+    #landing-root .cp-landing-load-om {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      line-height: 0;
+    }
+    #landing-root .cp-landing-load-om-svg {
+      display: block;
+      width: min(20mm, calc(0.8625 * 100% - 14px));
+      height: auto;
+      aspect-ratio: 356 / 367;
+      vertical-align: top;
+      border: 0;
+      outline: none;
+      pointer-events: none;
+      -webkit-user-drag: none;
+      filter:
+        saturate(1.5)
+        contrast(1.12)
+        brightness(1.1)
+        drop-shadow(0 0 2px rgba(248, 252, 255, 1))
+        drop-shadow(0 0 11px rgba(0, 250, 255, 1))
+        drop-shadow(0 0 26px rgba(0, 195, 255, 1))
+        drop-shadow(0 0 56px rgba(0, 120, 255, 0.9))
+        drop-shadow(0 0 94px rgba(40, 0, 236, 0.38))
+        drop-shadow(0 -1px 6px rgba(160, 255, 255, 0.5));
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #landing-root .cp-landing-load-om-svg {
+        filter:
+          saturate(1.42)
+          contrast(1.1)
+          brightness(1.06)
+          drop-shadow(0 0 2px rgba(248, 252, 255, 1))
+          drop-shadow(0 0 10px rgba(0, 248, 255, 1))
+          drop-shadow(0 0 24px rgba(0, 188, 255, 1))
+          drop-shadow(0 0 50px rgba(0, 110, 255, 0.85))
+          drop-shadow(0 -1px 5px rgba(160, 233, 255, 0.45));
+      }
+    }
+    #landing-root .cp-landing-load-pct {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      top: calc(100% + min(calc(20mm * 0.22), calc(0.12 * 100cqw)));
+      margin: 0;
+      font-size: calc(20mm * 0.31);
+      font-size: min(calc(20mm * 0.31), calc(0.166 * 100cqw));
+      padding: 0;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      line-height: 1.2;
+      color: rgba(200, 244, 255, 0.96);
+      white-space: nowrap;
+      text-shadow:
+        0 0 26px rgba(85, 248, 255, 0.42),
+        0 0 7px rgba(85, 248, 255, 0.35);
+      text-shadow:
+        0 0 min(26px, calc(0.19 * 100cqw)) rgba(85, 248, 255, 0.42),
+        0 0 min(7px, calc(0.055 * 100cqw)) rgba(85, 248, 255, 0.35);
+    }
+    #landing-root .cp-loader-sronly {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
     }
 
     /* Sphere CTA + “Choose visual” hide: _portal_nifty.css (#landing-root .menu .go-btn, .titles-container) */
@@ -2063,7 +2238,8 @@ landing_bridge_js = r"""
       title: 'Cymatics',
       bgColor: '#030508',
       urls: { low: '#', medium: '#', high: '#' },
-      colors: [0x00a8ff, 0xffb84d, 0x3d5cff, 0xff6ec7],
+      /* Four anchors sampled from the Julia wormhole ring shader palette ( IQ-style: a=0.5,b=0.55,c=1,d_xy=(0,0.33,0.67), cos space ). */
+      colors: [0xff1965, 0x541fff, 0x00e69a, 0xabe000],
       speeds: [1.0, 0.0032, 0.7, 0.5, 3.0, 3.4]
     }
   ];
@@ -2071,6 +2247,22 @@ landing_bridge_js = r"""
   <script src="./landing/js/particle-landing.js"></script>
   <script>
 (function() {
+    window.__cpPostActionToParent = function (action) {
+      function send() {
+        try {
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage(
+              { type: 'cp-action', action: action },
+              window.location.origin || '*'
+            );
+          }
+        } catch (_e) {}
+      }
+      send();
+      setTimeout(send, 0);
+      setTimeout(send, 150);
+      setTimeout(send, 600);
+    };
     /* Landing perf ingest: disabled by default. Use ?cpDebugPerf=1 to enable (loads extra RAF + POST /api/debug-ingest). */
     if (/[?&]cpDebugPerf=1(?:&|$)/.test(location.search || '')) (function () {
         /* Perf NDJSON → parent postMessage + optional same-origin POST /api/debug-ingest. */
@@ -2258,16 +2450,7 @@ landing_bridge_js = r"""
     var landingRoot = document.getElementById('landing-root');
     if (!landingRoot) return;
 
-    // ── 1. AUTO-SKIP QUALITY GATE ──
-    /* Index 0 = Low (LANDING_PAGE_FIXES.md). Deferred click so async preload can attach handlers. */
-    var qualityBtns = landingRoot.querySelectorAll('.quality-btn');
-    if (qualityBtns.length >= 1) {
-        window.setTimeout(function () {
-            try {
-                qualityBtns[0].click(); // Low
-            } catch (_eQ) {}
-        }, 100);
-    }
+    /* Quality auto-pick runs inside particle-landing (`M.delayedCall` after handlers attach). */
 
     // ── 1b. Logo-only FLIP to compact corner (.landing-particle-om stays centred CSS; no coupled GSAP). ──
     (function compactLogoCorner() {
@@ -2369,6 +2552,7 @@ landing_bridge_js = r"""
             });
         }
 
+        function wireLogoFlipObservers() {
         var obs = new MutationObserver(function () {
             if (heroWordingUnveiled()) {
                 queueCompact();
@@ -2397,6 +2581,13 @@ landing_bridge_js = r"""
             obs.disconnect();
             if (heroWordingUnveiled()) queueCompact();
         }, 12000);
+        }
+
+        if (document.documentElement.getAttribute('data-cp-loader') === 'done') {
+            wireLogoFlipObservers();
+        } else {
+            window.addEventListener('cp-landing-loader-dismissed', wireLogoFlipObservers, { once: true });
+        }
     })();
 
     // ── 2. OVERRIDE GO BUTTON → SHOW GUIDE ──
@@ -2408,34 +2599,85 @@ landing_bridge_js = r"""
         origGo.parentNode.replaceChild(newGo, origGo);
 
         newGo.addEventListener('click', function() {
+            var TM = typeof TweenMax !== 'undefined' ? TweenMax : window.__landingTweenMax;
+            if (TM && typeof TM.killTweensOf === 'function') {
+                try {
+                    TM.killTweensOf(landingRoot);
+                } catch (_klr) {}
+                try {
+                    TM.set(landingRoot, { clearProps: 'opacity,transform' });
+                } catch (_slr) {}
+            }
+            try {
+                landingRoot.style.removeProperty('transition');
+            } catch (_trL) {}
+            landingRoot.style.display = '';
+            landingRoot.style.visibility = 'visible';
+            landingRoot.style.opacity = '1';
             landingRoot.classList.add('cp-landing-guide-open');
             var menu = landingRoot.querySelector('.menu');
             if (menu) {
-                TweenMax.to(menu, 0.6, {
-                    opacity: 0,
-                    y: -30,
-                    ease: 'easeInQuint',
-                    onComplete: function() { menu.style.display = 'none'; }
-                });
+                if (TM && typeof TM.killTweensOf === 'function') {
+                    try {
+                        TM.killTweensOf(menu);
+                    } catch (_km) {}
+                    try {
+                        TM.set(menu, { clearProps: 'transform,opacity' });
+                    } catch (_cm) {}
+                }
+                menu.style.display = '';
+                menu.style.visibility = 'visible';
+                menu.style.opacity = '1';
+                if (TM && typeof TM.to === 'function') {
+                    TM.to(menu, 0.6, {
+                        opacity: 0,
+                        y: -30,
+                        ease: 'easeInQuint',
+                        onComplete: function() {
+                            menu.style.display = 'none';
+                        }
+                    });
+                } else {
+                    menu.style.display = 'none';
+                }
             }
 
             var logo = landingRoot.querySelector('.logo');
             if (logo) {
-                TweenMax.to(logo, 0.5, { opacity: 0 });
+                if (TM && typeof TM.killTweensOf === 'function') {
+                    try {
+                        TM.killTweensOf(logo);
+                    } catch (_klg) {}
+                }
+                if (TM && typeof TM.to === 'function') {
+                    TM.to(logo, 0.5, { opacity: 0 });
+                } else {
+                    logo.style.opacity = '0';
+                }
             }
 
+            if (TM && typeof TM.killTweensOf === 'function') {
+                try {
+                    TM.killTweensOf(guide);
+                } catch (_kg) {}
+                try {
+                    TM.set(guide, { clearProps: 'opacity,transform' });
+                } catch (_cg) {}
+            }
             guide.style.display = 'block';
-            TweenMax.fromTo(guide, 0.8,
-                { opacity: 0 },
-                { opacity: 1, ease: 'easeInOutCubic' }
-            );
+            guide.style.visibility = 'visible';
+            if (TM && typeof TM.fromTo === 'function') {
+                TM.fromTo(
+                    guide,
+                    0.8,
+                    { opacity: 0 },
+                    { opacity: 1, ease: 'easeInOutCubic' }
+                );
+            } else {
+                guide.style.opacity = '1';
+            }
             try {
-                if (window.parent && window.parent !== window) {
-                    window.parent.postMessage(
-                        { type: 'cp-action', action: 'guide-opened' },
-                        window.location.origin || '*'
-                    );
-                }
+                window.__cpPostActionToParent('guide-opened');
             } catch (_g1) {}
         });
     }
@@ -2444,29 +2686,85 @@ landing_bridge_js = r"""
     var enterBtn = document.getElementById('enter-portal-btn');
     if (enterBtn) {
         enterBtn.addEventListener('click', function() {
-            TweenMax.to(landingRoot, 0.8, {
-                opacity: 0,
-                ease: 'easeInCubic',
-                onComplete: function() {
-                    landingRoot.style.display = 'none';
+            var TM = typeof TweenMax !== 'undefined' ? TweenMax : window.__landingTweenMax;
+            if (TM && typeof TM.killTweensOf === 'function') {
+                try {
+                    TM.killTweensOf(landingRoot);
+                } catch (_ke) {}
+                try {
+                    TM.set(landingRoot, { clearProps: 'opacity,transform' });
+                } catch (_ce) {}
+            }
+            try {
+                landingRoot.style.removeProperty('transition');
+            } catch (_tIn) {}
+            landingRoot.style.display = '';
+            landingRoot.style.visibility = 'visible';
+            landingRoot.style.opacity = '1';
 
-                    var portalMain = document.querySelector('.portal-main');
-                    if (portalMain) {
-                        portalMain.classList.remove('portal-main--behind-landing');
-                    }
+            var __cpEnterDone = false;
+            var __cpEnterFailId = null;
 
+            function __cpFinishEnterPortal() {
+                if (__cpEnterDone) return;
+                __cpEnterDone = true;
+                if (__cpEnterFailId != null) {
                     try {
-                        if (window.parent && window.parent !== window) {
-                            window.parent.postMessage(
-                                { type: 'cp-action', action: 'portal-reached' },
-                                window.location.origin || '*'
-                            );
-                        }
-                    } catch (ePr) {}
-
-                    window.dispatchEvent(new Event('resize'));
-
+                        window.clearTimeout(__cpEnterFailId);
+                    } catch (_ct) {}
+                    __cpEnterFailId = null;
                 }
+                try {
+                    landingRoot.removeEventListener(
+                        'transitionend',
+                        __cpOnLandingFadeEnd
+                    );
+                } catch (_re) {}
+                if (TM && typeof TM.killTweensOf === 'function') {
+                    try {
+                        TM.killTweensOf(landingRoot);
+                    } catch (_kf) {}
+                }
+                if (TM && typeof TM.set === 'function') {
+                    try {
+                        TM.set(landingRoot, { clearProps: 'opacity,transform' });
+                    } catch (_cfin) {}
+                }
+                try {
+                    landingRoot.style.removeProperty('transition');
+                } catch (_tOut) {}
+                landingRoot.style.display = 'none';
+                var portalMain = document.querySelector('.portal-main');
+                if (portalMain) {
+                    portalMain.classList.remove('portal-main--behind-landing');
+                }
+                try {
+                    window.__cpPostActionToParent('portal-reached');
+                } catch (ePr) {}
+                try {
+                    window.dispatchEvent(new Event('resize'));
+                } catch (_rz) {}
+            }
+
+            function __cpOnLandingFadeEnd(ev) {
+                try {
+                    if (!ev || ev.target !== landingRoot) return;
+                    if (ev.propertyName !== 'opacity') return;
+                } catch (_eTe) {
+                    return;
+                }
+                __cpFinishEnterPortal();
+            }
+
+            landingRoot.addEventListener('transitionend', __cpOnLandingFadeEnd);
+            __cpEnterFailId = window.setTimeout(__cpFinishEnterPortal, 1100);
+
+            window.requestAnimationFrame(function() {
+                window.requestAnimationFrame(function() {
+                    landingRoot.style.transition =
+                        'opacity 0.75s cubic-bezier(0.55, 0, 1, 1)';
+                    landingRoot.style.opacity = '0';
+                });
             });
         });
     }
@@ -2488,6 +2786,21 @@ landing_bridge_js = r"""
       var portalMain = document.querySelector('.portal-main');
       if (!landingRoot || !guide) return;
 
+      var closeBtn = landingRoot.querySelector('.close-btn');
+      if (closeBtn) {
+        if (TM) {
+          try {
+            TweenMax.killTweensOf(closeBtn);
+          } catch (_kcb) {}
+          try {
+            TweenMax.set(closeBtn, { clearProps: 'opacity,transform' });
+          } catch (_scb) {}
+        }
+        closeBtn.style.display = 'none';
+        closeBtn.style.visibility = '';
+        closeBtn.style.opacity = '';
+      }
+
       try {
         if (typeof window.__pmVisualFullscreenExit === 'function') {
           window.__pmVisualFullscreenExit();
@@ -2508,6 +2821,16 @@ landing_bridge_js = r"""
         }
       }
 
+      /* Enter Portal fades #landing-root to opacity 0 before display:none in onComplete; Back during
+       * that tween can leave inline opacity 0 while the guide→hero branch never restores it. */
+      if (TM) {
+        try {
+          TweenMax.set(landingRoot, { clearProps: 'opacity,transform' });
+        } catch (_clLanding0) {}
+      }
+      landingRoot.style.opacity = '1';
+      landingRoot.style.visibility = 'visible';
+
       var lrHidden = false;
       try {
         lrHidden = window.getComputedStyle(landingRoot).display === 'none';
@@ -2515,6 +2838,7 @@ landing_bridge_js = r"""
         lrHidden = landingRoot.style.display === 'none';
       }
 
+      /* From full portal: land on instruction guide (step 2), not the hero — keeps shell + iframe stacks aligned */
       if (lrHidden) {
         try {
           document.documentElement.classList.remove('skip-landing');
@@ -2526,16 +2850,32 @@ landing_bridge_js = r"""
         }
         landingRoot.style.display = '';
         landingRoot.style.opacity = '1';
-        if (portalMain) portalMain.classList.add('portal-main--behind-landing');
         landingRoot.classList.add('cp-landing-guide-open');
+        if (portalMain) portalMain.classList.add('portal-main--behind-landing');
         if (menu) {
+          if (TM) {
+            try {
+              TweenMax.killTweensOf(menu);
+            } catch (_kmR) {}
+            try {
+              TweenMax.set(menu, { clearProps: 'transform,opacity' });
+            } catch (_smR) {}
+          }
           menu.style.display = 'none';
           menu.style.opacity = '0';
           menu.style.visibility = 'hidden';
         }
         guide.style.display = 'block';
-        guide.style.opacity = '1';
         guide.style.visibility = 'visible';
+        guide.style.opacity = '1';
+        if (TM) {
+          try {
+            TweenMax.killTweensOf(guide);
+          } catch (_kgR) {}
+          try {
+            TweenMax.set(guide, { opacity: 1 });
+          } catch (_sG) {}
+        }
         var logo = landingRoot.querySelector('.logo');
         if (logo) {
           if (TM) {
@@ -2543,21 +2883,16 @@ landing_bridge_js = r"""
               TweenMax.killTweensOf(logo);
             } catch (_klg) {}
             try {
-              TM.set(logo, { opacity: 1, clearProps: 'transform' });
+              TM.set(logo, { opacity: 0, clearProps: 'transform' });
             } catch (_l1) {
-              logo.style.opacity = '1';
+              logo.style.opacity = '0';
             }
           } else {
-            logo.style.opacity = '1';
+            logo.style.opacity = '0';
           }
         }
         try {
-          if (window.parent !== window) {
-            window.parent.postMessage(
-              { type: 'cp-action', action: 'guide-opened' },
-              window.location.origin || '*'
-            );
-          }
+          window.__cpPostActionToParent('guide-opened');
         } catch (e1) {}
         try {
           window.dispatchEvent(new Event('resize'));
@@ -2571,12 +2906,28 @@ landing_bridge_js = r"""
       } catch (_gs) {
         guideShown = guide.style.display === 'block';
       }
-      if (landingRoot.classList.contains('cp-landing-guide-open') && guideShown) {
+      /* Close guide → hero: trust class flag so back still works if display/visibility glitched */
+      if (landingRoot.classList.contains('cp-landing-guide-open')) {
+        if (TM) {
+          try {
+            TweenMax.set(landingRoot, { clearProps: 'opacity,transform' });
+          } catch (_clHero) {}
+        }
+        landingRoot.style.opacity = '1';
+        landingRoot.style.visibility = 'visible';
+        landingRoot.style.display = '';
         landingRoot.classList.remove('cp-landing-guide-open');
         if (TM) {
           try {
             TweenMax.killTweensOf(guide);
           } catch (_kg1) {}
+        }
+        if (!guideShown) {
+          guide.style.visibility = 'visible';
+          guide.style.display = 'block';
+          guide.style.opacity = '1';
+        }
+        if (TM) {
           TweenMax.to(guide, 0.35, {
             opacity: 0,
             ease: 'easeInCubic',
@@ -2629,12 +2980,7 @@ landing_bridge_js = r"""
           }
         }
         try {
-          if (window.parent !== window) {
-            window.parent.postMessage(
-              { type: 'cp-action', action: 'guide-closed' },
-              window.location.origin || '*'
-            );
-          }
+          window.__cpPostActionToParent('guide-closed');
         } catch (e2) {}
         try {
           window.dispatchEvent(new Event('resize'));
@@ -2647,7 +2993,9 @@ landing_bridge_js = r"""
 (function () {
     function __cpPostPortalReached() {
         try {
-            if (window.parent && window.parent !== window) {
+            if (typeof window.__cpPostActionToParent === 'function') {
+                window.__cpPostActionToParent('portal-reached');
+            } else if (window.parent && window.parent !== window) {
                 window.parent.postMessage(
                     { type: 'cp-action', action: 'portal-reached' },
                     window.location.origin || '*'

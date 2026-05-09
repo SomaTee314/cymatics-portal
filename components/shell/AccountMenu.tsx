@@ -146,12 +146,12 @@ export function AccountMenu({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-white/15 bg-black/80 text-white shadow-lg transition-colors hover:bg-black/90"
+        className="inline-flex h-[calc(1.18*clamp(11.25px,1.525vw,13.75px))] w-6 shrink-0 items-center justify-center border-0 bg-transparent p-0 text-white shadow-none transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400/50"
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="Account menu"
       >
-        <MenuHamburger className="shrink-0 opacity-95" />
+        <MenuHamburger className="shrink-0 text-white [filter:drop-shadow(0_1px_3px_rgba(0,0,0,0.55))]" />
       </button>
       {open ? (
         <div

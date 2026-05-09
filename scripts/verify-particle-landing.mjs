@@ -1,5 +1,5 @@
 /**
- * Sanity-check the generated landing particle bundle matches Cymatics portal patches.
+ * Sanity-check the hand-maintained landing particle script (yin-yang + overlay shell).
  * Run after: python _build_portal.py && node scripts/sync-cymatics-public.mjs
  */
 import fs from 'fs';
@@ -21,55 +21,26 @@ const target =
 
 if (!target) {
   die(
-    `Missing bundle. Expected ${pubPath} (after sync) or ${landPath}; run python _build_portal.py`
+    `Missing bundle. Expected ${pubPath} (after sync) or ${landPath}`
   );
 }
 
 const js = fs.readFileSync(target, 'utf8');
 
-if (js.includes('antialias:!0'))
-  die('landing bundle enables WebGL MSAA (antialias:!0) — revert in _landing_assets.py');
+if (!js.includes('yin-yang-elements'))
+  die('landing script missing yin-yang-elements / port reference');
 
-if (js.includes('_sdt=T._sdt'))
-  die('landing bundle still uses timestep EMA (_sdt) — unexpected for stock c() timestep');
+if (!js.includes('pm-neon-backdrop'))
+  die('landing script missing neon backdrop (pm-neon-backdrop)');
 
-/** Stock Particle c() integrates raw RAF delta (`T.deltaRatio=e/.016`); Cymatics restores this for natural motion. */
-if (!js.includes('T.deltaRatio=e/.016'))
-  die('landing bundle missing motion integration T.deltaRatio=e/.016 (stock c())');
+if (!js.includes('__particleMadnessPickDemo'))
+  die('landing script missing __particleMadnessPickDemo stub');
 
-/* Stock engine u_color lerps use plain `lerp(...,e)` — do not accelerate with N*e multipliers */
-if (/Math\.min\(1,\s*(?:19|20|6|\d+)\s*\*\s*e\)/.test(js))
-  die('landing bundle uses accelerated Math.min(1,N*e) u_color lerps — keep stock lerp(...,e)');
-if (
-  !js.includes('this.uniforms.u_color1.value.lerp(this.color1,e)') ||
-  !js.includes('this.uniforms.u_color2.value.lerp(this.color2,e)')
-)
-  die(
-    'landing bundle missing stock u_color1/u_color2 lerp(this.colorN,e) — check _landing_assets.py'
-  );
+/* Prefer light MSAA-off for perf on weak GPUs; standalone spec allows antialias:true */
+if (/<span[^>]*>antialias:\s*!0\s*<|\bantialias:\s*!0\b/.test(js))
+  die('landing script enables antialias:!0 minified shortcut — prefer antialias: true literals or disable MSAA');
 
-/* Stock y(): full-duration blur tween when exiting portal overlay */
-if (!js.includes('M.to(I,1,{ratio:0,blurRadius:2.5,amount:1'))
-  die(
-    'landing bundle missing stock y() blur tween M.to(I,1,... blurRadius 2.5 ... — check source'
-  );
-
-/* Cymatics bootstrap: Low-equivalent sim + DPR cap at init (_landing_assets.py); bridge Low remains safety net. */
-if (!js.includes('particlesMotionTextureWidth=256,n.particlesMotionTextureHeight=256'))
-  die(
-    'landing bundle missing Low-equivalent motion texture 256×256 — check _landing_assets.py bootstrap'
-  );
-if (!js.includes('n.motionBlur=!1'))
-  die('landing bundle missing bootstrap motionBlur off (motionBlur=!1)');
-if (!js.includes('n.motionBlurQuality="low"'))
-  die('landing bundle missing bootstrap motionBlurQuality "low"');
-if (!js.includes('setPixelRatio') || !js.includes('Math.min(1.25,'))
-  die(
-    'landing bundle missing renderer DPR cap (setPixelRatio Math.min 1.25) — check _landing_assets.py'
-  );
-
-// Keep motion blur tier reasonable (do not use "best").
-if (js.includes('motionBlurQuality="best"'))
-  die('landing bundle boosts motionBlurQuality to "best" — keep "high" for perf');
+if (!js.includes('Elemental Yin') && !js.includes('ELEMENTAL_YIN_YANG_PORT'))
+  die('landing script missing yin-yang port doc breadcrumb');
 
 console.log(`verify-particle-landing: OK (${path.relative(root, target)})`);

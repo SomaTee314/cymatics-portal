@@ -75,7 +75,7 @@ export const TUNNEL_INITIAL: TunnelState = {
   juliaParallaxAmount: 0.04,
   juliaRotationSpeed: 0.085,
   juliaRidgeStrength: 0.09,
-  omStreamSpeed: 0.05,
+  omStreamSpeed: 0.011,
   fractalEvolutionSpeed: 3.0,
   discRadius: 0.24,
   tubeRadius: 6,

@@ -1795,7 +1795,7 @@
         juliaRotationSpeed: 0.085,
         juliaRidgeStrength: 0.09,
         juliaPulseSpeed: 0.4,
-        omStreamSpeed: 0.05,
+        omStreamSpeed: 0.011,
         fractalEvolutionSpeed: 3.0,
         discRadius: 0.24,
         ringRadius: 8,
@@ -4152,7 +4152,7 @@
                 wormholeControls.juliaRotationSpeed = 0.085;
                 wormholeControls.juliaRidgeStrength = 0.09;
                 wormholeControls.juliaPulseSpeed = 0.4;
-                wormholeControls.omStreamSpeed = 0.05;
+                wormholeControls.omStreamSpeed = 0.011;
                 wormholeControls.fractalEvolutionSpeed = 3.0;
                 wormholeControls.discRadius = 0.24;
                 wormholeControls.ringRadius = 8;
@@ -4456,13 +4456,33 @@
 
     function animate() {
         requestAnimationFrame(animate);
-        /* Landing + guide share portal-main--behind-landing; skip=1 removes landing UX only. */
+        /* Landing + guide share portal-main--behind-landing; skip=1 removes landing UX only.
+         * While gated: WebGL does not run. Orphan class + hidden landing would freeze the portal forever. */
         var __cpPm = document.querySelector('.portal-main');
         var __cpLandingSkipped = document.documentElement.classList.contains('skip-landing');
+        var __cpLr = document.getElementById('landing-root');
+        var __cpLrGone = false;
+        if (__cpLr) {
+            try {
+                __cpLrGone = window.getComputedStyle(__cpLr).display === 'none';
+            } catch (_eLr) {
+                __cpLrGone = __cpLr.style.display === 'none';
+            }
+        }
+        if (
+            __cpLrGone &&
+            __cpPm &&
+            __cpPm.classList.contains('portal-main--behind-landing')
+        ) {
+            try {
+                __cpPm.classList.remove('portal-main--behind-landing');
+            } catch (_healPm) {}
+        }
         if (
             __cpPm &&
             __cpPm.classList.contains('portal-main--behind-landing') &&
-            !__cpLandingSkipped
+            !__cpLandingSkipped &&
+            !__cpLrGone
         ) {
             clock.getDelta();
             return;

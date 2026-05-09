@@ -42,7 +42,7 @@
         juliaRotationSpeed: 0.085,
         juliaRidgeStrength: 0.09,
         juliaPulseSpeed: 0.4,
-        omStreamSpeed: 0.05,
+        omStreamSpeed: 0.011,
         fractalEvolutionSpeed: 3.0,
         discRadius: 0.24,
         ringRadius: 8,

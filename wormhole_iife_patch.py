@@ -463,7 +463,7 @@ def apply_julia_wormhole_iife_patch(iife2: str, project_root: Path) -> str:
                 wormholeControls.juliaRotationSpeed = 0.085;
                 wormholeControls.juliaRidgeStrength = 0.09;
                 wormholeControls.juliaPulseSpeed = 0.4;
-                wormholeControls.omStreamSpeed = 0.05;
+                wormholeControls.omStreamSpeed = 0.011;
                 wormholeControls.fractalEvolutionSpeed = 3.0;
                 wormholeControls.discRadius = 0.24;
                 wormholeControls.ringRadius = 8;
