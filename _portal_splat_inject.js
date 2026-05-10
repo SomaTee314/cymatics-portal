@@ -49,6 +49,64 @@
     var fractalJuliaConnectSm = 0;
     var fractalJuliaSmTr = 0;
     var fractalJuliaDiscEffSm = 0.135;
+    var cymJuliaSpiralAccum = 0;
+    var cymJSpiralAudioSm = 0;
+    var neonParticleMapTex = null;
+
+    function ensureNeonParticleMap() {
+        if (neonParticleMapTex) return neonParticleMapTex;
+        var c = document.createElement('canvas');
+        c.width = 64;
+        c.height = 64;
+        var ctx = c.getContext('2d');
+        var g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+        g.addColorStop(0, 'rgba(255,255,255,1)');
+        g.addColorStop(0.35, 'rgba(255,255,255,1)');
+        g.addColorStop(0.65, 'rgba(255,255,255,0.5)');
+        g.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, 64, 64);
+        neonParticleMapTex = new THREE.Texture(c);
+        neonParticleMapTex.needsUpdate = true;
+        return neonParticleMapTex;
+    }
+
+    /** Julia fractal backdrop–style palette t + metallic boosts; particle cymatics only. */
+    function heightToColorParticleJuliaParity(h, transient, r, th, arr, ix, snap, spiralPhase, pal, colorI) {
+        snap = snap || {};
+        var tLin = (h + 1) * 0.5;
+        tLin = Math.max(0, Math.min(1, tLin + transient * simControls.colorBeatBoost * 0.22));
+        var lr0 = Math.log(r + 1e-6);
+        var a0 = th;
+        var spr0 = lr0 * 0.48 + spiralPhase * 0.26 + pal * 0.07;
+        spr0 += 0.036 * Math.sin(2 * a0 + lr0 * 1.15 + spiralPhase * 0.85);
+        spr0 += 0.024 * Math.sin(4 * a0 + pal * 2.1 + lr0 * 0.65);
+        var sprEsc = 0.13 * lr0 * 0.5;
+        sprEsc += 0.03 * Math.sin(2 * th + lr0 * 0.9 + spiralPhase * 0.5);
+        sprEsc += 0.02 * Math.cos(4 * th + lr0 * 0.45 + pal * 1.3);
+        var sprSum = spr0 + sprEsc + tLin * 0.1;
+        var spiralAcc = sprSum - Math.floor(sprSum);
+        var t = 0.3 * tLin + 0.7 * spiralAcc;
+        if (t < 0) t = 0;
+        if (t > 0.98) t = 0.98;
+        var tc = juliaFractalBackdropPaletteRgb(t, pal, colorI);
+        var rOut = tc.r;
+        var gOut = tc.g;
+        var bOut = tc.b;
+        var nearEdge = (1 - tLin) * (1 - tLin);
+        var edgeBoost = 1 + 0.22 * nearEdge;
+        rOut *= edgeBoost;
+        gOut *= edgeBoost;
+        bOut *= edgeBoost;
+        var mixBr = tLin * 0.2;
+        var hiBoost = 1 + 0.07 * mixBr;
+        rOut *= hiBoost;
+        gOut *= hiBoost;
+        bOut *= hiBoost;
+        arr[ix] = Math.max(0, rOut);
+        arr[ix + 1] = Math.max(0, gOut);
+        arr[ix + 2] = Math.max(0, bOut);
+    }
 
     function fractalExpSmooth(cur, target, dt, tau) {
         if (!(tau > 0) || !isFinite(dt) || dt <= 0) return target;

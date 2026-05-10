@@ -210,8 +210,9 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: clamp(10px, 3vw, 20px);
-      padding: 10px max(14px, env(safe-area-inset-right, 0px)) 10px max(14px, env(safe-area-inset-left, 0px));
+      align-content: flex-end;
+      gap: clamp(12px, 2.75vw, 22px);
+      padding: 10px max(14px, env(safe-area-inset-right, 0px)) 12px max(14px, env(safe-area-inset-left, 0px));
       background: linear-gradient(0deg, rgba(8,10,20,0.92), transparent);
       border-radius: 0 0 var(--radius) var(--radius);
       font-size: 11px;
@@ -227,11 +228,13 @@
       flex-wrap: wrap;
       align-items: baseline;
       justify-content: flex-start;
-      gap: 0;
+      gap: 0 0.3em;
       flex: 1 1 auto;
       min-width: 0;
-      padding-right: 6px;
-      line-height: 1.45;
+      flex-basis: 0;
+      max-width: calc(100% - 176px - env(safe-area-inset-right, 0px));
+      padding-right: 12px;
+      line-height: 1.5;
       box-sizing: border-box;
       text-align: left;
     }
@@ -265,7 +268,12 @@
       text-transform: none;
       font-weight: 400;
     }
-    .status-bar .readout { color: var(--accent-gold); font-variant-numeric: tabular-nums; }
+    .status-bar .readout {
+      color: var(--accent-gold);
+      font-variant-numeric: tabular-nums;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
     .status-bar .jp-label { opacity: 0.5; font-size: 13px; text-transform: none; letter-spacing: 0; }
     .ctrl-frame {
       display: grid;
@@ -1214,14 +1222,16 @@
       .status-bar {
         flex-wrap: wrap;
         justify-content: space-between;
-        align-items: flex-end;
-        row-gap: 8px;
-        padding: 10px max(12px, env(safe-area-inset-left, 0px))
-          max(12px, env(safe-area-inset-bottom, 0px))
-          max(12px, env(safe-area-inset-right, 0px));
+        align-items: flex-start;
+        row-gap: 10px;
+        column-gap: 14px;
+        padding: 12px max(14px, env(safe-area-inset-left, 0px))
+          max(14px, env(safe-area-inset-bottom, 0px))
+          max(14px, env(safe-area-inset-right, 0px));
+        font-size: 10px;
       }
       .status-bar-left {
-        flex: 1 1 min(100%, 18rem);
+        flex: 1 1 100%;
         max-width: 100%;
         padding-right: 0;
       }

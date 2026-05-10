@@ -1136,6 +1136,16 @@
     }
     dom.goBtn.addEventListener('click', onGoEnterPortal);
     dom.goBtn.addEventListener('mouseenter', onGoSpinnerHover);
+    /* Touch / pen: hover-only mouseenter does not fire — align capsule rim with pointer like desktop */
+    dom.goBtn.addEventListener(
+      'pointerdown',
+      function (ev) {
+        try {
+          if (ev.pointerType === 'touch' || ev.pointerType === 'pen') onGoSpinnerHover(ev);
+        } catch (_e) {}
+      },
+      { passive: true }
+    );
     dom.closeBtn.addEventListener('click', onCloseIframe);
 
     syncDemoChrome();

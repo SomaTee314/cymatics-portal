@@ -1869,11 +1869,52 @@ portal_css += """
       /* Pass moves through to neon iframe except on text/CTA (left yin lobe lives under this column). */
       pointer-events: none !important;
     }
-    @media screen and (max-device-width: 640px) {
+    @media screen and (max-width: 640px), screen and (max-device-width: 640px) {
       #landing-root .menu {
         left: max(18px, 4vw) !important;
         width: calc(100vw - max(36px, 9vw)) !important;
         transform: translate(-0.75cm, calc(-50% - clamp(10px, 2vh, 26px) + 1.5cm)) !important;
+      }
+    }
+    /* Narrow viewports: eliminate negative X translate that clips “Nāda Brahma” off-screen (DevTools + phones) */
+    @media screen and (max-width: 1023px) {
+      #landing-root .menu {
+        left: max(14px, env(safe-area-inset-left, 0px)) !important;
+        width: min(
+          540px,
+          calc(100vw - 28px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+        ) !important;
+        max-width: calc(100vw - 28px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)) !important;
+        transform: translate(0, calc(-50% - clamp(10px, 2.2vh, 28px) + 1.5cm)) !important;
+      }
+    }
+    /* Portrait: anchor below top chrome so centred Om reads; allow scroll if prose is tall */
+    @media screen and (max-width: 1023px) and (orientation: portrait) {
+      #landing-root .menu {
+        top: clamp(86px, 12dvh, 128px) !important;
+        bottom: auto !important;
+        transform: none !important;
+      }
+      #landing-root .landing-hero-stack {
+        max-height: min(52dvh, calc(100vh - 120px - env(safe-area-inset-bottom, 0px)));
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        padding-right: 4px;
+      }
+    }
+    /* Landscape phones: park copy at bottom-left so it does not cover particle + Om */
+    @media screen and (max-height: 520px) and (orientation: landscape) {
+      #landing-root .menu {
+        top: auto !important;
+        bottom: max(14px, env(safe-area-inset-bottom, 0px)) !important;
+        transform: none !important;
+      }
+      #landing-root .landing-hero-stack {
+        max-height: min(38dvh, calc(100vh - 24px - env(safe-area-inset-bottom, 0px)));
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
       }
     }
 
@@ -1897,6 +1938,17 @@ portal_css += """
       max-width: var(--landing-hero-measure);
       box-sizing: border-box;
       pointer-events: auto !important;
+    }
+    @media screen and (max-width: 1023px) {
+      #landing-root .landing-hero-intro {
+        padding: 12px 14px 14px;
+        border-radius: 12px;
+        background: rgba(3, 5, 10, 0.38);
+        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(8px);
+        box-decoration-break: clone;
+        -webkit-box-decoration-break: clone;
+      }
     }
 
     /* +30% headline type; two-line stack, left-aligned with narrow column */
