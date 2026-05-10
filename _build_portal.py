@@ -1933,6 +1933,11 @@ portal_css += """
         overflow-wrap: break-word;
         text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5);
       }
+      /* Compact: portrait vs landscape copy toggles (.landing-hero-intro global text-align targets desktop kicker — override below) */
+      #landing-root .landing-hero-compact-title__landscape,
+      #landing-root .landing-hero-compact-lead__landscape {
+        display: none !important;
+      }
       /* No filled panel behind copy or CTA on small screens (_portal_nifty go-btn skins) */
       #landing-root .menu .go-btn {
         background: transparent !important;
@@ -1947,14 +1952,39 @@ portal_css += """
         box-shadow: none !important;
       }
     }
-    /* Phone/tablet landscape: tuck hero stack bottom-left instead of centred */
+    /* Portrait phones/tablets: centre compact copy (inherits from stack + override .landing-hero-intro left) */
+    @media screen and (max-width: 1023px) and (orientation: portrait) {
+      #landing-root .landing-hero-intro--compact {
+        text-align: center !important;
+        align-self: center !important;
+      }
+    }
+    /* Phone/tablet landscape: left column; title 2 lines + lead 3 lines; copy vertically centred above Enter Portal */
     @media screen and (max-width: 1023px) and (orientation: landscape) {
+      #landing-root .landing-hero-compact-title__portrait,
+      #landing-root .landing-hero-compact-lead__portrait {
+        display: none !important;
+      }
+      #landing-root .landing-hero-compact-title__landscape {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 0.06em !important;
+      }
+      #landing-root .landing-hero-compact-title__l1,
+      #landing-root .landing-hero-compact-title__l2 {
+        display: block !important;
+      }
+      #landing-root .landing-hero-compact-lead__landscape {
+        display: block !important;
+        line-height: 1.42 !important;
+      }
       #landing-root .menu {
         left: max(14px, env(safe-area-inset-left, 0px)) !important;
         right: auto !important;
         transform: none !important;
+        top: clamp(50px, 11vmin, 90px) !important;
         bottom: max(12px, env(safe-area-inset-bottom, 0px)) !important;
-        top: auto !important;
         width: min(
           440px,
           calc(54vw - env(safe-area-inset-left, 0px)),
@@ -1965,13 +1995,33 @@ portal_css += """
         ) !important;
         padding-left: 0 !important;
         padding-right: max(12px, env(safe-area-inset-right, 0px));
+        display: flex !important;
+        flex-direction: column !important;
+        box-sizing: border-box !important;
       }
       #landing-root .landing-hero-stack {
         align-items: flex-start !important;
         text-align: left !important;
         --landing-hero-measure: min(38ch, 85vw);
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+      }
+      #landing-root .landing-hero-intro--compact {
+        flex: 1 1 auto !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        min-height: 0 !important;
+        text-align: left !important;
+        align-self: flex-start !important;
+      }
+      #landing-root .landing-hero-compact-title {
+        margin: 0 0 0.35em !important;
       }
       #landing-root .landing-hero-cta {
+        flex: 0 0 auto !important;
         justify-content: flex-start !important;
       }
     }
