@@ -156,7 +156,7 @@ export function AccountMenu({
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 mt-2 w-64 origin-top-right rounded-xl border border-white/10 bg-zinc-950/98 p-3 shadow-2xl"
+          className="absolute right-0 mt-2 w-[min(16rem,calc(100vw-1.75rem))] min-w-[10rem] origin-top-right rounded-xl border border-white/10 bg-zinc-950/98 p-3 shadow-2xl lg:w-64"
           onMouseDown={(e) => e.stopPropagation()}
         >
           <p

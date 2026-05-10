@@ -70,7 +70,7 @@ export function SessionTimer() {
 
   return (
     <div
-      className={`fixed bottom-4 right-4 z-[90] rounded-full border px-4 py-2 font-mono text-sm transition-colors ${
+      className={`fixed bottom-4 right-4 z-[90] rounded-full border px-4 py-2 font-mono text-sm transition-colors max-lg:bottom-[max(1rem,env(safe-area-inset-bottom,0px))] max-lg:right-[max(1rem,env(safe-area-inset-right,0px))] ${
         isLow
           ? 'border-red-500/30 bg-red-500/20 text-red-400'
           : 'border-white/10 bg-white/10 text-white/60'

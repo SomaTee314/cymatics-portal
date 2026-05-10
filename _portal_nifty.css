@@ -777,7 +777,7 @@
       color: #ffffff;
     }
 
-    @media screen and (max-device-width: 640px) {
+    @media screen and (max-width: 640px), screen and (max-device-width: 640px) {
       #landing-root .logo.cp-logo-compact {
         left: max(8px, calc(max(18px, 4vw) - 0.75cm)) !important;
         padding: 2px 0 !important;
@@ -792,6 +792,46 @@
       #landing-root .menu .go-btn .go-btn-text {
         font-size: clamp(10px, 3.25vw, 12.5px) !important;
         letter-spacing: 0.12em;
+      }
+    }
+
+    /* Viewport widths (Responsive mode) + room for Next.js top-right shell */
+    @media screen and (max-width: 1023px) {
+      #landing-root .logo:not(.cp-logo-compact) {
+        max-width: min(
+          560px,
+          calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 20px)
+        ) !important;
+      }
+      #landing-root .logo.cp-logo-compact {
+        max-width: min(
+          420px,
+          calc(
+            100vw - 10.5rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)
+          )
+        ) !important;
+      }
+      .guide-content {
+        padding-top: max(52px, calc(env(safe-area-inset-top, 0px) + 40px));
+        padding-right: max(18px, env(safe-area-inset-right, 0px));
+        padding-bottom: max(112px, calc(env(safe-area-inset-bottom, 0px) + 80px));
+        padding-left: max(18px, env(safe-area-inset-left, 0px));
+      }
+      .guide-quote {
+        padding-left: max(14px, env(safe-area-inset-left, 0px));
+        padding-right: max(14px, env(safe-area-inset-right, 0px));
+      }
+    }
+
+    /* Ultra-narrow: tighten Enter Portal capsule beside ellipsed wordmark */
+    @media screen and (max-width: 480px) {
+      #landing-root .menu .go-btn {
+        padding: 7px 14px;
+      }
+      #landing-root .menu .go-btn .go-btn-text {
+        font-size: clamp(9px, 3vw, 11px) !important;
+        letter-spacing: 0.09em !important;
+        max-width: min(78vw, 260px);
       }
     }
 
@@ -1063,7 +1103,7 @@
       color: #ffffff;
     }
 
-    @media screen and (max-device-width: 640px) {
+    @media screen and (max-width: 640px), screen and (max-device-width: 640px) {
       #landing-guide #enter-portal-btn {
         padding: 8.75px 17.5px;
       }

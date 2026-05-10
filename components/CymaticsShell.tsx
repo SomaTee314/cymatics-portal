@@ -423,7 +423,7 @@ export function CymaticsShell() {
             <Link
               href="/login"
               prefetch={false}
-              className="inline-flex max-w-[min(12rem,calc(100vw-2rem))] items-center justify-end whitespace-nowrap bg-transparent px-0 pt-[2px] pb-[2px] text-right font-['Courier_New',Courier,monospace] text-[clamp(11.25px,1.525vw,13.75px)] font-bold uppercase leading-[1.18] tracking-[0.14em] text-[rgba(255,255,255,0.95)] shadow-none [text-shadow:0_1px_6px_rgba(0,0,0,0.55),0_2px_20px_rgba(0,0,0,0.35)] transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400/50"
+              className="inline-flex min-w-0 max-w-[min(7rem,calc(100vw-10.75rem))] items-center justify-end truncate whitespace-nowrap bg-transparent px-0 pt-[2px] pb-[2px] text-right font-['Courier_New',Courier,monospace] text-[clamp(10px,3.25vw,13.75px)] font-bold uppercase leading-[1.18] tracking-[0.14em] text-[rgba(255,255,255,0.95)] shadow-none [text-shadow:0_1px_6px_rgba(0,0,0,0.55),0_2px_20px_rgba(0,0,0,0.35)] transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400/50 lg:max-w-[min(12rem,calc(100vw-2rem))] lg:text-[clamp(11.25px,1.525vw,13.75px)]"
               aria-label="Sign in"
             >
               Sign in
