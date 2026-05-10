@@ -935,18 +935,16 @@
         juliaWrap.id = 'pm-julia-backdrop';
         juliaWrap.style.cssText =
           'position:absolute;left:0;top:0;right:0;bottom:0;width:100%;height:100%;min-height:100%;z-index:0;overflow:hidden;pointer-events:none;';
-        if (!T.isMobile) {
-          var jfr = document.createElement('iframe');
-          jfr.id = 'pm-julia-backdrop-iframe';
-          jfr.title = 'Julia fractal backdrop';
-          jfr.setAttribute('aria-hidden', 'true');
-          jfr.setAttribute('loading', 'eager');
-          jfr.referrerPolicy = 'same-origin';
-          jfr.src = assetRoot + 'julia-fractal-backdrop/index.html';
-          jfr.style.cssText =
-            'width:100%;height:100%;min-height:100%;border:0;display:block;vertical-align:top;';
-          juliaWrap.appendChild(jfr);
-        }
+        var jfr = document.createElement('iframe');
+        jfr.id = 'pm-julia-backdrop-iframe';
+        jfr.title = 'Julia fractal backdrop';
+        jfr.setAttribute('aria-hidden', 'true');
+        jfr.setAttribute('loading', 'eager');
+        jfr.referrerPolicy = 'same-origin';
+        jfr.src = assetRoot + 'julia-fractal-backdrop/index.html';
+        jfr.style.cssText =
+          'width:100%;height:100%;min-height:100%;border:0;display:block;vertical-align:top;';
+        juliaWrap.appendChild(jfr);
         var juliaHue = document.createElement('div');
         juliaHue.id = 'pm-julia-backdrop-hue';
         juliaHue.setAttribute('aria-hidden', 'true');
