@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "clean": "node scripts/clean-next.mjs",
-    "predev": "python _build_portal.py && node scripts/sync-cymatics-public.mjs",
+    "predev": "python _build_portal.py && node scripts/generate-favicon.mjs && node scripts/sync-cymatics-public.mjs",
     "dev": "next dev",
     "dev:turbo": "python _build_portal.py && node scripts/sync-cymatics-public.mjs && next dev --turbo",
     "dev:3005": "python _build_portal.py && node scripts/sync-cymatics-public.mjs && next dev -p 3005",
@@ -15,6 +15,7 @@
     "build": "next build",
     "start": "next start",
     "generate:og": "node scripts/generate-og.mjs",
+    "generate:favicon": "node scripts/generate-favicon.mjs",
     "migrate": "node scripts/run-migrations.mjs",
     "db:push": "npx supabase db push --include-all --yes",
     "db:supabase:login": "npx supabase login",
@@ -53,6 +54,8 @@
     "puppeteer": "^24.2.0",
     "supabase": "^2.84.10",
     "tailwindcss": "^3.4.16",
+    "sharp": "^0.33.5",
+    "to-ico": "^1.1.2",
     "typescript": "^5.7.0"
   }
 }

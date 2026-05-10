@@ -23,6 +23,11 @@ if (!ok) {
   process.exit(1);
 }
 
+const fav = spawnSync(process.execPath, ['scripts/generate-favicon.mjs'], { stdio: 'inherit' });
+if (fav.status !== 0) {
+  process.exit(fav.status ?? 1);
+}
+
 const sync = spawnSync(process.execPath, ['scripts/sync-cymatics-public.mjs'], { stdio: 'inherit' });
 if (sync.status !== 0) {
   process.exit(sync.status ?? 1);
