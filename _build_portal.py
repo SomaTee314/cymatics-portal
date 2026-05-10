@@ -1933,6 +1933,47 @@ portal_css += """
         overflow-wrap: break-word;
         text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5);
       }
+      /* No filled panel behind copy or CTA on small screens (_portal_nifty go-btn skins) */
+      #landing-root .menu .go-btn {
+        background: transparent !important;
+        -webkit-backdrop-filter: none !important;
+        backdrop-filter: none !important;
+        box-shadow: none !important;
+        border: 1px solid rgba(255, 255, 255, 0.62) !important;
+      }
+      #landing-root .menu .go-btn:hover {
+        background: transparent !important;
+        border-color: rgba(145, 230, 255, 0.85) !important;
+        box-shadow: none !important;
+      }
+    }
+    /* Phone/tablet landscape: tuck hero stack bottom-left instead of centred */
+    @media screen and (max-width: 1023px) and (orientation: landscape) {
+      #landing-root .menu {
+        left: max(14px, env(safe-area-inset-left, 0px)) !important;
+        right: auto !important;
+        transform: none !important;
+        bottom: max(12px, env(safe-area-inset-bottom, 0px)) !important;
+        top: auto !important;
+        width: min(
+          440px,
+          calc(54vw - env(safe-area-inset-left, 0px)),
+          calc(100vw - 20px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+        ) !important;
+        max-width: calc(
+          100vw - 20px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)
+        ) !important;
+        padding-left: 0 !important;
+        padding-right: max(12px, env(safe-area-inset-right, 0px));
+      }
+      #landing-root .landing-hero-stack {
+        align-items: flex-start !important;
+        text-align: left !important;
+        --landing-hero-measure: min(38ch, 85vw);
+      }
+      #landing-root .landing-hero-cta {
+        justify-content: flex-start !important;
+      }
     }
 
     /* Narrow left column: more room for particle hero; intro + CTA share width */
@@ -1956,17 +1997,7 @@ portal_css += """
       box-sizing: border-box;
       pointer-events: auto !important;
     }
-    @media screen and (max-width: 1023px) {
-      #landing-root .landing-hero-intro {
-        padding: 12px 14px 14px;
-        border-radius: 12px;
-        background: rgba(3, 5, 10, 0.38);
-        -webkit-backdrop-filter: blur(8px);
-        backdrop-filter: blur(8px);
-        box-decoration-break: clone;
-        -webkit-box-decoration-break: clone;
-      }
-    }
+    /* Compact hero sits on fractal BG — keep text-shadow only (no frosted panel) */
 
     /* +30% headline type; two-line stack, left-aligned with narrow column */
     #landing-root .landing-hero-kicker {
