@@ -209,9 +209,9 @@
       z-index: 10;
       display: flex;
       align-items: center;
-      justify-content: center;
-      padding: 10px max(42px, env(safe-area-inset-right, 0px));
-      padding-left: max(18px, env(safe-area-inset-left, 0px));
+      justify-content: space-between;
+      gap: clamp(10px, 3vw, 20px);
+      padding: 10px max(14px, env(safe-area-inset-right, 0px)) 10px max(14px, env(safe-area-inset-left, 0px));
       background: linear-gradient(0deg, rgba(8,10,20,0.92), transparent);
       border-radius: 0 0 var(--radius) var(--radius);
       font-size: 11px;
@@ -221,26 +221,40 @@
       opacity: 0.85;
       box-sizing: border-box;
     }
-    /* Fullscreen docked on the rim so copy stays visually centred */
-    .status-bar .visual-fs-toggle {
-      position: absolute;
-      top: 50%;
-      right: max(10px, env(safe-area-inset-right, 0px));
-      transform: translateY(-50%);
-      margin: 0;
-      z-index: 11;
-    }
-    .status-bar-copy {
+    /* Telematics + live readout */
+    .status-bar-left {
       display: inline-flex;
       flex-wrap: wrap;
       align-items: baseline;
-      justify-content: center;
+      justify-content: flex-start;
       gap: 0;
-      max-width: min(96%, calc(100% - 2.75rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
-      text-align: center;
+      flex: 1 1 auto;
+      min-width: 0;
+      padding-right: 6px;
       line-height: 1.45;
-      margin: 0 auto;
       box-sizing: border-box;
+      text-align: left;
+    }
+    /* Branding + fullscreen (kept as one cluster on the rim) */
+    .status-bar-right {
+      display: inline-flex;
+      flex-shrink: 0;
+      flex-wrap: nowrap;
+      align-items: center;
+      gap: 10px;
+      max-width: 100%;
+    }
+    .status-bar-brand {
+      text-align: right;
+      white-space: nowrap;
+    }
+    .status-bar .visual-fs-toggle {
+      position: relative;
+      top: auto;
+      right: auto;
+      transform: none;
+      margin: 0;
+      flex-shrink: 0;
     }
     .status-bar-sep {
       opacity: 0.42;
@@ -1199,14 +1213,24 @@
       }
       .status-bar {
         flex-wrap: wrap;
-        justify-content: center;
-        gap: 6px;
-        padding: 10px max(12px, calc(env(safe-area-inset-left, 0px) + 2.25rem))
+        justify-content: space-between;
+        align-items: flex-end;
+        row-gap: 8px;
+        padding: 10px max(12px, env(safe-area-inset-left, 0px))
           max(12px, env(safe-area-inset-bottom, 0px))
-          max(12px, calc(env(safe-area-inset-right, 0px) + 2.25rem));
+          max(12px, env(safe-area-inset-right, 0px));
       }
-      .status-bar-copy {
+      .status-bar-left {
+        flex: 1 1 min(100%, 18rem);
         max-width: 100%;
+        padding-right: 0;
+      }
+      .status-bar-right {
+        margin-left: auto;
+      }
+      .status-bar-brand {
+        white-space: normal;
+        text-align: right;
       }
       .ctrl-frame { grid-template-columns: 1fr; }
       .ctrl-col { border-right: none; border-bottom: var(--border-w) solid var(--cream); }

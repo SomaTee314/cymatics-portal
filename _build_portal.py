@@ -2141,13 +2141,15 @@ shell_body_pre_scripts = (
       <div class="edge-l"></div>
       <div class="edge-r"></div>
       <div class="status-bar">
-        <button type="button" class="visual-fs-toggle" id="btnVisualFullscreen" aria-label="Fullscreen visual" aria-pressed="false" title="Fullscreen visual (ESC or click again to exit)">
-          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
-        </button>
-        <div class="status-bar-copy" role="presentation">
+        <div class="status-bar-left" role="presentation">
           <span class="jp-label">नाद ब्रह्म · CYMATICS</span><span class="status-bar-sep" aria-hidden="true"> · </span>
-          <span class="readout" id="readout">Particles: — · Drive Hz: — · Lobes ~—</span><span class="status-bar-sep" aria-hidden="true"> · </span>
-          <span>Nocturnal Labs · <span class="jp-label">द्वार</span></span>
+          <span class="readout" id="readout">Particles: — · Drive Hz: — · Lobes ~—</span>
+        </div>
+        <div class="status-bar-right">
+          <span class="status-bar-brand">Nocturnal Labs · <span class="jp-label">द्वार</span></span>
+          <button type="button" class="visual-fs-toggle" id="btnVisualFullscreen" aria-label="Fullscreen visual" aria-pressed="false" title="Fullscreen visual (ESC or click again to exit)">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+          </button>
         </div>
       </div>
     </div>
