@@ -1398,7 +1398,14 @@
   }
 
   function resizeMenu(innerW, innerH) {
-    if (dom.menu) dom.menu.style.top = ~~(0.5 * innerH) + 'px';
+    if (!dom.menu) return;
+    if (innerW > 1023) {
+      dom.menu.style.top = ~~(0.5 * innerH) + 'px';
+      dom.menu.style.bottom = '';
+    } else {
+      dom.menu.style.top = '';
+      dom.menu.style.bottom = '';
+    }
   }
 
   /** Public façade (prior bundle's module 53) */

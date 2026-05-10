@@ -1876,45 +1876,62 @@ portal_css += """
         transform: translate(-0.75cm, calc(-50% - clamp(10px, 2vh, 26px) + 1.5cm)) !important;
       }
     }
-    /* Narrow viewports: eliminate negative X translate that clips “Nāda Brahma” off-screen (DevTools + phones) */
+    /* Desktop≥1024: full hero unchanged; DOM includes compact duplicate — hide it here */
+    @media screen and (min-width: 1024px) {
+      #landing-root .landing-hero-intro--compact {
+        display: none !important;
+      }
+    }
+    /* Mobile + small tablets: short copy only, bottom-centered menu */
     @media screen and (max-width: 1023px) {
+      #landing-root .landing-hero-intro--desktop {
+        display: none !important;
+      }
       #landing-root .menu {
-        left: max(14px, env(safe-area-inset-left, 0px)) !important;
+        left: 50% !important;
+        right: auto !important;
+        top: auto !important;
+        bottom: max(16px, env(safe-area-inset-bottom, 0px)) !important;
+        transform: translateX(-50%) !important;
         width: min(
           540px,
-          calc(100vw - 28px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+          calc(100vw - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
         ) !important;
-        max-width: calc(100vw - 28px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)) !important;
-        transform: translate(0, calc(-50% - clamp(10px, 2.2vh, 28px) + 1.5cm)) !important;
-      }
-    }
-    /* Portrait: anchor below top chrome so centred Om reads; allow scroll if prose is tall */
-    @media screen and (max-width: 1023px) and (orientation: portrait) {
-      #landing-root .menu {
-        top: clamp(86px, 12dvh, 128px) !important;
-        bottom: auto !important;
-        transform: none !important;
+        max-width: calc(100vw - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)) !important;
+        padding-left: max(12px, env(safe-area-inset-left, 0px));
+        padding-right: max(12px, env(safe-area-inset-right, 0px));
       }
       #landing-root .landing-hero-stack {
-        max-height: min(52dvh, calc(100vh - 120px - env(safe-area-inset-bottom, 0px)));
-        overflow-y: auto;
-        overscroll-behavior: contain;
-        -webkit-overflow-scrolling: touch;
-        padding-right: 4px;
+        align-items: center !important;
+        text-align: center;
+        max-height: none;
+        overflow: visible;
+        overscroll-behavior: auto;
+        -webkit-overflow-scrolling: auto;
+        padding-right: 0;
+        --landing-hero-measure: min(42ch, 100%);
       }
-    }
-    /* Landscape phones: park copy at bottom-left so it does not cover particle + Om */
-    @media screen and (max-height: 520px) and (orientation: landscape) {
-      #landing-root .menu {
-        top: auto !important;
-        bottom: max(14px, env(safe-area-inset-bottom, 0px)) !important;
-        transform: none !important;
+      #landing-root .landing-hero-cta {
+        justify-content: center !important;
+        max-width: 100%;
+        margin-top: 20px;
       }
-      #landing-root .landing-hero-stack {
-        max-height: min(38dvh, calc(100vh - 24px - env(safe-area-inset-bottom, 0px)));
-        overflow-y: auto;
-        overscroll-behavior: contain;
-        -webkit-overflow-scrolling: touch;
+      #landing-root .landing-hero-compact-title {
+        margin: 0 0 0.5em;
+        font-size: clamp(15px, 3.85vw, 20px);
+        font-weight: 700;
+        line-height: 1.28;
+        color: rgba(255, 255, 255, 0.97);
+        letter-spacing: 0.035em;
+        text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
+      }
+      #landing-root .landing-hero-compact-lead {
+        margin: 0;
+        font-size: clamp(12.5px, 3.2vw, 15.5px);
+        line-height: 1.52;
+        color: rgba(255, 255, 255, 0.88);
+        overflow-wrap: break-word;
+        text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5);
       }
     }
 
