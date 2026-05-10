@@ -1,5 +1,5 @@
 /**
- * Builds repo-root favicon-32.png and favicon.ico.
+ * Builds repo-root favicon-32.png and favicon.ico plus `app/favicon.ico` (Next file convention).
  *
  * Source priority:
  *   1. `public/nocturnal-labs-favicon-source.jpg` — Nocturnal Labs brand mark
@@ -116,6 +116,9 @@ async function main() {
   const icoBuf = await toIco([buf16, buf32]);
   fs.writeFileSync(outIco, Buffer.from(icoBuf));
 
+  const appIco = path.join(root, 'app', 'favicon.ico');
+  fs.copyFileSync(outIco, appIco);
+
   const kbIco = (fs.statSync(outIco).size / 1024).toFixed(1);
   console.log(
     'generate-favicon: source',
@@ -124,6 +127,8 @@ async function main() {
     path.relative(root, out32),
     '&',
     path.relative(root, outIco),
+    '+',
+    path.relative(root, appIco),
     `(${kbIco} KB ico)`,
   );
 }

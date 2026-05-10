@@ -46,6 +46,17 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: pageTitle,
   description: defaultDescription,
+  /**
+   * App Router does not automatically inject `<link rel="icon">` from `public/favicon.ico`
+   * alone—without this, Chromium often falls back to a generic grid-like tab icon despite
+   * `/favicon.ico` resolving correctly.
+   */
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any', type: 'image/x-icon' },
+      { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
+    ],
+  },
   alternates: {
     canonical: SITE_URL,
   },
