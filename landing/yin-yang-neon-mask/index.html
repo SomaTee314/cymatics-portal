@@ -332,6 +332,31 @@
     window.addEventListener('resize', resize);
     resize();
 
+    (function bindGlContextGuards() {
+      var cv = renderer.domElement;
+      cv.addEventListener(
+        'webglcontextlost',
+        function (e) {
+          e.preventDefault();
+        },
+        false
+      );
+      cv.addEventListener(
+        'webglcontextrestored',
+        function () {
+          try {
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+            resize();
+          } catch (_e) {
+            try {
+              location.reload();
+            } catch (_r) {}
+          }
+        },
+        false
+      );
+    })();
+
     function updateMouseWorld(ndcX, ndcY) {
         _unproj.set(ndcX, ndcY, 0.5);
         _unproj.unproject(camera);

@@ -148,13 +148,17 @@
   var iframeRef = null;
 
   function particleCountForTier() {
+    var mobCap = 14000;
     var m = window.location.hash.match(/particles=(\d+)/i);
     if (m) {
       var n = parseInt(m[1], 10);
+      if (T.isMobile) return clamp(n, 4000, mobCap);
       return clamp(n, 4000, 48000);
     }
     var tier = [16000, 22000, 36000][T.quality] || 22000;
-    return clamp(tier, 4000, 48000);
+    if (T.isMobile) tier = [9500, 12000, 14000][T.quality] || 12000;
+    var cap = T.isMobile ? mobCap : 48000;
+    return clamp(tier, 4000, cap);
   }
 
   function classifyLobeXYAny(nxw, nyw, L) {
@@ -931,21 +935,23 @@
         juliaWrap.id = 'pm-julia-backdrop';
         juliaWrap.style.cssText =
           'position:absolute;left:0;top:0;right:0;bottom:0;width:100%;height:100%;min-height:100%;z-index:0;overflow:hidden;pointer-events:none;';
-        var jfr = document.createElement('iframe');
-        jfr.id = 'pm-julia-backdrop-iframe';
-        jfr.title = 'Julia fractal backdrop';
-        jfr.setAttribute('aria-hidden', 'true');
-        jfr.setAttribute('loading', 'eager');
-        jfr.referrerPolicy = 'same-origin';
-        jfr.src = assetRoot + 'julia-fractal-backdrop/index.html';
-        jfr.style.cssText =
-          'width:100%;height:100%;min-height:100%;border:0;display:block;vertical-align:top;';
+        if (!T.isMobile) {
+          var jfr = document.createElement('iframe');
+          jfr.id = 'pm-julia-backdrop-iframe';
+          jfr.title = 'Julia fractal backdrop';
+          jfr.setAttribute('aria-hidden', 'true');
+          jfr.setAttribute('loading', 'eager');
+          jfr.referrerPolicy = 'same-origin';
+          jfr.src = assetRoot + 'julia-fractal-backdrop/index.html';
+          jfr.style.cssText =
+            'width:100%;height:100%;min-height:100%;border:0;display:block;vertical-align:top;';
+          juliaWrap.appendChild(jfr);
+        }
         var juliaHue = document.createElement('div');
         juliaHue.id = 'pm-julia-backdrop-hue';
         juliaHue.setAttribute('aria-hidden', 'true');
         juliaHue.style.cssText =
           'position:absolute;left:0;top:0;right:0;bottom:0;pointer-events:none;background:rgba(22,12,48,0.52);';
-        juliaWrap.appendChild(jfr);
         juliaWrap.appendChild(juliaHue);
         if (neonHostEarly) box.insertBefore(juliaWrap, neonHostEarly);
         else box.insertBefore(juliaWrap, box.firstChild);

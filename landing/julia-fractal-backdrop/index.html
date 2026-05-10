@@ -244,6 +244,31 @@
     window.addEventListener('resize', resize);
     resize();
 
+    (function bindGlContextGuards() {
+      var cv = renderer.domElement;
+      cv.addEventListener(
+        'webglcontextlost',
+        function (e) {
+          e.preventDefault();
+        },
+        false
+      );
+      cv.addEventListener(
+        'webglcontextrestored',
+        function () {
+          try {
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+            resize();
+          } catch (_e) {
+            try {
+              location.reload();
+            } catch (_r) {}
+          }
+        },
+        false
+      );
+    })();
+
     var fractalJuliaTourSeg = -1;
     var fractalJuliaConnectEnergy = 0;
     var fractalJuliaConnectSm = 0;
