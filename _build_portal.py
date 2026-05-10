@@ -3,11 +3,33 @@
 import json
 import os
 import re
+import shutil
+import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
 import _landing_assets
 import wormhole_iife_patch
+
+
+def _sync_cymatics_public(project_root: Path) -> None:
+    """Copy index.html to public/cymatics.html for Next.js iframe (/cymatics.html)."""
+    sync_js = project_root / "scripts" / "sync-cymatics-public.mjs"
+    if not sync_js.is_file():
+        return
+    node = shutil.which("node")
+    if not node:
+        return
+    try:
+        subprocess.run(
+            [node, str(sync_js)],
+            cwd=str(project_root),
+            check=False,
+            timeout=120,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+
 
 _SEO_TITLE = "Cymatics Portal — Sound Made Visible"
 _SEO_META_DESCRIPTION = (
@@ -1023,6 +1045,7 @@ _rebuild_new = (
     "        if (!pointsClassicMat) {\n"
     "            pointsClassicMat = new THREE.PointsMaterial({\n"
     "                size: 0.0095,\n"
+    "                map: ensureNeonParticleMap(),\n"
     "                vertexColors: THREE.VertexColors,\n"
     "                transparent: true,\n"
     "                opacity: 0.95,\n"
@@ -1629,6 +1652,27 @@ _anim_new = (
     "                0.15\n"
     "            );\n"
     "        }\n"
+    "        if (!wormholeNow && visualMode === 'points') {\n"
+    "            var Bpc = snap.bands || null;\n"
+    "            cymJuliaSpiralAccum +=\n"
+    "                dt *\n"
+    "                (0.118 +\n"
+    "                    lvl * 0.07 +\n"
+    "                    fractalSmAudioLvl * 0.075 +\n"
+    "                    (Bpc ? Bpc.mid * 0.036 + Bpc.lowMid * 0.026 : 0));\n"
+    "            var cymSpiralAudioT =\n"
+    "                fractalSmAudioLvl * 0.55 +\n"
+    "                lvl * 0.22 +\n"
+    "                (Bpc\n"
+    "                    ? Bpc.bass * 0.26 + Bpc.lowMid * 0.2 + (Bpc.mid - 0.5) * 0.17\n"
+    "                    : 0);\n"
+    "            cymJSpiralAudioSm = fractalExpSmooth(\n"
+    "                cymJSpiralAudioSm,\n"
+    "                cymSpiralAudioT,\n"
+    "                dt,\n"
+    "                0.32\n"
+    "            );\n"
+    "        }\n"
     "        if (!fractalNow) {\n"
     "            for (var i = 0; i < N; i++) {\n"
     "                var x0 = baseXY[i * 2];\n"
@@ -1640,7 +1684,22 @@ _anim_new = (
     "                arr[ix + 1] = y0;\n"
     "                var h = waveHeight(r, th, time, hz, lvl, snap);\n"
     "                arr[ix + 2] = h * zScale;\n"
-    "                heightToColor(h * 0.95, tr, colAttr, ix, snap, true);\n"
+    "                if (visualMode === 'points') {\n"
+    "                    heightToColorParticleJuliaParity(\n"
+    "                        h * 0.95,\n"
+    "                        tr,\n"
+    "                        r,\n"
+    "                        th,\n"
+    "                        colAttr,\n"
+    "                        ix,\n"
+    "                        snap,\n"
+    "                        cymJuliaSpiralAccum + cymJSpiralAudioSm,\n"
+    "                        fractalSmPal,\n"
+    "                        fractalSmColorI\n"
+    "                    );\n"
+    "                } else {\n"
+    "                    heightToColor(h * 0.95, tr, colAttr, ix, snap, true);\n"
+    "                }\n"
     "                if (splatFullNow) {\n"
     "                    spA[ix] = arr[ix];\n"
     "                    spA[ix + 1] = arr[ix + 1];\n"
@@ -1660,7 +1719,10 @@ _anim_new = (
     "        var baseSize = (N > 25000 ? 0.0068 : N > 14000 ? 0.008 : 0.0095) * "
     "simControls.pointSizeMul;\n"
     "        if (pointsClassicMat) {\n"
-    "            pointsClassicMat.size = baseSize;\n"
+    "            var neonPulse = 0.82 + 0.18 * (0.5 + 0.5 * Math.sin(time * 3.2));\n"
+    "            var neonGlow = 0.78 + 0.22 * (0.5 + 0.5 * Math.sin(time * 3.2 + 1.4));\n"
+    "            pointsClassicMat.size = baseSize * neonPulse * 1.3;\n"
+    "            pointsClassicMat.opacity = Math.min(1, 0.95 * neonGlow * 1.4);\n"
     "        }\n"
     "        if (splatFullMesh && splatFullMesh.material && "
     "splatFullMesh.material.uniforms) {\n"
@@ -2079,14 +2141,14 @@ shell_body_pre_scripts = (
       <div class="edge-l"></div>
       <div class="edge-r"></div>
       <div class="status-bar">
-        <span class="jp-label">नाद ब्रह्म · CYMATICS</span>
-        <span class="readout" id="readout">Particles: — · Drive Hz: — · Lobes ~—</span>
-        <span style="display:flex;align-items:center;margin-left:auto;gap:10px;">
+        <button type="button" class="visual-fs-toggle" id="btnVisualFullscreen" aria-label="Fullscreen visual" aria-pressed="false" title="Fullscreen visual (ESC or click again to exit)">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+        </button>
+        <div class="status-bar-copy" role="presentation">
+          <span class="jp-label">नाद ब्रह्म · CYMATICS</span><span class="status-bar-sep" aria-hidden="true"> · </span>
+          <span class="readout" id="readout">Particles: — · Drive Hz: — · Lobes ~—</span><span class="status-bar-sep" aria-hidden="true"> · </span>
           <span>Nocturnal Labs · <span class="jp-label">द्वार</span></span>
-          <button type="button" class="visual-fs-toggle" id="btnVisualFullscreen" aria-label="Fullscreen visual" aria-pressed="false" title="Fullscreen visual (ESC or click again to exit)">
-            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
-          </button>
-        </span>
+        </div>
       </div>
     </div>
 
@@ -3060,3 +3122,4 @@ if not skin_path.exists():
     if css_m2:
         skin_path.write_text(css_m2.group(1).strip() + "\n", encoding="utf-8")
 print("Wrote", out_path, "bytes", out_path.stat().st_size)
+_sync_cymatics_public(root)
