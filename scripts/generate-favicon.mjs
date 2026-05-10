@@ -1,8 +1,10 @@
 /**
  * Builds repo-root favicon-32.png and favicon.ico.
  *
- * Prefers `public/favicon-neon-om-landing.jpg` — a centred viewport crop of the
- * live landing neon Om — then falls back to `public/om-neon.png`.
+ * Source priority:
+ *   1. `public/nocturnal-labs-favicon-source.jpg` — Nocturnal Labs brand mark
+ *   2. `public/favicon-neon-om-landing.jpg` — centred landing Om screenshot crop
+ *   3. `public/om-neon.png` — legacy neon Om texture
  *
  * Run: node scripts/generate-favicon.mjs
  */
@@ -14,16 +16,39 @@ import toIco from 'to-ico';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
+const brandPath = path.join(root, 'public', 'nocturnal-labs-favicon-source.jpg');
 const landingPath = path.join(root, 'public', 'favicon-neon-om-landing.jpg');
 const legacyOmPath = path.join(root, 'public', 'om-neon.png');
 const out32 = path.join(root, 'favicon-32.png');
 const outIco = path.join(root, 'favicon.ico');
 
-/** Matches static portal theme-color / first-paint backdrop */
+/** Site chrome / static portal backdrop */
 const LETTERBOX_BG = { r: 3, g: 5, b: 8, alpha: 1 };
+/** Matches Nocturnal Labs emblem matte backing */
+const BRAND_BG = { r: 0, g: 0, b: 0, alpha: 1 };
 
 /** Framed crop on wide landing screenshots (~Om + inner particle halo) */
 const LANDING_CROP_RATIO = 0.42;
+
+async function squareFromBrand() {
+  const meta = await sharp(brandPath).metadata();
+  const w = meta.width ?? 0;
+  const h = meta.height ?? 0;
+  const side = Math.max(w, h) || 512;
+
+  return sharp(brandPath)
+    .resize(side, side, {
+      fit: 'contain',
+      position: 'centre',
+      background: BRAND_BG,
+    })
+    .resize(384, 384, { kernel: sharp.kernel.lanczos3 })
+    .modulate({ saturation: 1.06, lightness: 1.01 })
+    .sharpen({ sigma: 0.4, m1: 0.55, m2: 0.2 })
+    .flatten({ background: BRAND_BG })
+    .png()
+    .toBuffer();
+}
 
 async function landingCropToSquare() {
   const meta = await sharp(landingPath).metadata();
@@ -60,15 +85,29 @@ async function legacySquareFromOmNeon() {
 }
 
 async function main() {
-  const srcPath = fs.existsSync(landingPath) ? landingPath : legacyOmPath;
-  if (!fs.existsSync(srcPath)) {
-    console.error('generate-favicon: missing', landingPath, 'and', legacyOmPath);
+  let squarePng;
+  let srcPath;
+
+  if (fs.existsSync(brandPath)) {
+    squarePng = await squareFromBrand();
+    srcPath = brandPath;
+  } else if (fs.existsSync(landingPath)) {
+    squarePng = await landingCropToSquare();
+    srcPath = landingPath;
+  } else if (fs.existsSync(legacyOmPath)) {
+    squarePng = await legacySquareFromOmNeon();
+    srcPath = legacyOmPath;
+  } else {
+    console.error(
+      'generate-favicon: no source — add',
+      path.relative(root, brandPath),
+      'or',
+      path.relative(root, landingPath),
+      'or',
+      path.relative(root, legacyOmPath),
+    );
     process.exit(1);
   }
-
-  const squarePng = fs.existsSync(landingPath)
-    ? await landingCropToSquare()
-    : await legacySquareFromOmNeon();
 
   const buf32 = await sharp(squarePng).resize(32, 32).png().toBuffer();
   const buf16 = await sharp(squarePng).resize(16, 16).png().toBuffer();
