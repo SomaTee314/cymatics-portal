@@ -16,6 +16,14 @@
     <script>
 (function () {
     if (!window.THREE) return;
+    function landingIsCheapGpuHost() {
+        try {
+            return /(iPad|iPhone|Android)/i.test(navigator.userAgent || '');
+        } catch (_e) {
+            return false;
+        }
+    }
+    var landingCheapGpuHost = landingIsCheapGpuHost();
     var BG_HEX = 0x000000;
     var BG_AMBIENT = 0x1a4080;
 
@@ -35,7 +43,9 @@
         alpha: true,
         premultipliedAlpha: false
     });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(
+        landingCheapGpuHost ? 1 : Math.min(window.devicePixelRatio || 1, 2)
+    );
     renderer.setClearColor(BG_HEX, 0);
     document.body.insertBefore(renderer.domElement, document.body.firstChild);
 
@@ -334,6 +344,11 @@
 
     (function bindGlContextGuards() {
       var cv = renderer.domElement;
+      function applyLandingDpr() {
+        renderer.setPixelRatio(
+          landingCheapGpuHost ? 1 : Math.min(window.devicePixelRatio || 1, 2)
+        );
+      }
       cv.addEventListener(
         'webglcontextlost',
         function (e) {
@@ -345,12 +360,24 @@
         'webglcontextrestored',
         function () {
           try {
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+            applyLandingDpr();
             resize();
+            renderer.render(scene, camera);
+            if (landingCheapGpuHost) {
+              requestAnimationFrame(function () {
+                try {
+                  var gl = renderer.getContext();
+                  if (gl && typeof gl.isContextLost === 'function' && gl.isContextLost())
+                    location.reload();
+                } catch (_r) {
+                  location.reload();
+                }
+              });
+            }
           } catch (_e) {
             try {
               location.reload();
-            } catch (_r) {}
+            } catch (_r2) {}
           }
         },
         false

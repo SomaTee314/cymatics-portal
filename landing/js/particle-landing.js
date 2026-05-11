@@ -101,6 +101,17 @@
     camera: null
   };
 
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden || !T.isMobile) return;
+    ['pm-julia-backdrop-iframe', 'pm-neon-backdrop-iframe'].forEach(function (id) {
+      var fr = document.getElementById(id);
+      try {
+        if (fr && fr.contentWindow)
+          fr.contentWindow.dispatchEvent(new Event('resize'));
+      } catch (_e) {}
+    });
+  });
+
   /** Demo colour tween targets (landing shell writes setHex — no shader impact) */
   var A = {
     size: 2,
@@ -148,7 +159,7 @@
   var iframeRef = null;
 
   function particleCountForTier() {
-    var mobCap = 14000;
+    var mobCap = 9600;
     var m = window.location.hash.match(/particles=(\d+)/i);
     if (m) {
       var n = parseInt(m[1], 10);
@@ -156,7 +167,7 @@
       return clamp(n, 4000, 48000);
     }
     var tier = [16000, 22000, 36000][T.quality] || 22000;
-    if (T.isMobile) tier = [9500, 12000, 14000][T.quality] || 12000;
+    if (T.isMobile) tier = [6200, 7800, 9600][T.quality] || 7800;
     var cap = T.isMobile ? mobCap : 48000;
     return clamp(tier, 4000, cap);
   }

@@ -20,6 +20,16 @@
 (function () {
     if (!window.THREE) return;
 
+    function landingIsCheapGpuHost() {
+        try {
+            return /(iPad|iPhone|Android)/i.test(navigator.userAgent || '');
+        } catch (_e) {
+            return false;
+        }
+    }
+    var landingCheapGpuHost = landingIsCheapGpuHost();
+    var juliaIterCeilingHard = landingCheapGpuHost ? 340 : 450;
+
     function fractalExpSmooth(cur, target, dt, tau) {
         if (!(tau > 0) || !isFinite(dt) || dt <= 0) return target;
         var a = 1 - Math.exp(-dt / tau);
@@ -56,7 +66,9 @@
     camera.position.z = 2.35;
 
     var renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+    renderer.setPixelRatio(
+        landingCheapGpuHost ? 1 : Math.min(window.devicePixelRatio || 1, 1.75)
+    );
     renderer.setClearColor(0x030308, 1);
     document.body.appendChild(renderer.domElement);
 
@@ -246,6 +258,11 @@
 
     (function bindGlContextGuards() {
       var cv = renderer.domElement;
+      function applyLandingDpr() {
+        renderer.setPixelRatio(
+          landingCheapGpuHost ? 1 : Math.min(window.devicePixelRatio || 1, 1.75)
+        );
+      }
       cv.addEventListener(
         'webglcontextlost',
         function (e) {
@@ -257,12 +274,24 @@
         'webglcontextrestored',
         function () {
           try {
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+            applyLandingDpr();
             resize();
+            renderer.render(scene, camera);
+            if (landingCheapGpuHost) {
+              requestAnimationFrame(function () {
+                try {
+                  var gl = renderer.getContext();
+                  if (gl && typeof gl.isContextLost === 'function' && gl.isContextLost())
+                    location.reload();
+                } catch (_r) {
+                  location.reload();
+                }
+              });
+            }
           } catch (_e) {
             try {
               location.reload();
-            } catch (_r) {}
+            } catch (_r2) {}
           }
         },
         false
@@ -503,7 +532,7 @@
             fractalJuliaSpiralAccum + fractalSmJSpiralAudio;
 
         var jMaxT = Math.min(
-            450,
+            juliaIterCeilingHard,
             Math.max(
                 232,
                 218 +
